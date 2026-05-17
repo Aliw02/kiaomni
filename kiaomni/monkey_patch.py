@@ -117,11 +117,23 @@ def apply_kiaomni(
             kept = [len(k) for k in keep_per_row]
             print(f"[KiaOmni] {policy} budget={budget} kept={kept}/{L}")
 
-        # 3. Build evicted KV cache.
+        # 3. Drop the last input position (L-1) from each row's keep set.
+        # HF's contract: past_key_values holds tokens [0, cache_len); input_ids
+        # holds the NEXT tokens. Since we always protect recency (so L-1 is in
+        # keep), leaving it in the cache AND feeding input_ids[:, -1:] causes
+        # double-insertion — identical K vectors get appended, doubling that
+        # token's attention weight and producing degenerate repetition.
+        keep_per_row = [
+            (k[k != (L - 1)] if isinstance(k, np.ndarray)
+             else np.asarray([p for p in k if p != L - 1], dtype=np.int64))
+            for k in keep_per_row
+        ]
+
+        # 4. Build evicted KV cache from trimmed keeps.
         raw_kv = cache.gather(input_ids, model)
         pkv = cache.evict(raw_kv, keep_per_row, model)
 
-        # 4. Resume generation from the cache.
+        # 5. Resume generation from the cache.
         kwargs.setdefault("past_key_values", pkv)
         max_keep = max(len(k) for k in keep_per_row)
 
