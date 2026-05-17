@@ -123,11 +123,24 @@ def apply_kiaomni(
 
         # 4. Resume generation from the cache.
         kwargs.setdefault("past_key_values", pkv)
+        max_keep = max(len(k) for k in keep_per_row)
+
+        # cache_position: where in the (compressed) cache the next K/V goes.
+        # transformers>=4.45 indexes cache_position[-1] in prepare_inputs_for_generation;
+        # if absent it derives from past_key_values, which fails for our custom cache.
+        kwargs.setdefault(
+            "cache_position",
+            torch.arange(
+                max_keep, max_keep + 1,
+                device=input_ids.device, dtype=torch.long,
+            ),
+        )
+
         if probe.pos_encoding == "rope":
-            # RoPE relies on absolute positions; tell the model where to start.
-            max_keep = max(len(k) for k in keep_per_row)
+            # RoPE: cached K was rotated at its ORIGINAL positions, so the new
+            # Q must also use the original position (L-1 for the last input token).
             pos_id = torch.tensor(
-                [[max_keep - 1]] * B,
+                [[L - 1]] * B,
                 device=input_ids.device,
                 dtype=torch.long,
             )
