@@ -138,27 +138,39 @@ def apply_kiaomni(
             )
             pruned = input_ids[:, keep_t]
             kwargs.setdefault("attention_mask", torch.ones_like(pruned))
-            return _orig(pruned, **kwargs)
+            out = _orig(pruned, **kwargs)
+        else:
+            # Multi-row path: pad per-row keeps to the max length with the
+            # pad token (or eos), and build an attention mask that zeroes
+            # the pad slots so they don't pollute attention.
+            max_keep = max(len(k) for k in keep_per_row)
+            pad_id = _resolve_pad_token_id(model)
+            pruned = torch.full(
+                (B, max_keep), pad_id,
+                device=input_ids.device, dtype=input_ids.dtype,
+            )
+            attn_mask = torch.zeros(
+                (B, max_keep), device=input_ids.device, dtype=torch.long
+            )
+            for b, k in enumerate(keep_per_row):
+                n = len(k)
+                keep_t = torch.as_tensor(k, device=input_ids.device, dtype=torch.long)
+                pruned[b, :n] = input_ids[b, keep_t]
+                attn_mask[b, :n] = 1
+            kwargs.setdefault("attention_mask", attn_mask)
+            out = _orig(pruned, **kwargs)
 
-        # Multi-row path: pad per-row keeps to the max length with the
-        # pad token (or eos), and build an attention mask that zeroes
-        # the pad slots so they don't pollute attention.
-        max_keep = max(len(k) for k in keep_per_row)
-        pad_id = _resolve_pad_token_id(model)
-        pruned = torch.full(
-            (B, max_keep), pad_id,
-            device=input_ids.device, dtype=input_ids.dtype,
-        )
-        attn_mask = torch.zeros(
-            (B, max_keep), device=input_ids.device, dtype=torch.long
-        )
-        for b, k in enumerate(keep_per_row):
-            n = len(k)
-            keep_t = torch.as_tensor(k, device=input_ids.device, dtype=torch.long)
-            pruned[b, :n] = input_ids[b, keep_t]
-            attn_mask[b, :n] = 1
-        kwargs.setdefault("attention_mask", attn_mask)
-        return _orig(pruned, **kwargs)
+        # 4. Restore HF generate contract: out[:, input_ids.shape[1]:] must
+        # yield only the new tokens. Internally we shortened the prompt to
+        # `pruned.shape[1]`, so we prepend the original prompt to the new
+        # tokens, returning a tensor whose prefix matches the caller's input.
+        if not isinstance(out, torch.Tensor):
+            return out  # generate may return GenerateOutput dataclass — pass through
+        pruned_len = pruned.shape[1]
+        if out.shape[1] <= pruned_len:
+            return out  # no new tokens generated (e.g., immediate EOS)
+        new_tokens = out[:, pruned_len:]
+        return torch.cat([input_ids, new_tokens], dim=1)
 
     model.generate = _patched  # type: ignore[method-assign]
     return probe
