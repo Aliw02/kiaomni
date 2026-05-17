@@ -191,38 +191,25 @@ def apply_kiaomni(
 
 
 def remove_kiaomni(model) -> None:
-    """Undo all previous ``apply_kiaomni`` calls, even if stacked.
+    """Restore ``model.generate`` to its pre-patch state.
 
-    Walks the ``__wrapped__`` chain until it finds the original bound
-    method, then restores it. Falls back to deleting the instance
-    attribute so the class-level ``generate`` shows through.
+    Strategy: delete the instance attribute so Python's descriptor
+    protocol re-binds the class-level ``generate`` on every access.
+
+    Why not walk ``__wrapped__``? Because ``@torch.no_grad()`` (which
+    decorates HF ``generate``) leaves a ``__wrapped__`` pointer to the
+    **raw unbound** ``generate(self, ...)`` function. Following that
+    chain past the bound method lands on the unbound function, which —
+    when reassigned as an instance attribute and called as
+    ``model.generate(ids)`` — invokes ``generate(self=ids)``: the exact
+    Tensor-as-self crash we are trying to prevent. Deleting the instance
+    attribute is bulletproof against decorator chains because it leaves
+    no instance shadow at all.
     """
-    # Unwind every wrapper level — handles repeated apply_kiaomni calls.
-    current = getattr(model, "generate", None)
-    seen = set()
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        inner = getattr(current, "__wrapped__", None)
-        if inner is None:
-            break
-        current = inner
-
-    if current is not None:
-        # If we found a non-wrapper that looks like the original bound
-        # method, install it. Otherwise delete the instance attribute so
-        # the descriptor-bound class method takes over.
-        try:
-            model.generate = current
-        except Exception:
-            try:
-                delattr(model, "generate")
-            except AttributeError:
-                pass
-    else:
-        try:
-            delattr(model, "generate")
-        except AttributeError:
-            pass
+    try:
+        delattr(model, "generate")
+    except AttributeError:
+        pass
 
     if hasattr(model, "_kia_arch_info"):
         try:
