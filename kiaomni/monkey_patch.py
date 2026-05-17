@@ -177,10 +177,39 @@ def apply_kiaomni(
 
 
 def remove_kiaomni(model) -> None:
-    """Undo a previous ``apply_kiaomni`` call."""
-    orig = getattr(model.generate, "__wrapped__", None)
-    if orig is not None:
-        model.generate = orig
+    """Undo all previous ``apply_kiaomni`` calls, even if stacked.
+
+    Walks the ``__wrapped__`` chain until it finds the original bound
+    method, then restores it. Falls back to deleting the instance
+    attribute so the class-level ``generate`` shows through.
+    """
+    # Unwind every wrapper level — handles repeated apply_kiaomni calls.
+    current = getattr(model, "generate", None)
+    seen = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        inner = getattr(current, "__wrapped__", None)
+        if inner is None:
+            break
+        current = inner
+
+    if current is not None:
+        # If we found a non-wrapper that looks like the original bound
+        # method, install it. Otherwise delete the instance attribute so
+        # the descriptor-bound class method takes over.
+        try:
+            model.generate = current
+        except Exception:
+            try:
+                delattr(model, "generate")
+            except AttributeError:
+                pass
+    else:
+        try:
+            delattr(model, "generate")
+        except AttributeError:
+            pass
+
     if hasattr(model, "_kia_arch_info"):
         try:
             delattr(model, "_kia_arch_info")
