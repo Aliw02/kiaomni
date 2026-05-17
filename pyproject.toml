@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kiaomni"
+version = "0.1.0"
+description = "Generic monkey-patch KV-cache eviction (KiaOmni) for any HuggingFace causal LM"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Aliwey", email = "aliweyabood@gmail.com" }
+]
+keywords = ["llm", "kv-cache", "eviction", "long-context", "transformers", "inference"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.26",
+    "torch>=2.6",
+    "transformers>=4.50,<5.0",
+]
+
+[project.optional-dependencies]
+gaussian = ["scipy>=1.12"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "scipy>=1.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/Aliw02/kiaomni"
+Source   = "https://github.com/Aliw02/kiaomni"
+Issues   = "https://github.com/Aliw02/kiaomni/issues"
+
+[tool.setuptools.packages.find]
+include = ["kiaomni*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: tests that download real models",
+]
