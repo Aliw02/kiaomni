@@ -94,6 +94,13 @@ def apply_kiaomni(
             f"{n_sink + recency}. Use a larger budget."
         )
 
+    # Idempotency: if a previous apply_kiaomni left a wrapper on model.generate,
+    # unwind it before installing a new one. Without this, repeated apply calls
+    # stack wrappers; the innermost _orig stops resolving to the bound method
+    # and the model's own Tensor input gets passed as `self` to generate().
+    if hasattr(model, "_kia_arch_info") or hasattr(getattr(model, "generate", None), "__wrapped__"):
+        remove_kiaomni(model)
+
     score_fn = get_policy(policy)
     probe = ArchitectureProbe.probe(model)
     saliency = SaliencyAdapter(probe)
