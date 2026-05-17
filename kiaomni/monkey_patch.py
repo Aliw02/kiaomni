@@ -2,8 +2,27 @@
 kiaomni/monkey_patch.py
 =========================
 Public entrypoint that attaches KiaOmni KV-cache eviction to any
-HuggingFace causal LM via runtime introspection — no architecture
-constants, no hardcoded module paths.
+HuggingFace causal LM via runtime introspection.
+
+Algorithm — prompt-side eviction
+---------------------------------
+KiaOmni runs ONE forward pass on the full prompt to extract per-token
+saliency, then selects the top-`budget` token positions (always
+protecting `n_sink` sinks and `recency` trailing tokens). The model is
+then re-invoked on the kept-tokens subset as a fresh, shorter prompt.
+
+This matches the paper-evaluated algorithm in
+`notebook/kv_cache_benchmark/033_full_comparison.py` and has been
+validated on Qwen2.5-7B, Mistral, BioMistral, Llama-3.1, and TinyLlama.
+
+Why prompt-side, not cache-side?
+--------------------------------
+Cache-side eviction (gather KV, resume with `past_key_values`) requires
+exact alignment of `cache_position`, `position_ids`, and RoPE rotation
+positions — contracts that drift between transformers releases and break
+across model families. Prompt-side eviction delegates all of that to
+the model's own `generate`, which is the only path the HF maintainers
+guarantee.
 
 Quickstart
 ----------
@@ -20,27 +39,17 @@ Quickstart
 
     out = model.generate(tok("...", return_tensors="pt").input_ids,
                          max_new_tokens=128)
-
-Verified architectures
-----------------------
-    Llama 3 / 3.1, Mistral, Qwen2 / Qwen2.5, TinyLlama
-    GPT-2, GPT-NeoX, Falcon
-
-For anything else, the probe falls back to ``output_attentions=True``
-extraction which is slower but model-agnostic.
 """
 
 from __future__ import annotations
 
 import functools
 import logging
-from typing import Optional
 
 import numpy as np
 import torch
 
 from .adapters import ArchitectureProbe, KiaomniConfigError, ProbeResult
-from .adapters.cache import CacheAdapter
 from .adapters.saliency import SaliencyAdapter
 from .policies import get_policy
 from .utils import N_SINK_DEFAULT, RECENCY_DEFAULT, select_keep
@@ -62,14 +71,14 @@ def apply_kiaomni(
     verbose: bool = False,
 ) -> ProbeResult:
     """
-    Monkey-patch ``model.generate`` to apply KiaOmni KV eviction.
+    Monkey-patch ``model.generate`` to apply KiaOmni prompt-side eviction.
 
     Parameters
     ----------
     model    : any HuggingFace AutoModelForCausalLM loaded with
                ``attn_implementation="eager"``.
     policy   : key from ``kiaomni.policies.POLICY_REGISTRY``.
-    budget   : number of KV positions to retain after eviction.
+    budget   : number of input-token positions to retain.
     n_sink   : how many initial tokens to always protect.
     recency  : how many trailing tokens to always protect.
     verbose  : print kept / total per call.
@@ -77,7 +86,7 @@ def apply_kiaomni(
     Returns
     -------
     ProbeResult
-        The probe result is also stored on ``model._kia_arch_info``.
+        Also stored on ``model._kia_arch_info``.
     """
     if budget < n_sink + recency:
         raise ValueError(
@@ -88,78 +97,68 @@ def apply_kiaomni(
     score_fn = get_policy(policy)
     probe = ArchitectureProbe.probe(model)
     saliency = SaliencyAdapter(probe)
-    cache = CacheAdapter(probe)
 
     _orig = model.generate
 
     @functools.wraps(_orig)
     def _patched(input_ids: torch.Tensor, **kwargs):
+        # Pass-through for non-2D inputs (e.g., inputs_embeds path).
         if input_ids.dim() != 2:
             return _orig(input_ids, **kwargs)
         B, L = input_ids.shape
 
+        # No eviction needed — prompt fits in budget.
         if L <= budget:
             return _orig(input_ids, **kwargs)
 
-        # 1. Extract per-token saliency: (B, L)
+        # 1. Extract per-token saliency over the full prompt: (B, L)
         sal_batch = saliency.extract(input_ids, model)
 
-        # 2. Score & select per batch row.
-        keep_per_row = []
-        for b in range(B):
-            score = score_fn(sal_batch[b])
-            keep = select_keep(
-                score, budget, L, n_sink=n_sink, recency=recency
+        # 2. Select top-budget positions per row, always protecting
+        #    n_sink initial + recency trailing tokens.
+        keep_per_row = [
+            np.sort(
+                select_keep(
+                    score_fn(sal_batch[b]), budget, L,
+                    n_sink=n_sink, recency=recency,
+                )
             )
-            keep_per_row.append(keep)
+            for b in range(B)
+        ]
 
         if verbose:
             kept = [len(k) for k in keep_per_row]
             print(f"[KiaOmni] {policy} budget={budget} kept={kept}/{L}")
 
-        # 3. Drop the last input position (L-1) from each row's keep set.
-        # HF's contract: past_key_values holds tokens [0, cache_len); input_ids
-        # holds the NEXT tokens. Since we always protect recency (so L-1 is in
-        # keep), leaving it in the cache AND feeding input_ids[:, -1:] causes
-        # double-insertion — identical K vectors get appended, doubling that
-        # token's attention weight and producing degenerate repetition.
-        keep_per_row = [
-            (k[k != (L - 1)] if isinstance(k, np.ndarray)
-             else np.asarray([p for p in k if p != L - 1], dtype=np.int64))
-            for k in keep_per_row
-        ]
-
-        # 4. Build evicted KV cache from trimmed keeps.
-        raw_kv = cache.gather(input_ids, model)
-        pkv = cache.evict(raw_kv, keep_per_row, model)
-
-        # 5. Resume generation from the cache.
-        kwargs.setdefault("past_key_values", pkv)
-        max_keep = max(len(k) for k in keep_per_row)
-
-        # cache_position: where in the (compressed) cache the next K/V goes.
-        # transformers>=4.45 indexes cache_position[-1] in prepare_inputs_for_generation;
-        # if absent it derives from past_key_values, which fails for our custom cache.
-        kwargs.setdefault(
-            "cache_position",
-            torch.arange(
-                max_keep, max_keep + 1,
-                device=input_ids.device, dtype=torch.long,
-            ),
-        )
-
-        if probe.pos_encoding == "rope":
-            # RoPE: cached K was rotated at its ORIGINAL positions, so the new
-            # Q must also use the original position (L-1 for the last input token).
-            pos_id = torch.tensor(
-                [[L - 1]] * B,
-                device=input_ids.device,
-                dtype=torch.long,
+        # 3. Slice input_ids by kept positions and run generate fresh.
+        #    Single-row fast path (the common case for `model.generate`).
+        if B == 1:
+            keep_t = torch.as_tensor(
+                keep_per_row[0], device=input_ids.device, dtype=torch.long
             )
-            kwargs.setdefault("position_ids", pos_id)
-        # For learned / alibi / none, transformers handles positions internally.
+            pruned = input_ids[:, keep_t]
+            kwargs.setdefault("attention_mask", torch.ones_like(pruned))
+            return _orig(pruned, **kwargs)
 
-        return _orig(input_ids[:, -1:], **kwargs)
+        # Multi-row path: pad per-row keeps to the max length with the
+        # pad token (or eos), and build an attention mask that zeroes
+        # the pad slots so they don't pollute attention.
+        max_keep = max(len(k) for k in keep_per_row)
+        pad_id = _resolve_pad_token_id(model)
+        pruned = torch.full(
+            (B, max_keep), pad_id,
+            device=input_ids.device, dtype=input_ids.dtype,
+        )
+        attn_mask = torch.zeros(
+            (B, max_keep), device=input_ids.device, dtype=torch.long
+        )
+        for b, k in enumerate(keep_per_row):
+            n = len(k)
+            keep_t = torch.as_tensor(k, device=input_ids.device, dtype=torch.long)
+            pruned[b, :n] = input_ids[b, keep_t]
+            attn_mask[b, :n] = 1
+        kwargs.setdefault("attention_mask", attn_mask)
+        return _orig(pruned, **kwargs)
 
     model.generate = _patched  # type: ignore[method-assign]
     return probe
@@ -175,6 +174,20 @@ def remove_kiaomni(model) -> None:
             delattr(model, "_kia_arch_info")
         except AttributeError:
             pass
+
+
+def _resolve_pad_token_id(model) -> int:
+    """Best-effort pad token: model config → eos fallback → 0."""
+    cfg = getattr(model, "config", None)
+    if cfg is not None:
+        pad = getattr(cfg, "pad_token_id", None)
+        if pad is None:
+            pad = getattr(cfg, "eos_token_id", None)
+        if isinstance(pad, list) and pad:
+            pad = pad[0]
+        if isinstance(pad, int):
+            return pad
+    return 0
 
 
 __all__ = ["apply_kiaomni", "remove_kiaomni", "KiaomniConfigError"]
