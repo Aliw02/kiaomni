@@ -105,7 +105,14 @@ def apply_kiaomni(
     probe = ArchitectureProbe.probe(model)
     saliency = SaliencyAdapter(probe)
 
-    _orig = model.generate
+    # Resolve the original generate via the CLASS, not the instance.
+    # Accelerate hooks (used by device_map="auto" + 4-bit loading) sometimes
+    # replace model.generate with an instance-attribute function that has no
+    # `self` binding. Calling such a function with a Tensor as the first arg
+    # would make the Tensor become `self` inside generate(), crashing on the
+    # first attribute access. Going through type(model).generate.__get__
+    # bypasses any instance attribute and gives us a properly bound method.
+    _orig = type(model).generate.__get__(model, type(model))
 
     @functools.wraps(_orig)
     def _patched(input_ids: torch.Tensor, **kwargs):
