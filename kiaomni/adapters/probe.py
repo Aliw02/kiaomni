@@ -187,14 +187,28 @@ class ArchitectureProbe:
 
     @classmethod
     def _verify_attn_implementation(cls, model: nn.Module) -> None:
+        """Soft-warn on fused-kernel attention; do NOT raise.
+
+        Earlier versions of kiaomni hard-blocked SDPA/Flash-Attn because
+        the fused kernels hide the internal Q@K^T softmax. But hooks
+        registered on the standalone ``q_proj`` / ``k_proj`` linear layers
+        fire *before* the fused kernel runs — so saliency extraction is
+        still observable. Validated empirically by
+        ``notebook/kv_cache_benchmark/039_swap_experiment.py`` on
+        Qwen2.5-7B 4-bit NF4 under Flash-Attn-2.
+
+        Eager remains the safest default for the ``output_attentions=True``
+        fallback strategy, so we still warn — but we no longer refuse to
+        run.
+        """
         impl = cls._read_attn_impl(model)
         if impl in ("flash_attention_2", "flash_attention_3", "sdpa"):
-            raise KiaomniConfigError(
-                f"KiaOmni requires attn_implementation='eager', got '{impl}'. "
-                "Forward hooks cannot observe Q/K when fused attention kernels "
-                "are used. Reload the model with:\n\n"
-                "    AutoModelForCausalLM.from_pretrained(..., "
-                "attn_implementation='eager')\n"
+            logger.warning(
+                "KiaOmni: attn_implementation=%r. Hook-based saliency on "
+                "q_proj/k_proj works under fused kernels because the "
+                "projection outputs are observable before the fused matmul. "
+                "If you hit issues, fall back to attn_implementation='eager'.",
+                impl,
             )
 
     # --- step 1: find layer container -----------------------------------

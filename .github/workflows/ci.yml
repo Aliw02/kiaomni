@@ -24,6 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[dev]
       - name: Run pure-numpy + mocked-probe tests (no model download)
-        run: pytest tests/test_utils.py tests/test_policies.py tests/test_probe_mocked.py tests/test_saliency_strategy.py -v
+        run: pytest tests/test_utils.py tests/test_policies.py tests/test_probe_mocked.py tests/test_saliency_strategy.py tests/test_remove_regression.py -v
       - name: Run GPT-2 smoke test (downloads ~500MB)
         run: pytest tests/test_gpt2_smoke.py -v

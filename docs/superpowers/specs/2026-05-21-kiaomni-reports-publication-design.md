@@ -287,9 +287,20 @@ Race-condition handling: first lane to push creates `reports/`; subsequent lanes
 
 ### M2 — Top-level integration
 
-Single commit on main checkout (no worktree). Adds `reports/README.md` (the index linking each of the 8 lanes) and edits the root `README.md` to add a "📊 Results" section above the fold with the one-line headline and a "🧪 Reproduce" section pointing to `experiments/`.
+Single commit on main checkout (no worktree). Adds `reports/README.md` (the index linking each of the 8 lanes) and edits the root `README.md`.
 
-**M2 DoD:** clicking the repo's root `README.md` on GitHub shows the headline result + a link table to all 8 lane reports + a link to `experiments/README.md`.
+**Root README ordering (NEW — owner mandate):** the **L8 master comparison table** and the **L8 master heatmap PNG** must be embedded at the **top** of the root `README.md`, *above* the existing install/quickstart sections. Specifically:
+
+1. Project title + one-line tagline
+2. **`![Master Heatmap](reports/full-comparison/plots/master_heatmap.png)`** — the L8 image, inline, full-width
+3. **Master comparison table** — the L8 Markdown table, copied verbatim from `reports/full-comparison/README.md`
+4. "📊 Results" link table (one row per lane → its `reports/<lane>/README.md`)
+5. "🧪 Reproduce" pointer to `experiments/README.md`
+6. Existing install / quickstart / API sections (unchanged below the fold)
+
+Rationale: a reader who lands on the GitHub page sees the headline evidence (image + table) before any code. This matches the SnapKV-paper README convention the owner referenced.
+
+**M2 DoD:** scrolling the repo's root `README.md` on GitHub shows, in order: the master heatmap PNG → the master table → the per-lane link table → the experiments pointer → then install/quickstart. All links resolve.
 
 ### M3 — Repo polish
 

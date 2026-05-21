@@ -158,7 +158,12 @@ class SaliencyAdapter:
             k_mod = getattr(attn, self.probe.k_module_name)    # type: ignore[arg-type]
 
             def _q_hook(_m, _i, out):
-                store["q"] = out.detach().to(torch.float32)
+                # Pull to CPU + float32 immediately. Under 4-bit NF4 with
+                # bnb_4bit_compute_dtype=bfloat16, the projection outputs
+                # are bf16 — the downstream softmax(QK^T/√d) accumulates
+                # error and produces NaN/Inf on long sequences. CPU+fp32
+                # gives the same numerical refuge as 039_swap_experiment.
+                store["q"] = out.detach().cpu().to(torch.float32)
 
             def _k_hook(_m, _i, out, _li=l_idx):
                 # Hook-ordering safety: HF standard attention always fires Q
@@ -170,7 +175,7 @@ class SaliencyAdapter:
                         "contribution from this layer", _li,
                     )
                     return
-                k_tensor = out.detach().to(torch.float32)
+                k_tensor = out.detach().cpu().to(torch.float32)
                 _commit(store["q"], k_tensor)
                 del store["q"]   # precise cleanup (no leak on partial state)
 
@@ -185,7 +190,12 @@ class SaliencyAdapter:
         nkv = self.probe.num_key_value_heads
 
         def _fused_hook(_m, _i, out):
-            o = out.detach().to(torch.float32)
+            # Mirror the separate-hook path: pull to CPU + fp32 immediately.
+            # Under 4-bit NF4 + bf16 compute, fused QKV outputs are bf16 and
+            # the downstream softmax(QK^T/√d) accumulates error → NaN/Inf on
+            # long sequences. CPU+fp32 isolation is the same refuge that
+            # 039_swap_experiment.py relies on.
+            o = out.detach().cpu().to(torch.float32)
             if self._strategy == "hook-fused-concat":
                 # Layout: [Q | K | V] concatenated along last dim.
                 q_width = nh * hd

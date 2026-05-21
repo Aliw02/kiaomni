@@ -116,18 +116,22 @@ def test_probe_gpt2_like_fused_concat_and_learned_pe():
     assert r.confidence == "high"
 
 
-def test_probe_rejects_sdpa_attn_implementation():
+def test_probe_warns_sdpa_attn_implementation():
+    """v0.2.5: downgraded from error to warning — hooks fire before fused kernels."""
     m = _SeparateModel()
     m.config._attn_implementation = "sdpa"
-    with pytest.raises(KiaomniConfigError, match="eager"):
-        ArchitectureProbe.probe(m, force=True)
+    r = ArchitectureProbe.probe(m, force=True)
+    assert r.attn_implementation == "sdpa"
+    assert r.num_attention_heads == 8
 
 
-def test_probe_rejects_flash_attention_2():
+def test_probe_warns_flash_attention_2():
+    """v0.2.5: downgraded from error to warning — hooks fire before fused kernels."""
     m = _SeparateModel()
     m.config._attn_implementation = "flash_attention_2"
-    with pytest.raises(KiaomniConfigError, match="eager"):
-        ArchitectureProbe.probe(m, force=True)
+    r = ArchitectureProbe.probe(m, force=True)
+    assert r.attn_implementation == "flash_attention_2"
+    assert r.num_attention_heads == 8
 
 
 def test_probe_result_cached_on_model():

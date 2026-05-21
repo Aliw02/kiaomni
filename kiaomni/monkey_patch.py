@@ -105,14 +105,17 @@ def apply_kiaomni(
     probe = ArchitectureProbe.probe(model)
     saliency = SaliencyAdapter(probe)
 
-    # Resolve the original generate via the CLASS, not the instance.
-    # Accelerate hooks (used by device_map="auto" + 4-bit loading) sometimes
-    # replace model.generate with an instance-attribute function that has no
-    # `self` binding. Calling such a function with a Tensor as the first arg
-    # would make the Tensor become `self` inside generate(), crashing on the
-    # first attribute access. Going through type(model).generate.__get__
-    # bypasses any instance attribute and gives us a properly bound method.
-    _orig = type(model).generate.__get__(model, type(model))
+    # Capture the original generate via the INSTANCE attribute.
+    # When the model is loaded with device_map="auto" or bitsandbytes 4-bit,
+    # Accelerate installs instance-level hook wrappers around generate that
+    # handle device placement and NF4 dequantization. Going through the class
+    # descriptor (type(model).generate.__get__) would skip those hooks and
+    # produce silently-wrong outputs on quantized / multi-device models.
+    # This matches the call pattern proven in 039_swap_experiment.py.
+    # The Tensor-as-self crash from earlier v0.2.x is fully prevented by
+    # the idempotent unwind above (which restores the bound method before
+    # we read it) and by remove_kiaomni's delattr-only strategy.
+    _orig = model.generate
 
     @functools.wraps(_orig)
     def _patched(input_ids: torch.Tensor, **kwargs):
