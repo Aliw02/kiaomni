@@ -116,9 +116,45 @@ Six lanes, each runnable by a single subagent in its own git worktree.
 | **L5** NIAH heatmaps | `035_heatmap_results/` | `reports/benchmarks/niah-heatmap/` | Per-policy heatmap PNGs + accuracy-by-depth table for FullContext / H2O / σ8 / Gaussian / Scissorhands at B∈{98,128,256,512} |
 | **L6** Passkey + PPL | `034_pass_key_results/`, `035_ppl_wikitext2_results/` | `reports/benchmarks/passkey-and-ppl/` | Passkey: 100% σ8/Gaussian at all depths ≥B98; PPL: Gaussian B=512 = 27.80 (best eviction), Scissorhands = 360-411 (worst, documented anomaly) |
 | **L7** LLM-judge synthesis | 4 × `llm_judge_results.csv` (Qwen / Mistral / Falcon3 / BioMistral); source scripts at `scratch/llm_judge_multi_model.py` + `scratch/llm_judge_biomistral.py` | `reports/llm-judge/` | Per-policy win-rate across 4 models; rubric documented from script docstrings; Amber explicitly absent |
-| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs) | `reports/full-comparison/` | **One master table** rows = all policies (FullContext, KiaOmni_σ8/Gaussian/Scissorhands/RatioAdaptive, SnapKV_Modified, RealSnapKV, H2O, StreamingLLM, …), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
+| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs), filtered by §4b whitelist | `reports/full-comparison/` | **One master table** rows = whitelist policies (`FullContext`, `KiaOmni_σ8`, `KiaOmni_Gaussian`, `H2O`, `SnapKV`, `AdaSnapKV`, `StreamingLLM`, …), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
 
 Lane 3 (Llama-3.1) and the original Phi-3 sub-lane are **dropped** per owner instruction.
+
+---
+
+## 4b. Policy Whitelist (which algorithms get published rows)
+
+To keep every table and plot readable and the narrative tight, lanes publish **only** the policies in the whitelist. All other policies present in the source CSVs are filtered out before curation.
+
+### KiaOmni family (production variants only)
+
+| Published label | Source CSV name(s) | Notes |
+|---|---|---|
+| `KiaOmni_σ8` | `KiaOmni_σ8`, `KiaOmni_s8`, `KiaOmni_sigma8` | Production winner — boxcar σ=8 |
+| `KiaOmni_Gaussian` | `KiaOmni_Gaussian`, `KiaOmni_gaussian` | Best accuracy variant |
+
+### Baselines (all kept)
+
+| Published label | Notes |
+|---|---|
+| `FullContext` | Gold standard, no eviction |
+| `H2O` | Heavy-hitter oracle |
+| `SnapKV` | The working SnapKV variant in this codebase (sometimes labeled `SnapKV_Modified` in source CSVs — normalize to `SnapKV` in published output). If the originating script also has a `RealSnapKV` row, that one is **broken in this codebase**; disclose in caveats but **do not include as a main-table row** |
+| `AdaSnapKV` | If present in source CSVs |
+| `StreamingLLM` | Attention-sink baseline |
+| Other standard baselines | Anything else in source CSVs that is a recognized literature baseline (e.g., `Quest`, `PyramidKV` if present) |
+
+### Excluded (filtered out before publication)
+
+- `KiaOmni_Scissorhands` — niche NIAH-only winner, anomalous PPL (360-411); mention in caveats only
+- `KiaOmni_RatioAdaptive` — coherence-only variant
+- `KiaOmni_LogTopK` and other ablation variants
+- `RealSnapKV` — broken implementation; disclose as a footnote
+- Any other KiaOmni ablation variant
+
+### Curation rule
+
+When the subagent reads a source CSV, it filters rows to the whitelist *before* writing into `main-results/<lane>/data/` curated CSVs. Filtered rows still exist in the original source dir (`notebook/kv_cache_benchmark/...`) for archive; we just don't republish them.
 
 ---
 
@@ -244,13 +280,14 @@ before publishing.
 
 | Lane | Headline |
 |---|---|
-| L1 Qwen | KiaOmni_Gaussian: 4.176/4.695 = **89.0%** of FullContext (#1); σ8 #3 @ 88.0%; RealSnapKV #12 @ 54.6%; VT: Gaussian *beats* FullContext (6.16 vs 4.53) |
-| L2 Mistral | All KiaOmni variants = **100% niah_single** across 4K/8K/16K; VT: Gaussian ties #1 at 0.689 vs FC 0.330 (+108%) |
-| L4 Falcon3 / BioMistral / Amber | Confirms cross-architecture generalization beyond Qwen and Mistral |
+| L1 Qwen | KiaOmni_Gaussian: 4.176/4.695 = **89.0%** of FullContext (#1 among whitelist); σ8 @ 88.0%; VT: Gaussian *beats* FullContext (6.16 vs 4.53). RealSnapKV @ 54.6% disclosed in footnote only. |
+| L2 Mistral | KiaOmni_σ8 + KiaOmni_Gaussian = **100% niah_single** across 4K/8K/16K; VT: Gaussian at 0.689 vs FC 0.330 (+108%) |
+| L4 Falcon3 / BioMistral / Amber | Confirms cross-architecture generalization beyond Qwen and Mistral with whitelist policies |
 | L5 NIAH heatmap | Visual confirmation: σ8 and Gaussian retain needle across all depths at B≥128 |
-| L6 Passkey | σ8 and Gaussian = **100% at all depths, all contexts, B≥98**; RealSnapKV = 0% at B≤256 |
-| L6 PPL | Gaussian B=512 = **27.80** (FC=7.46); Scissorhands = 360-411 (worst — must disclose) |
-| L7 LLM-judge | Cross-model win-rate confirmation that KiaOmni_σ8 and Gaussian are not artifacts of contains-score |
+| L6 Passkey | σ8 and Gaussian = **100% at all depths, all contexts, B≥98** |
+| L6 PPL | Gaussian B=512 = **27.80** (FC=7.46), best among published eviction policies. Scissorhands anomaly = footnote |
+| L7 LLM-judge | Cross-model win-rate confirmation that KiaOmni_σ8 and Gaussian beat baselines under LLM judging |
+| L8 Master | One table: 2 KiaOmni rows × N baseline rows × (Qwen/Mistral/Falcon3/BioMistral tasks); KiaOmni_Gaussian wins mean column |
 
 ---
 
