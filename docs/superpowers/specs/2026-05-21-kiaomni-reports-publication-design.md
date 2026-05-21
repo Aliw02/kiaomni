@@ -23,7 +23,7 @@ pass.
 
 ### In scope
 
-- 7 publication lanes total (6 parallel in M1a + L8 sequential in M1b — see §4)
+- 8 publication lanes total (7 parallel in M1a + L8 sequential in M1b — see §4), plus M1c curated experiment-code publication
 - Curation of canonical JSON/CSV from each source results directory
 - Regeneration of plots from canonical data (so figures and tables agree)
 - Per-lane `README.md` with method paragraph, headline table, and links
@@ -91,10 +91,32 @@ kiaomni/  (repo root)
     │       ├── README.md
     │       ├── data/
     │       └── plots/
-    └── llm-judge/                    ← L7
-        ├── README.md                 ← cross-model judge synthesis
-        ├── data/                     ← 4 llm_judge_results.csv files
-        └── plots/                    ← win-rate bars
+    ├── llm-judge/                    ← L7
+    │   ├── README.md                 ← cross-model judge synthesis
+    │   ├── data/                     ← 4 llm_judge_results.csv files
+    │   └── plots/                    ← win-rate bars
+    ├── full-comparison/              ← L8 master table + master plot
+    │   ├── README.md
+    │   ├── data/
+    │   └── plots/
+    └── ablations/
+        └── signal-swap/              ← L9 mechanism ablation (039)
+            ├── README.md
+            ├── data/
+            └── plots/
+
+experiments/                          ← M1c canonical experiment code (NEW, public)
+├── README.md                         ← script index + reproduction guide
+├── 033_full_comparison.py
+├── 034_mistral_benchmark.py
+├── 035_niah_heatmap.py
+├── 035_ppl_wikitext2.py
+├── 034_pass_key.py
+├── 037_falcon3_benchmark.py
+├── 038_biomistral_benchmark.py
+├── 040_amber_benchmark.py
+├── 039_swap_experiment.py
+└── llm_judge.py                      ← merged from scratch/llm_judge_*.py
 ```
 
 Each lane is **self-contained**: a reader who lands on
@@ -116,9 +138,12 @@ Six lanes, each runnable by a single subagent in its own git worktree.
 | **L5** NIAH heatmaps | `035_heatmap_results/` | `reports/benchmarks/niah-heatmap/` | Per-policy heatmap PNGs + accuracy-by-depth table for FullContext / H2O / σ8 / Gaussian / Scissorhands at B∈{98,128,256,512} |
 | **L6** Passkey + PPL | `034_pass_key_results/`, `035_ppl_wikitext2_results/` | `reports/benchmarks/passkey-and-ppl/` | Passkey: 100% σ8/Gaussian at all depths ≥B98; PPL: Gaussian B=512 = 27.80 (best eviction), Scissorhands = 360-411 (worst, documented anomaly) |
 | **L7** LLM-judge synthesis | 4 × `llm_judge_results.csv` (Qwen / Mistral / Falcon3 / BioMistral); source scripts at `scratch/llm_judge_multi_model.py` + `scratch/llm_judge_biomistral.py` | `reports/llm-judge/` | Per-policy win-rate across 4 models; rubric documented from script docstrings; Amber explicitly absent |
-| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs), filtered by §4b whitelist | `reports/full-comparison/` | **One master table** rows = 6 whitelist policies (`FullContext`, `KiaOmni_σ8`, `KiaOmni_Gaussian`, `H2O`, `SnapKV`, `AdaSnapKV`), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
+| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs), filtered by §4b whitelist | `reports/full-comparison/` | **One master table** rows = 7 whitelist policies (`FullContext`, `H2O`, `SnapKV`, `BlockSal`, `AdaSnapKV`, `KiaOmni_σ8`, `KiaOmni_Gaussian`), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
+| **L9** Signal-swap ablation | `notebook/kv_cache_benchmark/039_swap_experiment/` (canonical: `merged_results.json`, `results_256_2048_ctx.json`, `results_512_1024_ctx.json`, `predictions*.csv`, `phase_transition_actual.png`, `snapkv_phase_transition.png`) | `reports/ablations/signal-swap/` | Mechanism ablation — swaps the saliency *signal* between KiaOmni and SnapKV while keeping selectors fixed. Shows that **KiaOmni's gain comes from the signal, not the selector** (the headline finding of the experiment). Two phase-transition plots + one comparison table over `{KiaOmni_NaturalSignal, KiaOmni_SwappedSignal, SnapKV_NaturalSignal, SnapKV_SwappedSignal}` (verbatim CSV labels — *not* filtered by §4b because the ablation labels are intrinsic to the experiment). |
 
 Lane 3 (Llama-3.1) and the original Phi-3 sub-lane are **dropped** per owner instruction.
+
+> **Whitelist exception for L9:** The §4b whitelist governs *production-comparison* lanes. The L9 signal-swap ablation deliberately publishes its native `*Natural*`/`*Swapped*` policy labels because their meaning *is* the experiment. L9's README must explicitly note this exemption.
 
 ---
 
@@ -133,25 +158,32 @@ To keep every table and plot readable and the narrative tight, lanes publish **o
 | `KiaOmni_σ8` | `KiaOmni_σ8`, `KiaOmni_s8`, `KiaOmni_sigma8` | Production winner — boxcar σ=8 |
 | `KiaOmni_Gaussian` | `KiaOmni_Gaussian`, `KiaOmni_gaussian` | Best accuracy variant |
 
-### Baselines (only those actually present in our source CSVs)
+### Baselines (paper-grade names, verified against source CSVs and `KiaOmni_Paper.md` §4)
 
-Verified by reading the `policy` column of every source predictions.csv (2026-05-21). Identical 12-policy roster across all 5 model CSVs. **No StreamingLLM, no standalone Quest, no PyramidKV row exists in any source file**, so they are not published.
+Verified 2026-05-21 by reading the `policy` column of every source predictions.csv AND cross-referencing the paper's baseline section. The naming convention follows the paper, which renames the codebase labels:
 
-| Published label | Source CSV label | Notes |
+| Published label | Source CSV label | What it actually is |
 |---|---|---|
 | `FullContext` | `FullContext` | Gold standard, no eviction |
-| `H2O` | `H2O` | Heavy-hitter oracle |
-| `SnapKV` | `SnapKV_Modified` | The working SnapKV variant in this codebase; normalize to `SnapKV` in published output |
+| `H2O` | `H2O` | Heavy-hitter oracle (Zhang et al. 2023) |
+| `SnapKV` | `RealSnapKV` | **The faithful published SnapKV algorithm** (Li et al. 2024, arXiv:2404.14469). Implements window-32 observation + voting matrix + per-head union as described in §4 of the paper. Verified line-by-line against [FasterDecoding/SnapKV](https://github.com/FasterDecoding/SnapKV) and [NVIDIA/kvpress](https://github.com/NVIDIA/kvpress) |
+| `BlockSal` | `SnapKV_Modified` | **Our own novel baseline** (paper §4 explicitly disclaims SnapKV lineage). Block-level KV selection with mean saliency per block. Rename per paper to avoid confusion |
 | `AdaSnapKV` | `Ada-SnapKV` | Adaptive SnapKV variant |
+| `KiaOmni_σ8` | `KiaOmni_σ8` | Production winner — boxcar σ=8 |
+| `KiaOmni_Gaussian` | `KiaOmni_Gaussian` | Best accuracy variant |
 
-### Excluded (filtered out before publication, footnoted where relevant)
+### Excluded (filtered out before publication)
 
-- `KiaOmni_Adaptive`, `KiaOmni_AnchorExp`, `KiaOmni_Quest`, `KiaOmni_RatioAdaptive`, `KiaOmni_Scissorhands` — KiaOmni ablation variants; only σ8 and Gaussian are production-blessed
-- `RealSnapKV` — broken implementation in this codebase (54.6% of FC); disclose in caveats footnote with the explanation that prior SnapKV papers likely used a non-standard implementation
+- `KiaOmni_Adaptive`, `KiaOmni_AnchorExp`, `KiaOmni_Quest`, `KiaOmni_RatioAdaptive`, `KiaOmni_Scissorhands` — KiaOmni ablation variants; only σ8 and Gaussian are production-blessed (Scissorhands has the well-documented PPL anomaly; mention in caveats only)
+- `StreamingLLM`, standalone `Quest`, `PyramidKV` — not in any source CSV (never ran end-to-end on our pipeline)
 
-### Final published whitelist — 6 policies
+### Final published whitelist — 7 policies
 
-`FullContext`, `H2O`, `SnapKV`, `AdaSnapKV`, `KiaOmni_σ8`, `KiaOmni_Gaussian`
+`FullContext`, `H2O`, `SnapKV`, `BlockSal`, `AdaSnapKV`, `KiaOmni_σ8`, `KiaOmni_Gaussian`
+
+### Critical disclosure for every report
+
+Every `reports/<lane>/README.md` must include a one-sentence note: "**SnapKV** = faithful arXiv:2404.14469 implementation. **BlockSal** = our novel block-level baseline (paper §4)." This prevents readers from misreading BlockSal as a SnapKV variant.
 
 ### Curation rule
 
@@ -212,7 +244,7 @@ Each subagent receives a self-contained prompt and must perform exactly these st
    - **Methodology** (one paragraph naming the experiment script, model, context lengths, budgets, metrics)
    - **Headline table** (Markdown table — policies × headline metric)
    - **Figures** (link `plots/*.png` with a one-line caption each)
-   - **Caveats** (anything that would mislead a casual reader — e.g., Scissorhands PPL anomaly, RealSnapKV broken disclosure)
+   - **Caveats** (anything that would mislead a casual reader — e.g., Scissorhands PPL anomaly, the `SnapKV` vs `BlockSal` distinction from §4b)
    - **Reproduce** (one fenced shell block: clone, install, run the originating script)
    - **Full data** (one-line pointer: "Comprehensive paper-grade artifacts kept locally under `main-results/<lane>/`.")
 6. **Commit** within the lane's worktree (only `reports/`, never `main-results/`):
@@ -227,13 +259,15 @@ Each subagent receives a self-contained prompt and must perform exactly these st
 
 ## 6. Milestones & Coordination
 
-Execution is decomposed into **4 sequential milestones**; milestone M1 contains 6 parallel lanes dispatched via the `dispatching-parallel-agents` pattern.
+Execution is decomposed into **5 sequential milestones**; milestone M1 contains parallel lanes dispatched via the `dispatching-parallel-agents` pattern.
 
-### M1 — Parallel evidence dispatch (6 lanes concurrent, then L8 sequential)
+### M1 — Parallel evidence dispatch (7 lanes concurrent, then L8 sequential, then M1c)
 
-**Phase M1a (parallel):** Dispatch lanes L1, L2, L4, L5, L6, L7 simultaneously with `isolation: "worktree"`. Each is an **independent problem domain** — distinct source directory, distinct output paths, independent commit. No shared state.
+**Phase M1a (parallel):** Dispatch lanes L1, L2, L4, L5, L6, L7, L9 simultaneously with `isolation: "worktree"`. Each is an **independent problem domain** — distinct source directory, distinct output paths, independent commit. No shared state.
 
 **Phase M1b (sequential, after M1a):** L8 (master comparison) runs alone because it *depends on* the curated data deposited by L1, L2, L4 in `main-results/`. Trying to parallel-dispatch L8 would race on data that doesn't exist yet.
+
+**Phase M1c (sequential, after M1b):** A single subagent publishes the **canonical experiment code** under a new top-level `experiments/` directory. It does **not** copy verbatim — it lifts the 10 listed scripts from `notebook/kv_cache_benchmark/` (plus `scratch/llm_judge_*.py`), strips ad-hoc scratch paths, validates each script's imports against the public `kiaomni` package, and writes `experiments/README.md` with one line per script tying it back to the lane it produced. The exploratory 70+ remaining scripts stay private. The runs M1c after M1b so the published code paths can reference the published `reports/` README cross-links.
 
 | Lane | Phase | Subagent type | Worktree |
 |---|---|---|---|
@@ -243,17 +277,19 @@ Execution is decomposed into **4 sequential milestones**; milestone M1 contains 
 | L5 NIAH heatmap | M1a | `general-purpose` | yes |
 | L6 Passkey + PPL | M1a | `general-purpose` | yes |
 | L7 LLM-judge | M1a | `general-purpose` | yes |
+| L9 Signal-swap ablation | M1a | `general-purpose` | yes |
 | L8 Master comparison | M1b | `general-purpose` | yes |
+| Experiment-code curation | M1c | `general-purpose` | yes |
 
 Race-condition handling: first lane to push creates `reports/`; subsequent lanes pull-rebase if their push races. Worktrees isolate working-copy state.
 
-**M1 DoD:** all 6 lanes have committed + pushed to `origin/main`; each lane's `reports/<lane>/README.md` is reachable via `git show`.
+**M1 DoD:** all 7 M1a lanes + L8 + the M1c experiments commit have pushed to `origin/main`; each lane's `reports/<lane>/README.md` is reachable via `git show`; `experiments/README.md` lists all 10 canonical scripts.
 
 ### M2 — Top-level integration
 
-Single commit on main checkout (no worktree). Adds `reports/README.md` (the index linking each of the 6 lanes) and edits the root `README.md` to add a "📊 Results" section above the fold with the one-line headline.
+Single commit on main checkout (no worktree). Adds `reports/README.md` (the index linking each of the 8 lanes) and edits the root `README.md` to add a "📊 Results" section above the fold with the one-line headline and a "🧪 Reproduce" section pointing to `experiments/`.
 
-**M2 DoD:** clicking the repo's root `README.md` on GitHub shows the headline result + a link table to all 6 lane reports.
+**M2 DoD:** clicking the repo's root `README.md` on GitHub shows the headline result + a link table to all 8 lane reports + a link to `experiments/README.md`.
 
 ### M3 — Repo polish
 
@@ -281,14 +317,15 @@ before publishing.
 
 | Lane | Headline |
 |---|---|
-| L1 Qwen | KiaOmni_Gaussian: 4.176/4.695 = **89.0%** of FullContext (#1 among whitelist); σ8 @ 88.0%; VT: Gaussian *beats* FullContext (6.16 vs 4.53). RealSnapKV @ 54.6% disclosed in footnote only. |
+| L1 Qwen | KiaOmni_Gaussian: 4.176/4.695 = **89.0%** of FullContext (#1 among whitelist); σ8 @ 88.0%; VT: Gaussian *beats* FullContext (6.16 vs 4.53). `SnapKV` (faithful arXiv:2404.14469) and `BlockSal` (our novel block-level baseline) both shown. |
 | L2 Mistral | KiaOmni_σ8 + KiaOmni_Gaussian = **100% niah_single** across 4K/8K/16K; VT: Gaussian at 0.689 vs FC 0.330 (+108%) |
 | L4 Falcon3 / BioMistral / Amber | Confirms cross-architecture generalization beyond Qwen and Mistral with whitelist policies |
 | L5 NIAH heatmap | Visual confirmation: σ8 and Gaussian retain needle across all depths at B≥128 |
 | L6 Passkey | σ8 and Gaussian = **100% at all depths, all contexts, B≥98** |
 | L6 PPL | Gaussian B=512 = **27.80** (FC=7.46), best among published eviction policies. Scissorhands anomaly = footnote |
 | L7 LLM-judge | Cross-model win-rate confirmation that KiaOmni_σ8 and Gaussian beat baselines under LLM judging |
-| L8 Master | One table: 2 KiaOmni rows × N baseline rows × (Qwen/Mistral/Falcon3/BioMistral tasks); KiaOmni_Gaussian wins mean column |
+| L8 Master | One table: 2 KiaOmni rows × 5 baseline rows (`FullContext`, `H2O`, `SnapKV`, `BlockSal`, `AdaSnapKV`) × (Qwen/Mistral/Falcon3/BioMistral tasks); KiaOmni_Gaussian wins mean column |
+| L9 Signal-swap | Mechanism finding: when the *signal* is KiaOmni's, the selector (top-k vs SnapKV's voting) barely matters; when the signal is SnapKV's, no selector recovers KiaOmni-level accuracy. **The gain is the signal, not the selector.** |
 
 ---
 
@@ -306,7 +343,8 @@ before publishing.
 
 ## 9. Success Criteria
 
-- All 6 lanes have committed + pushed
+- All 8 lanes (L1, L2, L4, L5, L6, L7, L8, L9) have committed + pushed
+- `experiments/` directory published with 10 canonical scripts + `experiments/README.md` index
 - Top-level `reports/README.md` exists with working links to every lane
 - A fresh reader can click into any lane README and understand the headline result without leaving that page
 - Memory file `project_kiaomni_reports_published.md` records the publication and links
