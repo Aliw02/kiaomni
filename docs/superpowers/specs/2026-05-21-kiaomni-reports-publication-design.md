@@ -43,10 +43,30 @@ pass.
 
 ## 3. Architecture
 
+### 3a. Dual-output model
+
+Each lane writes **two copies** of its content, in two locations:
+
+| Location | Purpose | Granularity | Tracked? |
+|---|---|---|---|
+| `main-results/<lane>/` | Comprehensive, paper-grade artifacts. The source-of-truth for the paper. Includes every plot, every table, every raw curated CSV. | Verbose | Local-only (gitignored, decided at M3-polish) |
+| `reports/<lane>/` | Curated, public-facing GitHub version. Headline table + key plots + methodology paragraph. | Concise (~5-10 files per lane) | Tracked, committed, pushed to `origin/main` |
+
+The curation rule: anything that would clutter a casual reader stays in `main-results/`; anything that helps a reader decide whether to use KiaOmni goes in `reports/`. When in doubt, file it under `main-results/` and link from `reports/` to the source script for full detail.
+
+### 3b. Repo layout
+
 ```
 kiaomni/  (repo root)
-└── reports/
-    ├── README.md                     ← top-level index
+├── main-results/                     ← LOCAL paper workspace (likely .gitignore'd)
+│   ├── qwen2.5-7b/                       full dump per lane
+│   ├── mistral-7b/
+│   ├── cross-model/
+│   ├── benchmarks/niah-heatmap/
+│   ├── benchmarks/passkey-and-ppl/
+│   └── llm-judge/
+└── reports/                          ← PUBLIC GitHub-visible curated version
+    ├── README.md                     ← top-level index (created at M2)
     ├── qwen2.5-7b/                   ← L1
     │   ├── README.md
     │   ├── data/                     ← curated JSON / CSV
@@ -106,31 +126,69 @@ Lane 3 (Llama-3.1) and the original Phi-3 sub-lane are **dropped** per owner ins
 Each subagent receives a self-contained prompt and must perform exactly these steps in order:
 
 1. **Inventory.** `ls` the source result directory; list every `*.json`, `*.csv`, `*.png`, `*.md` that exists. Identify the canonical files (latest timestamp, mentioned in memory or `EXPERIMENT_MAP.md`).
-2. **Curate.** Copy the canonical files into `reports/<lane>/data/`. Skip files marked debug, scratch, partial, or superseded by a later run.
-3. **Plot.** For each headline figure: regenerate the PNG from the curated `data/` using matplotlib. If an existing PNG is already canonical (e.g., the heatmap lane), copy it verbatim into `plots/` and note its provenance.
-4. **Write `README.md`.** Required sections in this order:
+2. **Curate — paper grade (`main-results/<lane>/`).** Copy *every* canonical file into `main-results/<lane>/`. Preserve subdirectory structure. This is the paper's source-of-truth.
+3. **Curate — repo grade (`reports/<lane>/data/`).** Copy *only the headline* JSON/CSV the public README references. Skip raw per-trial dumps, debug logs, intermediate runs.
+4. **Plot.** For each headline figure: regenerate the PNG from `main-results/<lane>/` using matplotlib, write to both `main-results/<lane>/plots/` (paper) and `reports/<lane>/plots/` (repo). If a canonical PNG already exists in the source dir (e.g., the heatmap lane), copy verbatim to both locations and note provenance.
+5. **Write `reports/<lane>/README.md`.** Required sections in this order:
    - **TL;DR** (one paragraph, ≤80 words, with the single most important number)
    - **Methodology** (one paragraph naming the experiment script, model, context lengths, budgets, metrics)
    - **Headline table** (Markdown table — policies × headline metric)
    - **Figures** (link `plots/*.png` with a one-line caption each)
    - **Caveats** (anything that would mislead a casual reader — e.g., Scissorhands PPL anomaly, RealSnapKV broken disclosure)
    - **Reproduce** (one fenced shell block: clone, install, run the originating script)
-5. **Commit** within the lane's worktree:
+   - **Full data** (one-line pointer: "Comprehensive paper-grade artifacts kept locally under `main-results/<lane>/`.")
+6. **Commit** within the lane's worktree (only `reports/`, never `main-results/`):
    ```
    git add reports/<lane>/
    git commit -m "docs(reports): publish <lane> results from <source>"
    ```
-6. **Push** to `origin/main`. If the push is rejected because another lane raced ahead, `git pull --rebase origin main` and retry once.
-7. **Report back** to the dispatcher in ≤150 words: what was published, what was deliberately excluded, any anomalies encountered.
+7. **Push** to `origin/main`. If the push is rejected because another lane raced ahead, `git pull --rebase origin main` and retry once.
+8. **Report back** to the dispatcher in ≤150 words: what was published to `reports/`, what was added to `main-results/`, what was deliberately excluded, any anomalies encountered.
 
 ---
 
-## 6. Coordination & Sequencing
+## 6. Milestones & Coordination
 
-- **Lane dispatch:** all 6 lanes spawn as parallel `Agent` subagents with `isolation: "worktree"`.
-- **Race-condition handling:** the first lane to push creates `reports/`; subsequent lanes will pull-rebase if their push races. Worktrees isolate working-copy state, so this is safe.
-- **Integration commit:** after all 6 report back, the dispatcher runs one final commit on the main checkout to add `reports/README.md` (the top-level index linking each lane).
-- **Memory updates:** after the integration commit lands, save a memory note recording the publication and the canonical commit SHAs.
+Execution is decomposed into **4 sequential milestones**; milestone M1 contains 6 parallel lanes dispatched via the `dispatching-parallel-agents` pattern.
+
+### M1 — Parallel evidence dispatch (6 subagents concurrent)
+
+Dispatch all 6 lanes simultaneously with `isolation: "worktree"`. Each lane is an **independent problem domain** per the parallel-dispatch criteria: each reads a distinct source directory, writes to a distinct `reports/<lane>/` + `main-results/<lane>/`, and produces an independent commit. No shared state.
+
+| Lane | Subagent type | Worktree |
+|---|---|---|
+| L1 Qwen | `general-purpose` | yes |
+| L2 Mistral | `general-purpose` | yes |
+| L4 Cross-arch | `general-purpose` | yes |
+| L5 NIAH heatmap | `general-purpose` | yes |
+| L6 Passkey + PPL | `general-purpose` | yes |
+| L7 LLM-judge | `general-purpose` | yes |
+
+Race-condition handling: first lane to push creates `reports/`; subsequent lanes pull-rebase if their push races. Worktrees isolate working-copy state.
+
+**M1 DoD:** all 6 lanes have committed + pushed to `origin/main`; each lane's `reports/<lane>/README.md` is reachable via `git show`.
+
+### M2 — Top-level integration
+
+Single commit on main checkout (no worktree). Adds `reports/README.md` (the index linking each of the 6 lanes) and edits the root `README.md` to add a "📊 Results" section above the fold with the one-line headline.
+
+**M2 DoD:** clicking the repo's root `README.md` on GitHub shows the headline result + a link table to all 6 lane reports.
+
+### M3 — Repo polish
+
+Single commit. Verifies LICENSE, `pip install -e .` works, CHANGELOG has v0.2.5 entry, `.gitignore` excludes `main-results/` (which is local-only by definition), quickstart copy-paste runs without error.
+
+**M3 DoD:** `pytest tests/ -v` green; quickstart from README runs and produces the documented output.
+
+### M4 — Release v0.3.0
+
+Bump version files, write CHANGELOG entry summarizing M1+M2 (= reports added, README integrated), `git tag v0.3.0`, push tag.
+
+**M4 DoD:** tag visible on GitHub release page; release notes link to `reports/README.md`.
+
+### Memory updates
+
+After M4 lands, save memory `project_kiaomni_reports_published.md` recording the publication SHAs and tag.
 
 ---
 
