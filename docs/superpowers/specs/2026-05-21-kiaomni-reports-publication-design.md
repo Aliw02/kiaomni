@@ -116,7 +116,7 @@ Six lanes, each runnable by a single subagent in its own git worktree.
 | **L5** NIAH heatmaps | `035_heatmap_results/` | `reports/benchmarks/niah-heatmap/` | Per-policy heatmap PNGs + accuracy-by-depth table for FullContext / H2O / σ8 / Gaussian / Scissorhands at B∈{98,128,256,512} |
 | **L6** Passkey + PPL | `034_pass_key_results/`, `035_ppl_wikitext2_results/` | `reports/benchmarks/passkey-and-ppl/` | Passkey: 100% σ8/Gaussian at all depths ≥B98; PPL: Gaussian B=512 = 27.80 (best eviction), Scissorhands = 360-411 (worst, documented anomaly) |
 | **L7** LLM-judge synthesis | 4 × `llm_judge_results.csv` (Qwen / Mistral / Falcon3 / BioMistral); source scripts at `scratch/llm_judge_multi_model.py` + `scratch/llm_judge_biomistral.py` | `reports/llm-judge/` | Per-policy win-rate across 4 models; rubric documented from script docstrings; Amber explicitly absent |
-| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs), filtered by §4b whitelist | `reports/full-comparison/` | **One master table** rows = whitelist policies (`FullContext`, `KiaOmni_σ8`, `KiaOmni_Gaussian`, `H2O`, `SnapKV`, `AdaSnapKV`, `StreamingLLM`, …), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
+| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs), filtered by §4b whitelist | `reports/full-comparison/` | **One master table** rows = 6 whitelist policies (`FullContext`, `KiaOmni_σ8`, `KiaOmni_Gaussian`, `H2O`, `SnapKV`, `AdaSnapKV`), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
 
 Lane 3 (Llama-3.1) and the original Phi-3 sub-lane are **dropped** per owner instruction.
 
@@ -133,24 +133,25 @@ To keep every table and plot readable and the narrative tight, lanes publish **o
 | `KiaOmni_σ8` | `KiaOmni_σ8`, `KiaOmni_s8`, `KiaOmni_sigma8` | Production winner — boxcar σ=8 |
 | `KiaOmni_Gaussian` | `KiaOmni_Gaussian`, `KiaOmni_gaussian` | Best accuracy variant |
 
-### Baselines (all kept)
+### Baselines (only those actually present in our source CSVs)
 
-| Published label | Notes |
-|---|---|
-| `FullContext` | Gold standard, no eviction |
-| `H2O` | Heavy-hitter oracle |
-| `SnapKV` | The working SnapKV variant in this codebase (sometimes labeled `SnapKV_Modified` in source CSVs — normalize to `SnapKV` in published output). If the originating script also has a `RealSnapKV` row, that one is **broken in this codebase**; disclose in caveats but **do not include as a main-table row** |
-| `AdaSnapKV` | If present in source CSVs |
-| `StreamingLLM` | Attention-sink baseline |
-| Other standard baselines | Anything else in source CSVs that is a recognized literature baseline (e.g., `Quest`, `PyramidKV` if present) |
+Verified by reading the `policy` column of every source predictions.csv (2026-05-21). Identical 12-policy roster across all 5 model CSVs. **No StreamingLLM, no standalone Quest, no PyramidKV row exists in any source file**, so they are not published.
 
-### Excluded (filtered out before publication)
+| Published label | Source CSV label | Notes |
+|---|---|---|
+| `FullContext` | `FullContext` | Gold standard, no eviction |
+| `H2O` | `H2O` | Heavy-hitter oracle |
+| `SnapKV` | `SnapKV_Modified` | The working SnapKV variant in this codebase; normalize to `SnapKV` in published output |
+| `AdaSnapKV` | `Ada-SnapKV` | Adaptive SnapKV variant |
 
-- `KiaOmni_Scissorhands` — niche NIAH-only winner, anomalous PPL (360-411); mention in caveats only
-- `KiaOmni_RatioAdaptive` — coherence-only variant
-- `KiaOmni_LogTopK` and other ablation variants
-- `RealSnapKV` — broken implementation; disclose as a footnote
-- Any other KiaOmni ablation variant
+### Excluded (filtered out before publication, footnoted where relevant)
+
+- `KiaOmni_Adaptive`, `KiaOmni_AnchorExp`, `KiaOmni_Quest`, `KiaOmni_RatioAdaptive`, `KiaOmni_Scissorhands` — KiaOmni ablation variants; only σ8 and Gaussian are production-blessed
+- `RealSnapKV` — broken implementation in this codebase (54.6% of FC); disclose in caveats footnote with the explanation that prior SnapKV papers likely used a non-standard implementation
+
+### Final published whitelist — 6 policies
+
+`FullContext`, `H2O`, `SnapKV`, `AdaSnapKV`, `KiaOmni_σ8`, `KiaOmni_Gaussian`
 
 ### Curation rule
 
