@@ -6,6 +6,28 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.0] — 2026-05-21
+
+### Added
+- **Published curated experimental results across 8 lanes** (reports/).
+  L1 (Qwen2.5-7B), L2 (Mistral-7B), L4 (Cross-arch: Falcon3, BioMistral,
+  Amber), L5 (NIAH heatmap), L6 (Passkey + PPL), L7 (LLM-judge win-rates),
+  L8 (Master comparison with heatmap + win-rate table), L9 (Signal-swap).
+  Every lane has README, data, plots, and provenance.json.
+- **Canonical experiment scripts** published under `experiments/` with
+  cleaned paths and `experiments/README.md`. 10 scripts matching the
+  package's algorithm.
+- **Root README integration (M2).** Master heatmap + win-rate table at top;
+  results links, reproduce instructions, and existing sections preserved.
+- **Algorithmic verification.** Confirmed `kiaomni/` package and experiment
+  scripts use identical saliency extraction (hook Q/K projections →
+  `softmax(Q[-1]K^T/√d)`) and identical eviction policies
+  (`boxcar(log1p(sal), σ=8)` / sink-protect+recency / top-k filling).
+
+### Changed
+- **Removed stale `main-results/` references.** Whitelist-enforced report
+  index; `main-results/` added to `.gitignore`.
+
 ## [0.2.5] — 2026-05-21
 
 ### Changed
