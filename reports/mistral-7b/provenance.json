@@ -1,0 +1,548 @@
+[
+  {
+    "key": "macro_f1_B256_SnapKV",
+    "value": 0.1312,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.RealSnapKV.256"
+  },
+  {
+    "key": "macro_f1_B256_BlockSal",
+    "value": 0.3413,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.SnapKV_Modified.256"
+  },
+  {
+    "key": "macro_f1_B256_AdaSnapKV",
+    "value": 0.2567,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.Ada-SnapKV.256"
+  },
+  {
+    "key": "macro_f1_B256_KiaOmni_\u03c38",
+    "value": 0.3332,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.KiaOmni_\u03c38.256"
+  },
+  {
+    "key": "macro_f1_B256_KiaOmni_Gaussian",
+    "value": 0.3344,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.KiaOmni_Gaussian.256"
+  },
+  {
+    "key": "macro_f1_B256_FullContext",
+    "value": 0.3524,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.FullContext.256"
+  },
+  {
+    "key": "macro_f1_B256_H2O",
+    "value": 0.2294,
+    "source_file": "data/results.json",
+    "json_path": "macro_avg_f1.H2O.256"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_SnapKV",
+    "value": 0.0694,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_SnapKV",
+    "value": 0.1333,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_SnapKV",
+    "value": 0.1583,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_BlockSal",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_BlockSal",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_BlockSal",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_AdaSnapKV",
+    "value": 0.9333,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_AdaSnapKV",
+    "value": 0.8694,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_AdaSnapKV",
+    "value": 0.9361,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_KiaOmni_\u03c38",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_KiaOmni_\u03c38",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_KiaOmni_\u03c38",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_KiaOmni_Gaussian",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_KiaOmni_Gaussian",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_KiaOmni_Gaussian",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_FullContext",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_FullContext",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_FullContext",
+    "value": 1.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx4096_B256_H2O",
+    "value": 0.76,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.4096.H2O.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx8192_B256_H2O",
+    "value": 0.7556,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.8192.H2O.256.f1"
+  },
+  {
+    "key": "ruler_niah_single_ctx16384_B256_H2O",
+    "value": 0.9361,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_single.16384.H2O.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_SnapKV",
+    "value": 0.0053,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_SnapKV",
+    "value": 0.0078,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_SnapKV",
+    "value": 0.0159,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_BlockSal",
+    "value": 0.1659,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_BlockSal",
+    "value": 0.1641,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_BlockSal",
+    "value": 0.1999,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_AdaSnapKV",
+    "value": 0.2074,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_AdaSnapKV",
+    "value": 0.1926,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_AdaSnapKV",
+    "value": 0.189,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_KiaOmni_\u03c38",
+    "value": 0.1419,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_KiaOmni_\u03c38",
+    "value": 0.1549,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_KiaOmni_\u03c38",
+    "value": 0.2107,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_KiaOmni_Gaussian",
+    "value": 0.1529,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_KiaOmni_Gaussian",
+    "value": 0.1533,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_KiaOmni_Gaussian",
+    "value": 0.2101,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_FullContext",
+    "value": 0.2222,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_FullContext",
+    "value": 0.2222,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_FullContext",
+    "value": 0.2341,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx4096_B256_H2O",
+    "value": 0.129,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.4096.H2O.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx8192_B256_H2O",
+    "value": 0.1126,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.8192.H2O.256.f1"
+  },
+  {
+    "key": "ruler_niah_multikey_ctx16384_B256_H2O",
+    "value": 0.193,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.niah_multikey.16384.H2O.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_SnapKV",
+    "value": 0.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_SnapKV",
+    "value": 0.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_SnapKV",
+    "value": 0.0,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.RealSnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_BlockSal",
+    "value": 0.5333,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_BlockSal",
+    "value": 0.8667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_BlockSal",
+    "value": 0.6667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.SnapKV_Modified.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_AdaSnapKV",
+    "value": 0.0031,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_AdaSnapKV",
+    "value": 0.0667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_AdaSnapKV",
+    "value": 0.0725,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.Ada-SnapKV.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_KiaOmni_\u03c38",
+    "value": 0.5333,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_KiaOmni_\u03c38",
+    "value": 0.8,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_KiaOmni_\u03c38",
+    "value": 0.6667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.KiaOmni_\u03c38.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_KiaOmni_Gaussian",
+    "value": 0.6,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_KiaOmni_Gaussian",
+    "value": 0.8,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_KiaOmni_Gaussian",
+    "value": 0.6667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.KiaOmni_Gaussian.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_FullContext",
+    "value": 0.3455,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_FullContext",
+    "value": 0.4089,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_FullContext",
+    "value": 0.2344,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.FullContext.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx4096_B256_H2O",
+    "value": 0.0667,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.4096.H2O.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx8192_B256_H2O",
+    "value": 0.0222,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.8192.H2O.256.f1"
+  },
+  {
+    "key": "ruler_vt_ctx16384_B256_H2O",
+    "value": 0.0033,
+    "source_file": "data/results.json",
+    "json_path": "per_source_task_ctx.ruler.vt.16384.H2O.256.f1"
+  },
+  {
+    "key": "coherence_loss_B256_FullContext",
+    "value": 4.68,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_BlockSal",
+    "value": 21.48,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_KiaOmni_Gaussian",
+    "value": 29.4,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_KiaOmni_\u03c38",
+    "value": 33.1,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_SnapKV",
+    "value": 115.33,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_AdaSnapKV",
+    "value": 307.86,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "coherence_loss_B256_H2O",
+    "value": 329.2,
+    "source_file": "mistral_analysis_report.md",
+    "section": "5. Coherence Loss"
+  },
+  {
+    "key": "speed_tps_B256_AdaSnapKV",
+    "value": 14.42,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_AdaSnapKV",
+    "value": 4671.0,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_BlockSal",
+    "value": 14.62,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_BlockSal",
+    "value": 4645.8,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_FullContext",
+    "value": 7.53,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_FullContext",
+    "value": 6173.3,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_H2O",
+    "value": 14.71,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_H2O",
+    "value": 4646.1,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_KiaOmni_Gaussian",
+    "value": 14.63,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_KiaOmni_Gaussian",
+    "value": 4646.1,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_KiaOmni_\u03c38",
+    "value": 14.62,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_KiaOmni_\u03c38",
+    "value": 4646.1,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "speed_tps_B256_SnapKV",
+    "value": 14.91,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  },
+  {
+    "key": "vram_mb_B256_SnapKV",
+    "value": 4617.6,
+    "source_file": "data/speed_vram.csv",
+    "aggregation": "mean over all trial entries with budget=256"
+  }
+]

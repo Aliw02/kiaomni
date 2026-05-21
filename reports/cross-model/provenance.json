@@ -1,0 +1,62 @@
+{
+  "report": "Cross-Architecture Evaluation: KiaOmni on Falcon3-7B, BioMistral-7B, Amber-7B",
+  "generated": "2026-05-21",
+  "sources": {
+    "falcon3": {
+      "path": "notebook/kv_cache_benchmark/037_falcon3_results/",
+      "files_used": ["results.json", "predictions.csv", "speed_vram.csv", "eviction_coherence_loss.csv", "llm_judge_results.csv"],
+      "metric": "macro_avg_f1",
+      "values": {
+        "FullContext": {"96": 0.35675988911531836, "128": 0.35675988911531836, "256": 0.35675988911531836, "512": 0.35675988911531836, "source": "037/results.json:113-118"},
+        "RealSnapKV (SnapKV)": {"96": 0.1155358990341041, "128": 0.12291759570969034, "256": 0.1390496512834196, "512": 0.17966844672724178, "source": "037/results.json:53-58"},
+        "H2O": {"96": 0.13288408503653268, "128": 0.15744452533829725, "256": 0.20432711952717936, "512": 0.22127198838320913, "source": "037/results.json:65-70"},
+        "Ada-SnapKV (AdaSnapKV)": {"96": 0.1484246904733411, "128": 0.16983156807344918, "256": 0.22331192443998726, "512": 0.21912688405051534, "source": "037/results.json:59-64"},
+        "SnapKV_Modified (BlockSal)": {"96": 0.16201226118648224, "128": 0.18206254403520708, "256": 0.25176347487852185, "512": 0.28080302508068594, "source": "037/results.json:47-52"},
+        "KiaOmni_s8": {"96": 0.16384481699564193, "128": 0.18716615886283747, "256": 0.227837350675237, "512": 0.2770124402951314, "source": "037/results.json:71-76"},
+        "KiaOmni_Gaussian": {"96": 0.18075263153105098, "128": 0.2103279961961693, "256": 0.23399278039143595, "512": 0.29027233934321683, "source": "037/results.json:95-100"}
+      }
+    },
+    "biomistral": {
+      "path": "notebook/kv_cache_benchmark/038_biomistral_results/",
+      "files_used": ["results.json", "predictions.csv", "speed_vram.csv", "eviction_coherence_loss.csv", "llm_judge_results.csv"],
+      "metric": "macro_avg_contains",
+      "values": {
+        "FullContext": {"96": 0.36231884057971014, "128": 0.36231884057971014, "256": 0.36231884057971014, "512": 0.36231884057971014, "source": "038/results.json:111-116"},
+        "RealSnapKV (SnapKV)": {"96": 0.13043478260869568, "128": 0.14782608695652175, "256": 0.23478260869565218, "512": 0.3391304347826087, "source": "038/results.json:51-56"},
+        "H2O": {"96": 0.23478260869565218, "128": 0.2608695652173913, "256": 0.32173913043478264, "512": 0.3594202898550724, "source": "038/results.json:63-68"},
+        "Ada-SnapKV (AdaSnapKV)": {"96": 0.2608695652173913, "128": 0.30434782608695654, "256": 0.3391304347826087, "512": 0.3565217391304348, "source": "038/results.json:57-62"},
+        "SnapKV_Modified (BlockSal)": {"96": 0.21739130434782608, "128": 0.2811594202898551, "256": 0.3623188405797101, "512": 0.3565217391304348, "source": "038/results.json:45-50"},
+        "KiaOmni_s8": {"96": 0.23478260869565218, "128": 0.2956521739130435, "256": 0.34492753623188405, "512": 0.34782608695652173, "source": "038/results.json:69-74"},
+        "KiaOmni_Gaussian": {"96": 0.22608695652173913, "128": 0.2956521739130435, "256": 0.336231884057971, "512": 0.3565217391304348, "source": "038/results.json:93-98"}
+      }
+    },
+    "amber": {
+      "path": "notebook/kv_cache_benchmark/040_amber_results/",
+      "files_used": ["predictions.csv", "speed_vram.csv", "eviction_coherence_loss.csv"],
+      "missing": ["llm_judge_results.csv", "results.json"],
+      "metric": "eviction_coherence_loss (proxy only)",
+      "note": "No LLM-judge scores available. Only eviction coherence loss and speed/VRAM are present.",
+      "coherence_loss_values": {
+        "FullContext": {"96": 5.0, "128": 5.0, "256": 5.0, "512": 5.0, "source": "040/eviction_coherence_loss.csv (all niah_single ctx=4096 rows)"},
+        "SnapKV": {"96": 49.5, "128": 209.9, "256": 108.7, "512": 96.5, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"},
+        "BlockSal": {"96": 36.7, "128": 29.7, "256": 16.4, "512": 8.6, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"},
+        "AdaSnapKV": {"96": 336.2, "128": 372.9, "256": 175.1, "512": 69.6, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"},
+        "H2O": {"96": 210.8, "128": 311.5, "256": 377.0, "512": 127.3, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"},
+        "KiaOmni_s8": {"96": 104.8, "128": 84.5, "256": 48.0, "512": 22.2, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"},
+        "KiaOmni_Gaussian": {"96": 66.4, "128": 59.1, "256": 33.2, "512": 14.3, "source": "040/eviction_coherence_loss.csv (mean across 15 trials niah_single ctx=4096)"}
+      }
+    }
+  },
+  "label_mapping": {
+    "RealSnapKV": "SnapKV (faithful arXiv:2404.14469)",
+    "SnapKV_Modified": "BlockSal (novel block-level baseline)",
+    "Ada-SnapKV": "AdaSnapKV"
+  },
+  "notes": [
+    "All Falcon3 and BioMistral scores sourced from results.json (authoritative).",
+    "Amber has no results.json — eviction coherence loss is computed from raw CSV.",
+    "Coherence loss values for Amber are approximate means from niah_single ctx=4096 only.",
+    "Context=16384 has null data across all models — OOM/not run.",
+    "All CSV reads were truncated during data collection; aggregate scores from JSON are authoritative."
+  ]
+}

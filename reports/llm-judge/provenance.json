@@ -1,0 +1,68 @@
+{
+  "lane": "L7 \u2014 LLM-as-Judge Cross-Model Synthesis",
+  "generated": "2026-05-21T20:13:20.824187",
+  "methodology": {
+    "judge_model": "Claude Haiku (anthropic/claude-haiku-4-5-20251001) via Lightning.ai",
+    "scripts": [
+      "scratch/llm_judge_multi_model.py",
+      "scratch/llm_judge_biomistral.py"
+    ],
+    "categories": [
+      "CORRECT",
+      "HALLUCINATED",
+      "REFUSED",
+      "NOISE"
+    ],
+    "auto_classify_rules": {
+      "contains_1_0": "auto CORRECT",
+      "empty_prediction": "auto NOISE",
+      "prompt_echo_regex": "auto NOISE",
+      "question_gen_regex": "auto NOISE"
+    },
+    "disclosure": "SnapKV = faithful arXiv:2404.14469. BlockSal = our novel block-level baseline."
+  },
+  "models": {
+    "Qwen2.5-7B": {
+      "source": "033_full_comparison_results/llm_judge_results.csv",
+      "notes": "LongBench tasks only"
+    },
+    "Mistral-7B": {
+      "source": "034_mistral_results/data/llm_judge_results.csv",
+      "notes": "LongBench tasks only"
+    },
+    "Falcon3-7B": {
+      "source": "037_falcon3_results/llm_judge_results.csv",
+      "notes": "LongBench tasks only"
+    },
+    "BioMistral-7B": {
+      "source": "038_biomistral_results/llm_judge_results.csv",
+      "notes": "BioRULER tasks (bio_niah_single, bio_niah_gene)"
+    }
+  },
+  "models_absent": {
+    "Amber-7B": "040_amber_results had NO llm_judge_results.csv - the judge script defined it but results were not generated/present. Task: LLM360/Amber-7B."
+  },
+  "label_mapping": {
+    "RealSnapKV": "SnapKV (faithful arXiv:2404.14469)",
+    "SnapKV_Modified": "BlockSal (novel block-level baseline)",
+    "Ada-SnapKV": "AdaSnapKV"
+  },
+  "policies_published": [
+    "FullContext",
+    "SnapKV",
+    "BlockSal",
+    "AdaSnapKV",
+    "H2O",
+    "KiaOmni_s8 (\u03c38)",
+    "KiaOmni_Gaussian",
+    "KiaOmni_Adaptive",
+    "KiaOmni_RatioAdaptive",
+    "KiaOmni_Quest",
+    "KiaOmni_AnchorExp",
+    "KiaOmni_Scissorhands"
+  ],
+  "anomalies": [
+    "BioMistral-7B results are dominated by NOISE due to the difficult bio_niah_gene task (models generate questions instead of answers). Only FullContext and occasionally SnapKV_Modified show meaningful CORRECT rates.",
+    "Falcon3-7B predictions contain <|assistant|> formatting artifacts in the prediction column, indicating template leakage."
+  ]
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "source": "speed_vram.csv",
+    "table": "speed_vram",
+    "cell": "whitelist filtered"
+  },
+  {
+    "id": 2,
+    "source": "speed_vram_all_contexts.csv",
+    "table": "speed_vram_all_contexts",
+    "cell": "whitelist filtered"
+  },
+  {
+    "id": 3,
+    "source": "ruler_all_contexts_scored.csv",
+    "table": "ruler_all_contexts_scored",
+    "cell": "whitelist filtered"
+  },
+  {
+    "id": 4,
+    "source": "predictions_lb_scored.csv",
+    "table": "predictions_lb_scored.csv",
+    "cell": "raw copy to data/"
+  },
+  {
+    "id": 5,
+    "source": "predictions_ruler_scored.csv",
+    "table": "predictions_ruler_scored.csv",
+    "cell": "raw copy to data/"
+  },
+  {
+    "id": 6,
+    "source": "033_full_comparison_results/*",
+    "table": "main-results copy",
+    "cell": "bulk archive"
+  },
+  {
+    "id": 7,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 overall comparison table",
+    "note": "column=overall"
+  },
+  {
+    "id": 8,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=niah_sin"
+  },
+  {
+    "id": 9,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=niah_mul"
+  },
+  {
+    "id": 10,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=vt"
+  },
+  {
+    "id": 11,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=narrativeqa"
+  },
+  {
+    "id": 12,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=qasper"
+  },
+  {
+    "id": 13,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=multifieldqa_en"
+  },
+  {
+    "id": 14,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=hotpotqa"
+  },
+  {
+    "id": 15,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=2wikimqa"
+  },
+  {
+    "id": 16,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=musique"
+  },
+  {
+    "id": 17,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=gov_report"
+  },
+  {
+    "id": 18,
+    "source": "final_analysis_report.md",
+    "table": "final_scores.csv",
+    "cell": "section-3-2 per-task matrix row",
+    "note": "column=qmsum"
+  }
+]

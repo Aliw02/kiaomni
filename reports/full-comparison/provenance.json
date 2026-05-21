@@ -1,0 +1,194 @@
+{
+  "description": "L8 Master Comparison \u2014 aggregated cross-model comparison table",
+  "policies_whitelist": [
+    "AdaSnapKV",
+    "BlockSal",
+    "FullContext",
+    "H2O",
+    "KiaOmni_Gaussian",
+    "KiaOmni_\u03c38",
+    "SnapKV"
+  ],
+  "disclosure": "SnapKV = faithful arXiv:2404.14469 implementation. BlockSal = our novel block-level baseline (paper \u00a74).",
+  "sources": {
+    "qwen2.5-7b": {
+      "file": "D:\\MyFolder\\ProgrammingWith-Python\\Ai\\A+\\reports\\qwen2.5-7b\\data\\final_scores.csv",
+      "column": "overall"
+    },
+    "mistral-7b": {
+      "file": "D:\\MyFolder\\ProgrammingWith-Python\\Ai\\A+\\reports\\mistral-7b\\data\\final_scores.csv",
+      "column": "macro_f1_B256"
+    },
+    "falcon3-7b": {
+      "file": "D:\\MyFolder\\ProgrammingWith-Python\\Ai\\A+\\reports\\cross-model\\data\\falcon3_final_scores.csv",
+      "column": "Mean"
+    },
+    "biomistral-7b": {
+      "file": "D:\\MyFolder\\ProgrammingWith-Python\\Ai\\A+\\reports\\cross-model\\data\\biomistral_final_scores.csv",
+      "column": "Mean"
+    }
+  },
+  "entries": [
+    {
+      "policy": "FullContext",
+      "Qwen_Overall": {
+        "value": 4.695,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.3524,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.3568,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.3623,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 1.4416250000000002,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "KiaOmni_Gaussian",
+      "Qwen_Overall": {
+        "value": 4.176,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.3344,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.2288,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.3036,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 1.2607,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "KiaOmni_\u03c38",
+      "Qwen_Overall": {
+        "value": 4.133,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.3332,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.214,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.3058,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 1.2465,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "BlockSal",
+      "Qwen_Overall": {
+        "value": 4.074,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.3413,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.2192,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.3043,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 1.2347000000000001,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "AdaSnapKV",
+      "Qwen_Overall": {
+        "value": 3.092,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.2567,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.1902,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.3152,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 0.963525,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "H2O",
+      "Qwen_Overall": {
+        "value": 2.94,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.2294,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.179,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.2942,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 0.91065,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    },
+    {
+      "policy": "SnapKV",
+      "Qwen_Overall": {
+        "value": 2.563,
+        "provenance": "L1 qwen2.5-7b final_scores.csv -> overall"
+      },
+      "Mistral_macro_f1": {
+        "value": 0.1312,
+        "provenance": "L2 mistral-7b final_scores.csv -> macro_f1_B256"
+      },
+      "Falcon3_Mean": {
+        "value": 0.1393,
+        "provenance": "L4 falcon3_final_scores.csv -> Mean"
+      },
+      "BioMistral_Mean": {
+        "value": 0.213,
+        "provenance": "L4 biomistral_final_scores.csv -> Mean"
+      },
+      "Mean": {
+        "value": 0.7616250000000001,
+        "provenance": "arithmetic mean of the 4 model columns"
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "report": "Passkey Retrieval + Perplexity (Lane L6)",
+  "generated": "2026-05-21T20:00:00Z",
+  "sources": {
+    "passkey_retrieval": {
+      "script": "notebook/kv_cache_benchmark/034_pass_key.py",
+      "results_dir": "notebook/kv_cache_benchmark/034_pass_key_results/",
+      "data_file": "notebook/kv_cache_benchmark/034_pass_key_results/results.json",
+      "accuracy_table": "notebook/kv_cache_benchmark/034_pass_key_results/accuracy_table.csv",
+      "checkpoints": "notebook/kv_cache_benchmark/034_pass_key_results/checkpoints/ (300 trial checkpoints, 20 per condition)",
+      "model": "TinyLlama-1.1B-Chat",
+      "context_lengths": [4096, 8192, 16384],
+      "depths_tested": [0.1, 0.25, 0.5, 0.75, 0.9],
+      "budgets_tested": [98, 128, 256, 512],
+      "trials_per_condition": 20,
+      "n_trials_total": 300
+    },
+    "perplexity": {
+      "script": "notebook/kv_cache_benchmark/035_ppl_wikitext2.py",
+      "results_dir": "notebook/kv_cache_benchmark/035_ppl_wikitext2_results/",
+      "data_files": ["notebook/kv_cache_benchmark/035_ppl_wikitext2_results/ppl_table.csv", "notebook/kv_cache_benchmark/035_ppl_wikitext2_results/ppl_table.json"],
+      "dataset": "WikiText-2",
+      "model": "TinyLlama-1.1B-Chat",
+      "budgets_tested": [98, 128, 256, 512],
+      "n_chunks": 50
+    }
+  },
+  "whitelist": ["FullContext", "H2O", "SnapKV", "BlockSal", "AdaSnapKV", "KiaOmni_σ8", "KiaOmni_Gaussian"],
+  "label_mapping": {
+    "RealSnapKV": "SnapKV",
+    "SnapKV_Modified": "BlockSal",
+    "Ada-SnapKV": "AdaSnapKV"
+  },
+  "critical_disclosures": [
+    "SnapKV = faithful arXiv:2404.14469 implementation",
+    "BlockSal = our novel block-level baseline (modified SnapKV with block salience scoring)"
+  ],
+  "anomalies": {
+    "Scissorhands_PPL": "KiaOmni_Scissorhands shows extreme PPL values (360-411) across all budgets, indicating catastrophic quality degradation under H2O-like random eviction on WikiText-2. Excluded from whitelist.",
+    "AdaSnapKV_absent": "AdaSnapKV (Ada-SnapKV) was not evaluated in these runs; source data does not contain this policy.",
+    "KiaOmni_σ8_B98_B128_8192_mid": "KiaOmni_σ8 shows 0.95 accuracy at depth=0.5 for B=98 and B=128 at ctx=8192 (slight dip from perfect 1.0)."
+  },
+  "generated_files": [
+    "reports/benchmarks/passkey-and-ppl/README.md",
+    "reports/benchmarks/passkey-and-ppl/data/passkey_results.csv",
+    "reports/benchmarks/passkey-and-ppl/data/ppl_results.csv",
+    "reports/benchmarks/passkey-and-ppl/plots/passkey_accuracy.png",
+    "reports/benchmarks/passkey-and-ppl/plots/ppl_comparison.png",
+    "main-results/benchmarks/passkey-and-ppl/"
+  ]
+}

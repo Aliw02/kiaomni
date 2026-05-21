@@ -1,0 +1,42 @@
+{
+  "report": "KiaOmni Signal-Swap Mechanism Ablation (Lane L9)",
+  "publication_date": "2026-05-21",
+  "source_directory": "D:\\MyFolder\\ProgrammingWith-Python\\Ai\\A+\\notebook\\kv_cache_benchmark\\039_swap_experiment",
+  "source_files": [
+    "merged_results.json",
+    "results.json",
+    "predictions.csv",
+    "predictions_256_2048_ctx.csv",
+    "predictions_512_1024_ctx.csv",
+    "results_256_2048_ctx.json",
+    "results_512_1024_ctx.json",
+    "phase_transition_actual.png",
+    "snapkv_phase_transition.png",
+    "completed.json",
+    "merge_results.py",
+    "plot_phase.py"
+  ],
+  "conditions": [
+    "KiaOmni_NaturalSignal",
+    "KiaOmni_SwappedSignal",
+    "SnapKV_NaturalSignal",
+    "SnapKV_SwappedSignal"
+  ],
+  "tasks": ["niah_single", "niah_multikey", "vt"],
+  "budgets": [98, 128, 256, 512, 1024, 2048],
+  "trials_per_config": 15,
+  "total_trials": 360,
+  "whitelist_exemption": {
+    "lane": "L9",
+    "policy": "§4b whitelist",
+    "reason": "The ablation labels Natural / Swapped are the subject of the experiment — they are the independent variable, not a renaming convention. Published verbatim from source CSVs.",
+    "note": "This lane is exempt from the §4b whitelist because the ablation labels *Natural* / *Swapped* are the experiment's subject."
+  },
+  "headline_finding": "When the signal is KiaOmni's, the selector (top-k vs SnapKV's voting) barely matters; when the signal is SnapKV's, no selector recovers KiaOmni-level accuracy. The gain is the signal, not the selector.",
+  "aggregate_metrics": {
+    "KiaOmni_NaturalSignal": { "f1": 0.1429, "em": 0.0852, "rouge_l": 0.1429, "contains": 0.5630 },
+    "KiaOmni_SwappedSignal": { "f1": 0.1150, "em": 0.0667, "rouge_l": 0.1150, "contains": 0.4926 },
+    "SnapKV_NaturalSignal":  { "f1": 0.0419, "em": 0.0259, "rouge_l": 0.0419, "contains": 0.2593 },
+    "SnapKV_SwappedSignal":  { "f1": 0.1348, "em": 0.0963, "rouge_l": 0.1349, "contains": 0.4963 }
+  }
+}

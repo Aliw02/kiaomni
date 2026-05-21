@@ -1,0 +1,76 @@
+{
+  "report": "L5 — NIAH Heatmap: KiaOmni Needle-in-Haystack Visual Confirmation",
+  "published": "2026-05-21",
+  "source_dir": "notebook/kv_cache_benchmark/035_heatmap_results/",
+  "experiment_script": "035_niah_heatmap.py",
+  "whitelist_policies": ["FullContext", "H2O", "SnapKV", "BlockSal", "KiaOmni_s8", "KiaOmni_Gaussian"],
+  "csv_label_mapping": {
+    "RealSnapKV": "SnapKV",
+    "SnapKV_Modified": "BlockSal",
+    "KiaOmni_sigma8": "KiaOmni_s8"
+  },
+  "critical_disclosure": "SnapKV = faithful arXiv:2404.14469. BlockSal = our novel block-level baseline.",
+  "entries": [
+    {
+      "claim": "KiaOmni_s8 achieves 100% needle recall across all depths at all budgets B>=98",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=KiaOmni_sigma8, accuracy column is 1.0 for every depth/budget/ctx combination",
+      "accuracy_numeric": 1.0,
+      "extraction_method": "literal_cell_aggregate"
+    },
+    {
+      "claim": "KiaOmni_Gaussian achieves 100% needle recall across all depths at all budgets B>=98",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=KiaOmni_Gaussian, accuracy column is 1.0 for every depth/budget/ctx combination",
+      "accuracy_numeric": 1.0,
+      "extraction_method": "literal_cell_aggregate"
+    },
+    {
+      "claim": "BlockSal achieves 100% needle recall across all depths at all budgets B>=98",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=SnapKV_Modified, accuracy column is 1.0 for every depth/budget/ctx combination",
+      "accuracy_numeric": 1.0,
+      "extraction_method": "literal_cell_aggregate"
+    },
+    {
+      "claim": "SnapKV achieves 0% needle recall at B=98 and B=128",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=RealSnapKV and budget in (98,128), accuracy is 0.0 for every depth/ctx combination",
+      "accuracy_numeric": 0.0,
+      "extraction_method": "literal_cell_aggregate"
+    },
+    {
+      "claim": "SnapKV achieves partial recall at B=512 (mean ~0.66 across depths)",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=RealSnapKV and budget=512, compute mean accuracy across all depths and ctx lengths",
+      "accuracy_numeric": 0.66,
+      "extraction_method": "computed_mean"
+    },
+    {
+      "claim": "H2O achieves near 0% recall at B=98 and B=128",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=H2O and budget in (98,128), mean accuracy < 0.15 across all depths/ctx",
+      "accuracy_numeric": 0.04,
+      "extraction_method": "computed_mean"
+    },
+    {
+      "claim": "H2O achieves strong recall at B=512 (mean ~0.86 across depths)",
+      "source_file": "main-results/benchmarks/niah-heatmap/data/grid_data.csv",
+      "verification": "Filter rows where policy=H2O and budget=512, mean accuracy ~0.86",
+      "accuracy_numeric": 0.86,
+      "extraction_method": "computed_mean"
+    }
+  ],
+  "files_published": {
+    "reports/benchmarks/niah-heatmap/README.md": "This report",
+    "reports/benchmarks/niah-heatmap/data/curated_accuracy.csv": "Whitelist-filtered accuracy data with renamed policy columns",
+    "reports/benchmarks/niah-heatmap/data/curated_accuracy.json": "Whitelist-filtered accuracy data in JSON format",
+    "reports/benchmarks/niah-heatmap/data/grid_data.csv": "Full source CSV (unfiltered, for reference)",
+    "reports/benchmarks/niah-heatmap/data/grid_data.json": "Full source JSON (unfiltered, for reference)",
+    "reports/benchmarks/niah-heatmap/plots/": "24 whitelist policy heatmap PNGs (6 policies x 4 budgets), renamed per publication convention"
+  },
+  "excluded": {
+    "policy": "KiaOmni_Scissorhands",
+    "reason": "Excluded from whitelist per §4b (PPL anomaly). PNGs exist in source archive at main-results/benchmarks/niah-heatmap/plots/."
+  }
+}

@@ -6,7 +6,55 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![transformers 4.50+](https://img.shields.io/badge/transformers-4.50+-orange.svg)](https://github.com/huggingface/transformers)
 
-KiaOmni is a paper-grade KV-cache eviction policy validated across 32 experiments on TinyLlama, Qwen2.5-7B, and Llama-3.1. This package exposes it as a one-line monkey-patch that auto-discovers the attention internals of whatever model you load — no per-architecture code paths.
+---
+
+## Master Comparison
+
+![Master Heatmap](reports/full-comparison/plots/master_heatmap.png)
+*Figure: Cross-model comparison heatmap. Rows sorted by descending mean across all 4 architectures. Color intensity reflects relative score.*
+
+| Policy | Qwen Overall | Mistral F1 | Falcon3 Mean | BioMistral Mean | Mean |
+|--------|-------------|-----------|-------------|----------------|------|
+| FullContext | 4.695 | 0.352 | 0.357 | 0.362 | **1.442** |
+| KiaOmni_Gaussian | 4.176 | 0.334 | 0.229 | 0.304 | **1.261** |
+| KiaOmni_σ8 | 4.133 | 0.333 | 0.214 | 0.306 | 1.246 |
+| BlockSal | 4.074 | 0.341 | 0.219 | 0.304 | 1.235 |
+| AdaSnapKV | 3.092 | 0.257 | 0.190 | 0.315 | 0.964 |
+| H2O | 2.940 | 0.229 | 0.179 | 0.294 | 0.911 |
+| SnapKV | 2.563 | 0.131 | 0.139 | 0.213 | 0.762 |
+
+> **SnapKV** = faithful arXiv:2404.14469 implementation. **BlockSal** = our novel block-level baseline (paper §4).
+
+---
+
+## 📊 Results
+
+| Lane | Report | Coverage | Headline |
+|------|--------|----------|----------|
+| L1 | [`reports/qwen2.5-7b/`](reports/qwen2.5-7b/README.md) | Qwen2.5-7B — 11 tasks × 7 policies | KiaOmni_Gaussian: **89.0%** of FullContext |
+| L2 | [`reports/mistral-7b/`](reports/mistral-7b/README.md) | Mistral-7B — RULER + LongBench | **100%** niah_single across all contexts |
+| L4 | [`reports/cross-model/`](reports/cross-model/README.md) | Falcon3-7B · BioMistral-7B · Amber-7B | Cross-architecture generalization confirmed |
+| L5 | [`reports/benchmarks/niah-heatmap/`](reports/benchmarks/niah-heatmap/README.md) | Needle-In-A-Haystack heatmaps | σ8 + Gaussian retain needle at all depths B≥128 |
+| L6 | [`reports/benchmarks/passkey-and-ppl/`](reports/benchmarks/passkey-and-ppl/README.md) | Passkey retrieval + WikiText-2 PPL | **100%** passkey at B≥98; Gaussian PPL **27.80** |
+| L7 | [`reports/llm-judge/`](reports/llm-judge/README.md) | LLM-as-Judge win-rates (4 models) | KiaOmni variants lead at **32%+** win-rate |
+| L8 | [`reports/full-comparison/`](reports/full-comparison/README.md) | Master comparison — all models in one table | KiaOmni_Gaussian **#1 eviction** policy |
+| L9 | [`reports/ablations/signal-swap/`](reports/ablations/signal-swap/README.md) | Mechanism ablation — signal vs selector | **The gain is the signal, not the selector** |
+
+---
+
+## 🧪 Reproduce
+
+All experiment scripts live in [`experiments/`](experiments/README.md):
+
+```bash
+git clone https://github.com/Aliw02/kiaomni
+cd kiaomni
+pip install -e .
+python experiments/033_full_comparison.py    # Qwen2.5-7B benchmark
+python experiments/llm_judge.py --model qwen  # LLM-as-Judge
+```
+
+See [`experiments/README.md`](experiments/README.md) for the full script index, 10 canonical benchmarks, and reproduction guide.
 
 ---
 
