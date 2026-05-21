@@ -23,7 +23,7 @@ pass.
 
 ### In scope
 
-- 6 parallel publication lanes (see §4)
+- 7 publication lanes total (6 parallel in M1a + L8 sequential in M1b — see §4)
 - Curation of canonical JSON/CSV from each source results directory
 - Regeneration of plots from canonical data (so figures and tables agree)
 - Per-lane `README.md` with method paragraph, headline table, and links
@@ -116,8 +116,49 @@ Six lanes, each runnable by a single subagent in its own git worktree.
 | **L5** NIAH heatmaps | `035_heatmap_results/` | `reports/benchmarks/niah-heatmap/` | Per-policy heatmap PNGs + accuracy-by-depth table for FullContext / H2O / σ8 / Gaussian / Scissorhands at B∈{98,128,256,512} |
 | **L6** Passkey + PPL | `034_pass_key_results/`, `035_ppl_wikitext2_results/` | `reports/benchmarks/passkey-and-ppl/` | Passkey: 100% σ8/Gaussian at all depths ≥B98; PPL: Gaussian B=512 = 27.80 (best eviction), Scissorhands = 360-411 (worst, documented anomaly) |
 | **L7** LLM-judge synthesis | 4 × `llm_judge_results.csv` (Qwen / Mistral / Falcon3 / BioMistral); source scripts at `scratch/llm_judge_multi_model.py` + `scratch/llm_judge_biomistral.py` | `reports/llm-judge/` | Per-policy win-rate across 4 models; rubric documented from script docstrings; Amber explicitly absent |
+| **L8** Master comparison | Aggregates from `033_full_comparison_results/`, `034_mistral_results/`, `037_falcon3_results/`, `038_biomistral_results/`, `040_amber_results/` (per-model headline CSVs) | `reports/full-comparison/` | **One master table** rows = all policies (FullContext, KiaOmni_σ8/Gaussian/Scissorhands/RatioAdaptive, SnapKV_Modified, RealSnapKV, H2O, StreamingLLM, …), columns = headline metric per (model × task), final "Mean" column. **One master plot** (heatmap or grouped bar — SnapKV-paper style). |
 
 Lane 3 (Llama-3.1) and the original Phi-3 sub-lane are **dropped** per owner instruction.
+
+---
+
+## 4a. Anti-Cheat / Data-Integrity Mandate
+
+This is the most important rule in this spec. Read it twice.
+
+**Every numeric value that appears in any published `reports/<lane>/README.md` or `reports/<lane>/*.md` MUST be sourced from a specific cell in a specific file under `main-results/<lane>/`.** No exceptions.
+
+### What this forbids
+
+- Citing numbers "from memory" or "from the analysis report"
+- Rounding to "look nice" if the source file has more precision
+- Citing a different model's number by accident (cross-contamination between lanes)
+- Fabricating averages — if you publish a mean, the source CSV must contain a row labeled "mean" *or* the subagent must compute the mean in a checked-in script
+- Citing numbers from superseded / partial / debug runs
+
+### What every subagent MUST produce
+
+In addition to the README and plots, each subagent writes:
+
+`reports/<lane>/provenance.json` — a structured manifest with one entry per published number, each entry containing:
+
+```json
+{
+  "value": 4.176,
+  "metric": "overall_score",
+  "policy": "KiaOmni_Gaussian",
+  "source_file": "main-results/qwen2.5-7b/data/final_scores.csv",
+  "source_row": "KiaOmni_Gaussian",
+  "source_column": "overall",
+  "extraction_method": "literal_cell"  // or "computed_mean", "computed_max", etc.
+}
+```
+
+The dispatcher (me, after all lanes return) MUST spot-check at least 3 random entries per lane by opening the source file and confirming the cell matches. Any mismatch halts the milestone.
+
+### What this enables
+
+A future reviewer — or you, six months from now — can audit any published claim by opening `provenance.json`, finding the source file, and confirming the cell. No "I think we said 89% somewhere" memory archaeology.
 
 ---
 
@@ -151,18 +192,21 @@ Each subagent receives a self-contained prompt and must perform exactly these st
 
 Execution is decomposed into **4 sequential milestones**; milestone M1 contains 6 parallel lanes dispatched via the `dispatching-parallel-agents` pattern.
 
-### M1 — Parallel evidence dispatch (6 subagents concurrent)
+### M1 — Parallel evidence dispatch (6 lanes concurrent, then L8 sequential)
 
-Dispatch all 6 lanes simultaneously with `isolation: "worktree"`. Each lane is an **independent problem domain** per the parallel-dispatch criteria: each reads a distinct source directory, writes to a distinct `reports/<lane>/` + `main-results/<lane>/`, and produces an independent commit. No shared state.
+**Phase M1a (parallel):** Dispatch lanes L1, L2, L4, L5, L6, L7 simultaneously with `isolation: "worktree"`. Each is an **independent problem domain** — distinct source directory, distinct output paths, independent commit. No shared state.
 
-| Lane | Subagent type | Worktree |
-|---|---|---|
-| L1 Qwen | `general-purpose` | yes |
-| L2 Mistral | `general-purpose` | yes |
-| L4 Cross-arch | `general-purpose` | yes |
-| L5 NIAH heatmap | `general-purpose` | yes |
-| L6 Passkey + PPL | `general-purpose` | yes |
-| L7 LLM-judge | `general-purpose` | yes |
+**Phase M1b (sequential, after M1a):** L8 (master comparison) runs alone because it *depends on* the curated data deposited by L1, L2, L4 in `main-results/`. Trying to parallel-dispatch L8 would race on data that doesn't exist yet.
+
+| Lane | Phase | Subagent type | Worktree |
+|---|---|---|---|
+| L1 Qwen | M1a | `general-purpose` | yes |
+| L2 Mistral | M1a | `general-purpose` | yes |
+| L4 Cross-arch | M1a | `general-purpose` | yes |
+| L5 NIAH heatmap | M1a | `general-purpose` | yes |
+| L6 Passkey + PPL | M1a | `general-purpose` | yes |
+| L7 LLM-judge | M1a | `general-purpose` | yes |
+| L8 Master comparison | M1b | `general-purpose` | yes |
 
 Race-condition handling: first lane to push creates `reports/`; subsequent lanes pull-rebase if their push races. Worktrees isolate working-copy state.
 
