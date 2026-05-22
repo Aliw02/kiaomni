@@ -97,7 +97,7 @@ MODEL_ID = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 tok = AutoTokenizer.from_pretrained(MODEL_ID)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID,
-    attn_implementation="eager",   # required
+    # attn_implementation="eager",  # optional — hooks fire before fused kernels
     torch_dtype="auto",
 )
 
