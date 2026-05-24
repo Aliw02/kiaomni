@@ -184,4 +184,3 @@ python eval.py --model Qwen/Qwen2.5-7B-Instruct --benchmark longbench
 
 Research use. © 2026 KiaOmni Research.
 
-Full conversation available in `AGENTS.md`.
