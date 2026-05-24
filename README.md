@@ -101,13 +101,14 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype="auto",
 )
 
-apply_kiaomni(model, policy="kiaomni_s8", budget=256)
+apply_kiaomni(model, policy="kiaomni_gaussian", budget=256)
 
-# generate exactly as normal — eviction is transparent
-prompt = "Summarise: " + ("filler text. " * 300)
-out = model.generate(tok(prompt, return_tensors="pt").input_ids,
-                     max_new_tokens=128)
-print(tok.decode(out[0], skip_special_tokens=True))
+# Generate as normal
+text = "The quick brown fox jumps over the lazy dog. " * 50
+prompt = f"Summarise the following text:\n{text}\n\nSummary:"
+inputs = tok(prompt, return_tensors="pt")
+outputs = model.generate(inputs.input_ids, max_new_tokens=128)
+print("Model: " + tok.decode(outputs[0], skip_special_tokens=True))
 ```
 
 That's it. Any prompt longer than `budget` tokens is automatically evicted down to `budget` positions before the first decode step.
