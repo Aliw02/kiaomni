@@ -1,8 +1,12 @@
-# KiaOmni: O(N) Boxcar Smoothing for Budget-Exact KV-Cache Eviction in Large Language Models
+---
+title: "KiaOmni: O(N) Boxcar Smoothing for Budget-Exact KV-Cache Eviction in Large Language Models"
+author:
+  - Aliwey Abood
+date: "Draft v1.0 — 2026-04-27"
+abstract-title: "Abstract"
+---
 
-**Authors:** Aliwey Abood  
-**Status:** Draft v1.0 — 2026-04-27  
-**Venue Target:** ACL / NeurIPS / EMNLP 2026
+**Status:** Draft v1.0 — 2026-04-27 · **Venue Target:** ACL / NeurIPS / EMNLP 2026
 
 ---
 
@@ -55,7 +59,7 @@ We implement baselines as faithful approximations to their published algorithms:
 
 > **Discovery Note (2026-04-28):** All evaluations prior to Experiment 033-RealSnap used a *simplified* SnapKV baseline (`snapkv_keep`) implementing block-mean page eviction — missing the observation window, voting sum, and per-head union. This was identified through a line-by-line audit against the official repository ([FasterDecoding/SnapKV](https://github.com/FasterDecoding/SnapKV)) and confirmed against [NVIDIA/kvpress](https://github.com/NVIDIA/kvpress/blob/main/kvpress/presses/snapkv_press.py). The corrected implementation was deployed in `033_full_comparison.py` before the final GPU run. All §5 results use the corrected baseline. A trace-level pre-evaluation (038_real_snapkv_trace_analysis.py, 5 models, 15 policies) showed KiaOmni_σ8 ≈ RealSnapKV on token-selection quality (Δ < 2pp at most budgets), validating that the gap in generation metrics reflects algorithmic difference, not a measurement artifact. See Appendix D.10.
 
-### 2.2 Existing Methods
+### 2.3 Existing Methods
 
 **H2O** (Zhang et al., 2023) retains tokens with the highest cumulative attention weight, using an exponential moving average to approximate importance. It is simple and fast but collapses under multi-key retrieval tasks due to attention sink concentration.
 
@@ -63,7 +67,7 @@ We implement baselines as faithful approximations to their published algorithms:
 
 **StreamingLLM** (Xiao et al., 2023) retains only sink tokens (first few) and the most recent window, discarding the middle entirely. This prevents KV-cache overflow but is incompatible with long-range retrieval.
 
-### 2.3 The Subword Gap Problem
+### 2.4 The Subword Gap Problem
 
 Modern tokenizers split alphanumeric codes (e.g., `TD97ZM4R`) into 2–4 subwords. Under pointwise saliency, the token with the highest attention score within the code is retained while its neighbors are evicted. The model then receives an incomplete code and generates a plausible-looking hallucination (e.g., `APOLLO-7877` instead of `APOLLO-7878`). We term this the *subword gap collapse* and identify it as the primary failure mode of σ=0 methods on code-retrieval benchmarks. Experiment D-064 (N=270 trials, Qwen2.5-7B, 16K context) showed a 31-percentage-point gap between σ=8 and σ=0, directly caused by this mechanism.
 
@@ -75,29 +79,33 @@ Modern tokenizers split alphanumeric codes (e.g., `TD97ZM4R`) into 2–4 subword
 
 Let A ∈ ℝ^N be the per-token saliency vector, computed as the mean attention weight over the last transformer layer's query-key product (averaged over heads):
 
-```
-A[i] = mean_h( softmax(Q_h @ K_h^T)[last_query, i] )
-```
+$$
+A_i \;=\; \mathrm{mean}_h\!\left(\mathrm{softmax}\!\left(\frac{Q_h K_h^\top}{\sqrt{d}}\right)_{\text{last},\, i}\right)
+$$
 
 KiaOmni applies the following three-step transform:
 
 **Step 1 — Dynamic range compression (optional):**
-```
-E[i] = log1p(A[i])
-```
+$$
+E_i \;=\; \log(1 + A_i)
+$$
 
 **Step 2 — Boxcar smoothing via prefix sum (O(N)):**
-```
-P[i] = Σ_{j=0}^{i} E[j]          # prefix sum
-F[i] = (P[min(i+σ, N-1)] - P[max(i-σ-1, -1)]) / (2σ+1)
-```
+$$
+\begin{aligned}
+P_i &= \sum_{j=0}^{i} E_j \qquad\text{(prefix sum)} \\
+F_i &= \frac{P_{\min(i+\sigma,\, N-1)} - P_{\max(i-\sigma-1,\, -1)}}{2\sigma+1}
+\end{aligned}
+$$
 
 **Step 3 — Budget-exact top-K selection:**
-```
-keep = argsort(F, descending=True)[:B - N_SINK - RECENCY]
-keep ∪= {0, ..., N_SINK-1}        # sink protection
-keep ∪= {N-RECENCY, ..., N-1}     # recency floor
-```
+$$
+\begin{aligned}
+\mathrm{keep} &\;=\; \mathrm{argsort}(F,\,\downarrow)[\,1:B - N_\text{SINK} - N_\text{REC}\,] \\
+\mathrm{keep} &\;\cup{=}\; \{0,\ldots,N_\text{SINK}-1\} \quad\text{(sink protection)} \\
+\mathrm{keep} &\;\cup{=}\; \{N-N_\text{REC},\ldots,N-1\} \quad\text{(recency floor)}
+\end{aligned}
+$$
 
 **Fixed hyperparameters:** BLOCK_SIZE=16, N_SINK=16, RECENCY=32, σ=8.  
 **Hard constraint:** BLOCK_SIZE ≤ B÷4 (ensures budget feasibility).
@@ -135,10 +143,12 @@ The taxonomy predicts optimal σ from the Gini coefficient of the attention weig
 
 For deployments where a calibration pass is feasible, KiaOmniAdaptive sets σ dynamically:
 
-```
-H_norm = normalized Shannon entropy of A
-σ = σ_max × (1 - H_norm) × √(B/N)
-```
+$$
+\begin{aligned}
+H_\text{norm} &\;=\; \tfrac{-\sum_i p_i \log p_i}{\log N}, \quad p_i = A_i/\sum_j A_j \\
+\sigma &\;=\; \sigma_{\max}\cdot(1 - H_\text{norm})\cdot\sqrt{B/N}
+\end{aligned}
+$$
 
 This formula assigns large σ to low-entropy (concentrated) distributions and small σ to high-entropy (diffuse) distributions. Trace-level evaluation showed KiaOmniAdaptive outperforms fixed σ=8 on Qwen (+3.5pp) and Mistral (+1.6pp) at budget B=40, with no benefit on TinyLlama or Phi-3. For practical deployment without calibration data, fixed σ=8 is the recommended default.
 
@@ -766,3 +776,33 @@ More critically, at B ≥ 256 — the practical deployment range for most applic
 
 *Draft v1.1 — Aliwey Abood — 2026-05-09*  
 *Experiments 001–038 · Platforms: Kaggle T4×2, Modal A10G/A100/L4, Lightning AI L4*
+
+---
+
+## References
+
+1. **H2O** — Zhang, Z., Sheng, Y., Zhou, T., et al. *H2O: Heavy-Hitter Oracle for Efficient Generative Inference of Large Language Models*. NeurIPS 2023. arXiv:2306.14048.
+
+2. **SnapKV** — Li, Y., Huang, Y., Yang, B., et al. *SnapKV: LLM Knows What You are Looking for Before Generation*. NeurIPS 2024. arXiv:2404.14469.
+
+3. **ScissorHands** — Liu, Z., Desai, A., Liao, F., et al. *Scissorhands: Exploiting the Persistence of Importance Hypothesis for LLM KV Cache Compression at Test Time*. NeurIPS 2023. arXiv:2305.17118.
+
+4. **PyramidKV** — Cai, Z., Zhang, Y., Gao, B., et al. *PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling*. arXiv:2406.02069, 2024.
+
+5. **Are Sixteen Heads Really Better than One?** — Michel, P., Levy, O., Neubig, G. NeurIPS 2019. arXiv:1905.10650.
+
+6. **Generating Long Sequences with Sparse Transformers** — Child, R., Gray, S., Radford, A., Sutskever, I. arXiv:1904.10509, 2019.
+
+7. **Efficient Streaming Language Models with Attention Sinks (StreamingLLM)** — Xiao, G., Tian, Y., Chen, B., Han, S., Lewis, M. ICLR 2024. arXiv:2309.17453.
+
+8. **RULER** — Hsieh, C.-P., Sun, S., Kriman, S., et al. *RULER: What's the Real Context Size of Your Long-Context Language Models?* arXiv:2404.06654, 2024.
+
+9. **LongBench** — Bai, Y., Lv, X., Zhang, J., et al. *LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding*. ACL 2024. arXiv:2308.14508.
+
+10. **Qwen2.5 Technical Report** — Qwen Team. arXiv:2412.15115, 2025.
+
+11. **Mistral 7B** — Jiang, A. Q., Sablayrolles, A., Mensch, A., et al. arXiv:2310.06825, 2023.
+
+12. **The Falcon Series of Open Language Models** — Almazrouei, E., et al. arXiv:2311.16867, 2023.
+
+13. **BioMistral** — Labrak, Y., Bazoge, A., Morin, E., et al. *BioMistral: A Collection of Open-Source Pretrained Large Language Models for Medical Domains*. arXiv:2402.10373, 2024.

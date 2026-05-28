@@ -1,0 +1,253 @@
+%% template.tex — Pandoc LaTeX template for KiaOmni paper
+%% Target: arXiv-acceptable single-column ML preprint (NeurIPS-style typography)
+%% Compile via: pandoc --template=template.tex --listings ...
+%%
+%% Wide-table strategy: tables are emitted by Pandoc as longtable by default.
+%% This template sets \footnotesize inside longtable rows AND provides a
+%% \widetable wrapper command (\resizebox{\textwidth}{!}{...}) for manual use
+%% on the very widest tables (5-6 cols). Either approach works; pick per-table.
+
+\documentclass[11pt,a4paper]{article}
+
+%% ---------------- Geometry ----------------
+\usepackage[margin=1in]{geometry}
+
+%% ---------------- Engine-conditional Unicode support ----------------
+%% xelatex/lualatex: native UTF-8 via fontspec + unicode-math (handles σ, ×, ≥, ∪, ℝ, ...)
+%% pdflatex: utf8 inputenc + newunicodechar fallbacks (limited; xelatex strongly preferred).
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{textcomp}
+  \usepackage{newunicodechar}
+\else
+  \usepackage{fontspec}
+  \usepackage{unicode-math}
+  \usepackage{newunicodechar}
+\fi
+\usepackage{csquotes}
+
+%% ---------------- Math ----------------
+\usepackage{amsmath}
+%% amssymb conflicts with unicode-math (both define \eth, \mho, etc.).
+%% Load only under pdfTeX where unicode-math is not loaded.
+\ifPDFTeX
+  \usepackage{amssymb}
+\fi
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+%% ---------------- Tables ----------------
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+
+%% ---------------- Graphics & layout ----------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+%% ---------------- Code listings ----------------
+%% Pandoc's --listings flag emits \begin{lstlisting}[...] blocks directly.
+%% We DO NOT define the Highlighting/Shaded envs (those are for the
+%% default Pandoc highlighter, which --listings replaces). We DO still
+%% need \tightlist because Pandoc emits it for compact bullet lists.
+\usepackage{listings}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\definecolor{codekw}{rgb}{0.10,0.30,0.65}
+\definecolor{codecomment}{rgb}{0.40,0.55,0.40}
+\definecolor{codestring}{rgb}{0.55,0.20,0.20}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=6pt,
+  frame=single,
+  rulecolor=\color{black!20},
+  framesep=4pt,
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true,
+  tabsize=2,
+  captionpos=b,
+  xleftmargin=10pt,
+  xrightmargin=4pt,
+  aboveskip=8pt,
+  belowskip=8pt,
+}
+
+%% ---------------- Algorithms ----------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+%% ---------------- Hyperref (load late) ----------------
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+  bookmarksnumbered=true,
+  pdfstartview=FitH
+]{hyperref}
+
+%% ---------------- Theorem envs ----------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+%% ---------------- Wide table helper ----------------
+%% Usage in source: \widetable{\begin{tabular}{...}...\end{tabular}}
+\providecommand{\widetable}[1]{%
+  \begin{center}\resizebox{\textwidth}{!}{#1}\end{center}}
+
+%% Make longtable contents a touch smaller so 5-6 col tables fit
+\AtBeginEnvironment{longtable}{\footnotesize}
+%% Note: \AtBeginEnvironment requires etoolbox (loaded transitively).
+\usepackage{etoolbox}
+
+%% ---------------- Caption style ----------------
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+
+%% ---------------- Header / footer ----------------
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyhead[L]{\small\itshape KiaOmni: O(N) Boxcar Smoothing for KV-Cache Eviction}
+\fancyhead[R]{\small\thepage}
+\fancyfoot[C]{}
+
+%% Make plain pages (first page, chapter starts) match
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \fancyfoot[C]{\small\thepage}%
+}
+
+%% ---------------- Pandoc compatibility shims ----------------
+%% Pandoc emits \passthrough for inline raw bits sometimes
+\providecommand{\passthrough}[1]{#1}
+%% Pandoc emits \pandocbounded for size-constrained images
+\providecommand{\pandocbounded}[1]{#1}
+%% Used by Pandoc syntax-highlighted code via --listings: nothing extra needed.
+
+%% ---------------- Emoji / glyph fallbacks ----------------
+%% Source paper uses ✅ ❌ ✦ ⚠ ← † in tables. Map them to text/math equivalents
+%% so even pdflatex won't choke. xelatex with unicode-math handles many natively
+%% but the explicit mappings keep tables consistent across engines.
+\newunicodechar{✅}{\textsc{yes}}
+\newunicodechar{❌}{\textsc{no}}
+\newunicodechar{✦}{\ensuremath{\ast}}
+\newunicodechar{⚠}{!}
+\newunicodechar{←}{\ensuremath{\leftarrow}}
+\newunicodechar{†}{\textsuperscript{\dag}}
+%% Greek/math chars that Latin Modern Roman lacks — route to math mode
+\newunicodechar{σ}{\ensuremath{\sigma}}
+\newunicodechar{Σ}{\ensuremath{\Sigma}}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{μ}{\ensuremath{\mu}}
+\newunicodechar{Δ}{\ensuremath{\Delta}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{∪}{\ensuremath{\cup}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≡}{\ensuremath{\equiv}}
+\newunicodechar{≈}{\ensuremath{\approx}}
+\newunicodechar{≪}{\ensuremath{\ll}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{±}{\ensuremath{\pm}}
+\newunicodechar{√}{\ensuremath{\sqrt{\,}}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+\newunicodechar{⁻}{\ensuremath{^{-}}}
+\newunicodechar{⁶}{\ensuremath{^{6}}}
+\newunicodechar{⁴}{\ensuremath{^{4}}}
+\newunicodechar{¹}{\ensuremath{^{1}}}
+\newunicodechar{⁵}{\ensuremath{^{5}}}
+\newunicodechar{⁰}{\ensuremath{^{0}}}
+\newunicodechar{§}{\S}
+
+%% ---------------- Pandoc longtable shim ----------------
+%% Pandoc emits `\def\LTcaptype{none}` for caption-less longtables, which the
+%% caption package tries to step as a counter. Provide it as a no-op counter.
+\newcounter{none}
+
+%% ---------------- Title metadata ----------------
+\title{$if(title)$\textbf{$title$}$endif$$if(subtitle)$\\[0.4em]\large $subtitle$$endif$}
+\author{%
+$if(author)$
+  $for(author)$$author$$sep$ \and $endfor$
+$else$
+  Aliwey Abood
+$endif$
+$if(affiliation)$
+  \\[0.3em]\small\itshape $affiliation$
+$endif$
+}
+\date{$if(date)$$date$$else$\today$endif$}
+
+%% ---------------- Abstract margins ----------------
+%% Standard ML-paper narrower abstract block
+\renewenvironment{abstract}{%
+  \begin{center}\textbf{\large Abstract}\end{center}%
+  \begin{quotation}\noindent\small\ignorespaces
+}{%
+  \end{quotation}\vspace{1em}
+}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{plain}
+
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+
+$if(toc)$
+{\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{$toc-depth$}
+\tableofcontents
+}
+\vspace{1em}
+$endif$
+
+$body$
+
+%% ---------------- References ----------------
+%% Citation-printed bibliography (if citeproc was active) is injected by Pandoc.
+%% For plain bibtex-style refs, populate via "## References" in the markdown
+%% source, or pass --bibliography=file.bib --citeproc to pandoc.
+$if(bibliography)$
+\bibliographystyle{plain}
+\bibliography{$for(bibliography)$$bibliography$$sep$,$endfor$}
+$endif$
+
+\end{document}
