@@ -47,6 +47,11 @@
 
 %% ---------------- Graphics & layout ----------------
 \usepackage{graphicx}
+%% Resolve image paths from the repo root (one level up from paper/).
+%% Pandoc preserves source-relative paths verbatim, so a markdown image
+%% reference like `reports/foo.png` ends up in the .tex as-is and would
+%% otherwise be looked up under paper/reports/... which does not exist.
+\graphicspath{{../}{./}}
 \usepackage{xcolor}
 \usepackage{microtype}
 \usepackage{caption}
