@@ -12,7 +12,7 @@ abstract-title: "Abstract"
 
 ## Abstract
 
-We present **KiaOmni**, a KV-cache eviction family for large language model inference that replaces token-pointwise saliency selection with a smoothed importance field over the last-layer Q@K attention scores. KiaOmni applies a symmetric kernel (boxcar of half-width σ, or Gaussian) to the per-token saliency map, then performs budget-exact top-K selection in O(N) via prefix sums. On the RULER benchmark with Qwen2.5-7B at 16K context, KiaOmni_σ8 achieves **100% needle-in-a-haystack retrieval** at budget B=64 — vs 87.8% for the simplified-SnapKV baseline and 3.9% for H2O (Z=4.84, p=1.29×10⁻⁶, N=180). On LongBench real-task evaluation at B=256, KiaOmni_σ8 **exceeds FullContext Token F1** (0.200 vs 0.174) and reduces confident-wrong hallucination on Qwen2.5-7B by **−10.8pp** (45.0% vs 55.8%; Z=3.12, **p=0.0018**, N=360). Across **four independent architectures (Qwen2.5-7B, Mistral-7B-v0.3, Falcon3-7B, BioMistral-7B)** and 61,681 LLM-judged samples, **KiaOmni_Gaussian leads the cross-model mean at B=512 with 88.2% of FullContext** (vs 70.7% for H2O and 61.5% for the literal-spec SnapKV implementation; full per-budget breakdown in `GROUND_TRUTH.md`). At 32K context KiaOmni delivers **~31× decode speedup and 2× VRAM reduction** vs FullContext, restoring throughput from 0.59 TPS to ~18 TPS. The two recommended defaults — σ=8 (boxcar, dependency-free) and Gaussian (σ=4) — require no per-model calibration; we report where each is preferred per architecture and per task.
+We present **KiaOmni**, a KV-cache eviction family for large language model inference that replaces token-pointwise saliency selection with a smoothed importance field over the last-layer Q@K attention scores. KiaOmni applies a symmetric kernel (boxcar of half-width σ, or Gaussian) to the per-token saliency map, then performs budget-exact top-K selection in O(N) via prefix sums. On the RULER benchmark with Qwen2.5-7B at 16K context, KiaOmni_σ8 achieves **100% needle-in-a-haystack retrieval** at budget B=64 — vs 87.8% for the simplified-SnapKV baseline and 3.9% for H2O (Z=4.84, p=1.29×10⁻⁶, N=180). On LongBench real-task evaluation at B=256, KiaOmni_σ8 **exceeds FullContext Token F1** (0.200 vs 0.174) and reduces confident-wrong hallucination on Qwen2.5-7B by **−10.8pp** (45.0% vs 55.8%; Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018), N=360). Across **four independent architectures (Qwen2.5-7B, Mistral-7B-v0.3, Falcon3-7B, BioMistral-7B)** and 61,681 LLM-judged samples, **KiaOmni_Gaussian leads the cross-model mean at B=512 with 88.2% of FullContext** (vs 70.7% for H2O and 61.5% for the literal-spec SnapKV implementation; full per-budget breakdown in `GROUND_TRUTH.md`). At 32K context KiaOmni delivers **~31× decode speedup and 2× VRAM reduction** vs FullContext, restoring throughput from 0.59 TPS to ~18 TPS. The two recommended defaults — σ=8 (boxcar, dependency-free) and Gaussian (σ=4) — require no per-model calibration; we report where each is preferred per architecture and per task.
 
 ---
 
@@ -34,7 +34,7 @@ We identify a unifying principle: both families can be viewed as special cases o
 
 We validate KiaOmni across three independent model architectures (Qwen2.5-7B, Mistral-7B, Falcon3-7B), three context lengths (4K, 8K, 32K), four budget levels (B ∈ {64, 96, 128, 256}), and two benchmark suites (RULER synthetic + LongBench real-task). We further confirm that results are robust to quantization (NF4 vs bf16 ablation) and provide mechanistic visualizations showing why σ>0 outperforms σ=0.
 
-> **Reviewer Note (2026-04-27, updated 2026-05-08):** The hallucination experiment was scaled to N=360 per policy (Experiment 033, 8 LongBench tasks). KiaOmni_σ8 hallucination rate: 45.0% vs FullContext 55.8%; two-proportion Z-test Z=3.12, **p=0.0018**. The prior N=50 result (p=0.45) was underpowered and is superseded. The finding is now statistically significant at α=0.01 and is reported as a confirmed result in §5.2b.
+> **Reviewer Note (2026-04-27, updated 2026-05-08):** The hallucination experiment was scaled to N=360 per policy (Experiment 033, 8 LongBench tasks). KiaOmni_σ8 hallucination rate: 45.0% vs FullContext 55.8%; two-proportion Z-test Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018). The prior N=50 result (p=0.45) was underpowered and is superseded. The finding is now statistically significant at α=0.01 and is reported as a confirmed result in §5.2b.
 
 ---
 
@@ -53,9 +53,9 @@ We implement baselines as faithful approximations to their published algorithms:
 - **RealSnapKV** (arXiv:2404.14469): We implement the published algorithm exactly as described in §4 of the paper. The implementation (033_full_comparison.py, `extract_all_saliency`) captures the last `window_size=32` query states from the final transformer layer during prefill and computes the full voting matrix in a single additional matmul:
   1. **Voting**: `attn[q_obs × k_prefix]` → softmax over prefix → `.sum(dim=-2)` → shape `(heads, prefix_len)`
   2. **Obs-window padding**: observation-window tokens receive `max_vote` score (always retained, matching paper §4 Step 5)
-  3. **Mean over heads** → signal `sal_snapkv` stored alongside other saliency signals
-  4. **1D max-pooling** (kernel=5, `scipy.ndimage.maximum_filter1d`) for spatial clustering
-  5. **Top-K selection** on pooled scores
+  3. **Per-head signal preserved**: `sal_snapkv` is stored with shape `(heads, prefix_len)` — saliency is *not* averaged over heads before selection, matching the official SnapKV repo
+  4. **Per-head 1D max-pooling** (kernel=5, `scipy.ndimage.maximum_filter1d`, mathematically equivalent to `F.max_pool1d`) for spatial clustering
+  5. **Per-head top-K then union across heads** (`snapkv_real_keep`); a final budget-trim (top-budget by mean saliency) enforces the cache size after the union, as the official repo also does
 
 - **BlockSal** (formerly "SnapKV_Modified"): A novel baseline of our own design — block-level KV selection using mean saliency per block. This is **not** the SnapKV algorithm. We rename it BlockSal to avoid confusion.
 
@@ -187,7 +187,7 @@ The flagship evaluation covers **4 independent model architectures × 8 LongBenc
 
 3. **Falcon3 retention is lower** (~83% vs ~89% on Qwen at B=512). Falcon3's GQA (4 KV heads) produces sparser attention patterns; eviction decisions are harder, but the KiaOmni family still leads.
 
-4. **RealSnapKV (literal-spec implementation) is bottom-tier on all four architectures.** This is disclosed as an implementation pathology (§5.0 implementation notes), not a refutation of the SnapKV idea — the block-level variant ("SnapKV_Modified") that several prior comparisons appear to have benchmarked is the third-strongest policy on Qwen+Falcon3+BioMistral.
+4. **RealSnapKV (faithful arXiv:2404.14469 implementation) is bottom-tier on all four architectures.** This reflects the method's behavior in our prefill-only, small-budget regime (§5.0 implementation notes confirm the implementation is faithful — per-head voting, max-pooling, and union are all present), not a bug and not a refutation of the SnapKV idea — the block-level variant ("SnapKV_Modified"/BlockSal, our own design) that several prior comparisons appear to have benchmarked is the third-strongest policy on Qwen+Falcon3+BioMistral.
 
 5. **At lower budgets, leadership is more contested.** On the cross-model mean at B=256: SnapKV_Modified 75.8%, KiaOmni_σ8 74.4%, KiaOmni_Gaussian 73.4% — within one Wilson CI half-width. The KiaOmni lead **emerges and widens as budget grows**, suggesting smoothed-saliency selection makes better use of additional retention capacity.
 
@@ -237,7 +237,7 @@ The flagship evaluation covers **4 independent model architectures × 8 LongBenc
 
 2. **KiaOmni_Scissorhands fails at B=98** (0.653) but recovers fully at B=256+. Its 3-layer saliency blend underweights shallow needles at the extreme low-budget regime, then self-corrects as budget increases. This budget-sensitivity matches its PPL pathology (§5.7).
 
-3. **RealSnapKV fails completely** (avg 0.001 at B=98, 0.000 at B=128) across all 3 context lengths. Even at B=512, recovery is minimal (0.027). This confirms the finding from RULER (§5.1) and cross-arch evaluation (§5.0) — RealSnapKV's failure is algorithmic, not budget-dependent.
+3. **RealSnapKV fails completely** (avg 0.001 at B=98, 0.000 at B=128) across all 3 context lengths. Even at B=512, recovery is minimal (0.027). This confirms the finding from RULER (§5.1) and cross-arch evaluation (§5.0) — RealSnapKV's weakness in this prefill-only, small-budget regime is consistent across budgets, not merely a low-budget artifact. (The implementation is faithful to arXiv:2404.14469 §4; see §5.0 notes — the result is a property of the method under these settings, not a bug.)
 
 4. **The 16K passkey hardest-case (depth=90%, B=98):** KiaOmni_σ8 = 1.00, KiaOmni_Gaussian = 1.00, SnapKV_Modified = 1.00, H2O = 0.00, RealSnapKV = 0.00. KiaOmni's boxcar smoothing ensures the needle tokens (and their neighbors) are retained even when the needle is buried at 90% depth with only 98 tokens of budget.
 
@@ -293,7 +293,7 @@ The flagship evaluation covers **4 independent model architectures × 8 LongBenc
 
 3. **Ada-SnapKV is the only policy that worsens hallucination** (+3.1pp over FullContext), confirming its instability at B=256.
 
-4. **Statistical significance:** Two-proportion Z-test, KiaOmni_σ8 vs FullContext on hallucination rate (45.0% vs 55.8%, N=360 each): Z=3.12, **p=0.0018** — significant at α=0.01. The prior experiment (N=50, p=0.45) was underpowered; with N=360 the finding is confirmed.
+4. **Statistical significance:** Two-proportion Z-test, KiaOmni_σ8 vs FullContext on hallucination rate (45.0% vs 55.8%, N=360 each): Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018) — significant at α=0.01. The prior experiment (N=50, p=0.45) was underpowered; with N=360 the finding is confirmed.
 
 ### 5.3 Multi-Budget RULER: Full Policy Comparison (Experiment 032)
 
@@ -400,7 +400,7 @@ KV-cache eviction speedup is not constant — it **scales with context length**.
 
 1. **KiaOmni_Gaussian leads on Falcon3 (B=512: 81.4% macro-F1 of FC; 83.3% LLM-judge CORRECT% of FC — see `GROUND_TRUTH.md` §1).** It is also #1 at B=512 on Qwen (89.5%) and #1 on the 4-architecture mean (88.2%). On Mistral specifically, KiaOmni_Scissorhands is the top eviction policy (90.9% at B=512) and Gaussian is #2 (81.2%) — KiaOmni's family wins, but not always the same variant. The architecture-stable claim is the *family*, not any single σ choice.
 
-2. **RealSnapKV fails on a third architecture** (50.5% of FC at B=512), confirming its implementation pathology is not model-specific.
+2. **RealSnapKV remains bottom-tier on a third architecture** (50.5% of FC at B=512), confirming its weakness in this regime is not model-specific. (The implementation is faithful to arXiv:2404.14469 §4; see §5.0.)
 
 3. **Ada-SnapKV degrades at B=512 on Falcon3** (0.219 < 0.223 at B=256) — a budget-inversion anomaly not observed on Qwen or Mistral, suggesting Ada-SnapKV's adaptive budget allocation is sensitive to GQA head-group structure.
 
@@ -432,7 +432,7 @@ KV-cache eviction speedup is not constant — it **scales with context length**.
 
 2. **KiaOmni_Scissorhands has catastrophic PPL (302–411)** despite being the best NIAH policy (§5.3). The 3-layer saliency blend selects tokens optimized for multi-hop retrieval chains, systematically evicting locally adjacent tokens that maintain grammatical and semantic coherence. This creates a hard retrieval/fluency tradeoff: Scissorhands is the right policy when the task is pure retrieval (NIAH-multi), and the wrong policy when the task requires coherent generation (PPL, summarization).
 
-3. **RealSnapKV PPL increases with budget** (113 → 197 from B=98 to B=256), a pathological inversion. More retained tokens makes fluency *worse* — indicating RealSnapKV's token selection is anti-correlated with generation quality at higher budgets. This is consistent with its near-zero passkey accuracy (§5.1b) and bottom-tier cross-arch F1 (§5.0).
+3. **RealSnapKV PPL increases with budget** (113 → 197 from B=98 to B=256), a counter-intuitive inversion. More retained tokens makes fluency *worse* — indicating that, in this regime, RealSnapKV's per-head token selection is anti-correlated with generation quality at higher budgets. This is consistent with its near-zero passkey accuracy (§5.1b) and bottom-tier cross-arch F1 (§5.0). (The implementation is faithful to the published algorithm; see §5.0.)
 
 4. **All eviction methods have higher PPL than FullContext** — this is expected. PPL requires contiguous coherent text; eviction necessarily creates gaps. The practical question is not whether eviction increases PPL (it does, universally) but which policy minimizes the increase at a given budget.
 
@@ -581,7 +581,7 @@ We attribute this to the **distractor suppression** mechanism: eviction removes 
 
 **Attention concentration:** Prior work on attention head pruning (Michel et al., 2019) and sparse attention (Child et al., 2019) studied concentration at the architecture level. KiaOmni exploits concentration at the inference-time cache management level.
 
-**LLM-as-Judge:** Zheng et al. (2023) introduced LLM-based evaluation for open-ended generation. We apply LLM-as-Judge (Claude Sonnet 4.6) as a primary metric for LongBench tasks where F1 fails due to list serialization mismatches and paraphrase sensitivity.
+**LLM-as-Judge:** Zheng et al. (2023) introduced LLM-based evaluation for open-ended generation. We apply LLM-as-Judge (Claude Haiku, anthropic/claude-haiku-4-5, via Lightning.ai) as a primary metric for LongBench tasks where F1 fails due to list serialization mismatches and paraphrase sensitivity.
 
 ---
 
@@ -597,7 +597,7 @@ We attribute this to the **distractor suppression** mechanism: eviction removes 
 
 5. **32K context coverage:** Long-context experiments (Experiment 035) showed Scissorhands inverts Gaussian at 32K on Llama-3.1-8B, a 3-layer saliency blend capturing long-range evolution. Flash Attention integration at 32K+ is left for future work.
 
-6. **Hallucination scope — Qwen only:** The hallucination classification (§5.2b) is valid only on Qwen2.5-7B. Mistral-7B and Falcon3-7B exhibit base hallucination rates of 65–72% even under FullContext, making policy-level comparison uninformative on those architectures. The Qwen result (KiaOmni_σ8 −10.8pp vs FullContext, N=360, p=0.0018) is statistically significant at α=0.01 and is treated as a confirmed finding. Extending hallucination classification to Mistral and Falcon3 would require a different evaluation design (e.g., constrained generation tasks) and is left for future work.
+6. **Hallucination scope — Qwen only:** The hallucination classification (§5.2b) is valid only on Qwen2.5-7B. Mistral-7B and Falcon3-7B exhibit base hallucination rates of 65–72% even under FullContext, making policy-level comparison uninformative on those architectures. The Qwen result (KiaOmni_σ8 −10.8pp vs FullContext, N=360, Z=2.91, two-sided p=0.0036) is statistically significant at α=0.01 and is treated as a confirmed finding. Extending hallucination classification to Mistral and Falcon3 would require a different evaluation design (e.g., constrained generation tasks) and is left for future work.
 
 7. **Retrieval/fluency tradeoff in Scissorhands:** KiaOmni_Scissorhands achieves the best NIAH-multikey retrieval (§5.3) but the worst PPL on WikiText-2 (302–411, §5.7) — worse than H2O. Its 3-layer saliency blend is optimized for long-range retrieval at the cost of local coherence. Users requiring high generation quality (summarization, creative tasks) should use KiaOmni_Gaussian or KiaOmni_σ8 instead.
 
@@ -610,7 +610,7 @@ We attribute this to the **distractor suppression** mechanism: eviction removes 
 KiaOmni introduces boxcar smoothing as a principled, O(N) mechanism for KV-cache eviction that unifies pointwise and block-level selection under a single hyperparameter σ. With σ=8, KiaOmni achieves:
 
 - **100% needle retrieval** on Qwen2.5-7B at 16K context, B=64 (zero errors in 180 trials).
-- **Statistically confirmed lowest hallucination rate** on Qwen2.5-7B LongBench (−10.8pp vs FullContext; two-proportion Z-test: Z=3.12, **p=0.0018**, N=360). KiaOmni redistributes errors from hallucination to explicit refusal — a strictly preferable failure mode for safety-sensitive deployments.
+- **Statistically confirmed lowest hallucination rate** on Qwen2.5-7B LongBench (−10.8pp vs FullContext; two-proportion Z-test: Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018), N=360). KiaOmni redistributes errors from hallucination to explicit refusal — a strictly preferable failure mode for safety-sensitive deployments.
 - **Consistent compression benefit** — surpassing full-context inference on reasoning and variable-tracking tasks across Qwen2.5-7B, Mistral-7B, and Falcon3-7B.
 - **~31× decode speedup** and **2× VRAM reduction** at ctx=32K, B=256 (FullContext: 0.59 TPS → eviction: ~18 TPS), with a single fixed hyperparameter (σ=8).
 
@@ -641,7 +641,7 @@ Results are robust to quantization (NF4 ≡ bf16 at the tier level) and replicat
 
 ## Appendix B: Excluded Baselines
 
-PyramidKV, AdaKV, and CAKE operate at the full decode pipeline (decode-time KV update) and are architecturally incompatible with our prefill-only eviction framework. Comparison would require re-implementing their decode-time logic within our framework — a scope expansion beyond this paper's focus on prefill-time static eviction. We disclose this limitation explicitly.
+PyramidKV, AdaKV, and CAKE are prefill-time methods that allocate KV budget per layer (and, for AdaKV, per head) using layer/head-preference signals computed during prefill. This budget-allocation mechanism is orthogonal to our per-token saliency selection, and they could in principle be combined. A faithful, apples-to-apples comparison would require integrating their per-layer/per-head budget allocators into our framework (e.g., via NVIDIA/kvpress); we leave this to future work and disclose it explicitly. We do not invent comparison numbers here.
 
 ---
 
@@ -680,14 +680,14 @@ We also introduce BlockSal (§2.2) as a separately named intermediate baseline, 
 **This objection is closed.** The hallucination experiment was scaled to N=360 per policy (Experiment 033, Qwen2.5-7B, 8 LongBench tasks). Under the corrected 3-category classification (correct / hallucinated / refused — excluding explicit refusals from the hallucination count), the result is:
 
 - KiaOmni_σ8: 45.0% hallucinated vs FullContext: 55.8% hallucinated
-- Two-proportion Z-test: Z=3.12, **p=0.0018** (α=0.01) — statistically significant
+- Two-proportion Z-test: Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018) (α=0.01) — statistically significant
 - KiaOmni_Scissorhands: −12.5pp; KiaOmni_σ8: −10.8pp — both significant at α=0.01
 
 The prior N=50 experiment was underpowered (p=0.45) and is superseded. The finding is now a confirmed result reported in §5.2b, not directional evidence. The four headline statistically significant claims are:
 
 1. **NIAH retrieval (N=180):** KiaOmni 100% vs SnapKV 87.8%, Z=4.84, **p=1.3×10⁻⁶** (α=0.001).
 2. **σ sweep (N=270):** σ=8 vs σ=0: +33.1pp (0.782 vs 0.451), **p<10⁻¹⁵** (α=0.001).
-3. **Hallucination (N=360):** KiaOmni_σ8 −10.8pp vs FullContext, Z=3.12, **p=0.0018** (α=0.01).
+3. **Hallucination (N=360):** KiaOmni_σ8 −10.8pp vs FullContext, Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018) (α=0.01).
 4. **Compression benefit on VT (N=25):** KiaOmni_Gaussian 0.92 vs FullContext 0.64, reproducible across 3 experiments and 2 model families.
 
 ---
@@ -726,9 +726,9 @@ The mechanistic explanation (distractor suppression, §6.5) is consistent across
 **Objection:** Recent SOTA methods (PyramidKV, AdaKV, MagicPIG, QUEST) significantly outperform SnapKV. Comparing only against H2O and SnapKV understates the competitive landscape.
 
 **Defense:**  
-PyramidKV, AdaKV, and CAKE are **decode-time** methods — they update the KV-cache selection during token generation, not only at prefill. Our framework operates exclusively at prefill (one eviction pass after processing the full prompt). These methods operate at a different pipeline stage and require different hardware instrumentation. A fair comparison would require implementing decode-time hooks across all layers for every generation step — a 5–10× engineering overhead per baseline, incompatible with our evaluation framework (Appendix B).
+PyramidKV, AdaKV, and CAKE are **prefill-time** methods — they allocate per-layer (and, for AdaKV, per-head) KV budgets from preference signals gathered *during* prefill. Their budget-allocation axis is orthogonal to our per-token saliency selection and could in principle be combined with it. A faithful, apples-to-apples comparison would require integrating their per-layer/per-head budget allocators into our framework (e.g., via NVIDIA/kvpress) — an engineering effort we leave to future work. The only genuinely decode-time / query-aware method we approximate is Quest (see KiaOmni_Quest below).
 
-KiaOmni's contribution is in the prefill-only regime, which covers the dominant inference deployment pattern (server-side document understanding, RAG, summarization). Decode-time methods pay higher per-token overhead and are incompatible with speculative decoding — a trade-off we discuss in §8.
+KiaOmni's contribution is in the prefill-only regime, which covers the dominant inference deployment pattern (server-side document understanding, RAG, summarization). Genuinely decode-time / query-aware methods such as Quest pay higher per-token overhead and are incompatible with speculative decoding — a trade-off we discuss in §8.
 
 We include KiaOmni_Quest (an approximation of the QUEST attention-aware selection) as a representative decode-aware policy within our framework (Table 4) — it scores 0.476 on NIAH-multikey vs. KiaOmni_σ8's 0.738, suggesting the prefill-smoothed approach is more effective at our tested budgets.
 
@@ -783,7 +783,7 @@ More critically, at B ≥ 256 — the practical deployment range for most applic
 | σ=8 (0.782) vs σ=0 (0.451), N=270 | 270 | Binomial | **p<10⁻¹⁵** | ✅ Yes (α=0.001) |
 | VT compression benefit (7/10 policies > FullCtx) | 10 policies | Fisher exact | **p=0.016** | ✅ Yes (α=0.05) |
 | bf16 tier separation (0.733 vs 0.324) | 15 | Two-proportion Z | **p<10⁻⁴** | ✅ Yes (α=0.001) |
-| Hallucination rate KiaOmni_σ8 vs FullContext (−10.8pp) | 360 | Two-proportion Z | **p=0.0018** | ✅ Yes (α=0.01) |
+| Hallucination rate KiaOmni_σ8 vs FullContext (−10.8pp) | 360 | Two-proportion Z (Z=2.91) | **p=0.0036** (2-sided; 1-sided 0.0018) | ✅ Yes (α=0.01) |
 | Compression benefit F1 (+0.026) | 300 samples | t-test (variance unknown) | **Unknown** | ⚠️ Variance not reported |
 
 **The one non-significant result (compression benefit F1, variance unknown) is disclosed and not used as a headline claim.** All four primary claims in the Abstract and Conclusion are statistically significant (three at α=0.001, hallucination at α=0.01).

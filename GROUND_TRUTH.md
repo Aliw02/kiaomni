@@ -1,5 +1,7 @@
 # GROUND_TRUTH.md — KiaOmni Single Source of Truth
 
+> ⚠️ **Correction note (2026-05-29):** This file's earlier "RealSnapKV is broken" claim (§7.4) was incorrect and has been corrected against the source code. There is **no GQA bug** (heads are expanded via `repeat_interleave` before scoring, not collapsed) and per-head `maximum_filter1d` is mathematically correct max-pooling. For SnapKV faithfulness, the code in `notebook/kv_cache_benchmark/033_full_comparison.py` (`snapkv_real_keep`, lines 318–350) is authoritative.
+
 > **Authoritative reference** — every number here is verified directly from the four `llm_judge_results.csv` files. If anything in README, paper draft, memory, or chat conflicts with this file, **this file wins**.
 
 **Date locked:** 2026-05-28
@@ -137,7 +139,7 @@
 
 | Claim | N | Test | p-value |
 |---|:---:|---|:---:|
-| Hallucination σ8 (45.0%) vs FullContext (55.8%) | 360 | Two-proportion Z | **0.0018** |
+| Hallucination σ8 (45.0%) vs FullContext (55.8%) | 360 | Two-proportion Z (Z=2.91) | **0.0036** (2-sided; 1-sided 0.0018) |
 | KiaOmni 100% vs SnapKV 87.8% NIAH (Qwen) | 180 | Two-proportion Z | **1.29×10⁻⁶** |
 | σ=8 vs σ=0 retrieval | 270 | Binomial | **<10⁻¹⁵** |
 | Compression benefit on VT (7/10 policies > FC) | 10 | Fisher exact | **0.016** |
@@ -161,7 +163,7 @@
 
 ✅ **"KiaOmni_σ8 leads at B=256 on Qwen (80.4%) and BioMistral (91.8%); KiaOmni_Scissorhands leads on Mistral (80.6%); KiaOmni_Gaussian leads on Falcon3 (63.0%)."**
 
-✅ **"Hallucination rate drops from 55.8% (FullContext) to 45.0% (KiaOmni_σ8), N=360, p=0.0018."**
+✅ **"Hallucination rate drops from 55.8% (FullContext) to 45.0% (KiaOmni_σ8), N=360, Z=2.91, two-sided p=0.0036 (one-sided 0.0018)."**
 
 ✅ **"All KiaOmni variants beat H2O at B≥256 on all four architectures by ≥5 pp."**
 
@@ -200,7 +202,7 @@
 1. **BioMistral has 69% auto-judged rows** (vs 14-22% for other models). Auto-judge uses regex + `contains==1.0`; LLM-judge is Claude Haiku. Cross-model averaging mixes two scoring distributions — disclose in paper methods.
 2. **Falcon3 FullContext @ B=96 has 311 rows** (one duplicate sample); all other cells = 310. Effect on % is <0.001 pp — ignore.
 3. **ERROR labels:** Falcon3 has 87 rows (~0.6%), other models <0.1%. Excluded from CORRECT% calculation by construction (denominator is total non-NA rows).
-4. **RealSnapKV is the published SnapKV implementation** — disclosed as broken in paper §5.0 (per-head maximum_filter1d × GQA bug). All "SnapKV" comparisons in this file refer to the broken RealSnapKV unless labeled SnapKV_Modified.
+4. **RealSnapKV is a faithful per-head SnapKV implementation** (arXiv:2404.14469 §4), implemented in `snapkv_real_keep()` at `033_full_comparison.py:318–350`. It performs: GQA-aware scoring (KV heads expanded via `repeat_interleave` before saliency, line 164), per-head observation-window voting over prefix tokens (lines 172–186), per-head max-pooling via `scipy.ndimage.maximum_filter1d` (math-identical to `F.max_pool1d`; CPU vs GPU is a performance detail, not a correctness bug), per-head top-K, and a **union** of per-head selections (lines 340–344) followed by a trim to budget. The only deviations from the paper are trivial: `SNAP_POOL_K=5` vs the paper's 7, and a union→trim step that the official SnapKV repo also performs. **There is no GQA bug and the max-pooling is correct** — the earlier "broken" claim was wrong (see correction note at top of this file). All "SnapKV" comparisons in this file that refer to RealSnapKV use this faithful implementation; `SnapKV_Modified` is a **separate, block-mean design** authored here (not SnapKV) and must not be conflated with RealSnapKV.
 
 ---
 
