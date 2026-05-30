@@ -160,7 +160,7 @@ This formula assigns large σ to low-entropy (concentrated) distributions and sm
 
 ### 5.0 Unified Cross-Model Comparison (Experiments 033, 034, 037)
 
-The flagship evaluation covers **4 independent model architectures × 8 LongBench tasks × 4 budgets × 3 context lengths**, totaling **61,681 LLM-judged samples** (judge = Claude Haiku, 4-category rubric CORRECT/HALLUCINATED/REFUSED/NOISE). The table below reports CORRECT% as % of FullContext at **B=512** — the budget where KiaOmni's lead across all four models is most defensible. Full per-budget breakdown (B ∈ {96/98, 128, 256, 512}) is published in `GROUND_TRUTH.md` with raw CSV provenance.
+The flagship evaluation covers **4 independent model architectures × 8 LongBench tasks × 4 budgets × 3 context lengths**, totaling **61,681 LLM-judged samples** (judge = Claude Haiku, 4-category rubric CORRECT/HALLUCINATED/REFUSED/NOISE). The table below reports CORRECT% as % of FullContext at **B=512** — the budget where KiaOmni's lead across all four models is most defensible. Full per-budget breakdown (B ∈ {96/98, 128, 256, 512}) is given in §5 below, with raw CSV provenance from the `llm_judge_*.csv` outputs.
 
 ![**Figure 2.** Cross-model LLM-judge win-rates (CORRECT%) aggregated over 4 architectures × 8 LongBench tasks. KiaOmni_Gaussian and KiaOmni_σ8 dominate every competing eviction policy at every budget evaluated.](reports/llm-judge/plots/cross_model_win_rates.png){width=90%}
 
