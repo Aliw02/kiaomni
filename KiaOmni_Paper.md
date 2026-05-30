@@ -12,7 +12,7 @@ abstract-title: "Abstract"
 
 ## Abstract
 
-We present **KiaOmni**, a KV-cache eviction family for large language model inference that replaces token-pointwise saliency selection with a smoothed importance field over the last-layer Q@K attention scores. KiaOmni applies a symmetric kernel (boxcar of half-width σ, or Gaussian) to the per-token saliency map, then performs budget-exact top-K selection in O(N) via prefix sums. On the RULER benchmark with Qwen2.5-7B at 16K context, KiaOmni_σ8 achieves **100% needle-in-a-haystack retrieval** at budget B=64 — vs 87.8% for the simplified-SnapKV baseline and 3.9% for H2O (Z=4.84, p=1.29×10⁻⁶, N=180). On LongBench real-task evaluation at B=256, KiaOmni_σ8 **exceeds FullContext Token F1** (0.200 vs 0.174) and reduces confident-wrong hallucination on Qwen2.5-7B by **−10.8pp** (45.0% vs 55.8%; Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018), N=360). Across **four independent architectures (Qwen2.5-7B, Mistral-7B-v0.3, Falcon3-7B, BioMistral-7B)** and 61,681 LLM-judged samples, **KiaOmni_Gaussian leads the cross-model mean at B=512 with 88.2% of FullContext** (vs 70.7% for H2O and 61.5% for the literal-spec SnapKV implementation; full per-budget breakdown in `GROUND_TRUTH.md`). At 32K context KiaOmni delivers **~31× decode speedup and 2× VRAM reduction** vs FullContext, restoring throughput from 0.59 TPS to ~18 TPS. The two recommended defaults — σ=8 (boxcar, dependency-free) and Gaussian (σ=4) — require no per-model calibration; we report where each is preferred per architecture and per task.
+We present **KiaOmni**, a KV-cache eviction family for large language model inference that replaces token-pointwise saliency selection with a smoothed importance field over the last-layer Q@K attention scores. KiaOmni applies a symmetric kernel (boxcar of half-width σ, or Gaussian) to the per-token saliency map, then performs budget-exact top-K selection in O(N) via prefix sums. On the RULER benchmark with Qwen2.5-7B at 16K context, KiaOmni_σ8 achieves **100% needle-in-a-haystack retrieval** at budget B=64 — vs 87.8% for the simplified-SnapKV baseline and 3.9% for H2O (Z=4.84, p=1.29×10⁻⁶, N=180). On LongBench real-task evaluation at B=256, KiaOmni_σ8 **exceeds FullContext Token F1** (0.200 vs 0.174) and reduces confident-wrong hallucination on Qwen2.5-7B by **−10.8pp** (45.0% vs 55.8%; Z=2.91, **p=0.0036** (two-sided; one-sided p=0.0018), N=360). Across **four independent architectures (Qwen2.5-7B, Mistral-7B-v0.3, Falcon3-7B, BioMistral-7B)** and 61,681 LLM-judged samples, **KiaOmni_Gaussian leads the cross-model mean at B=512 with 88.2% of FullContext** (vs 70.7% for H2O and 61.5% for the literal-spec SnapKV implementation; full per-budget breakdown in §5). At 32K context KiaOmni delivers **~31× decode speedup and 2× VRAM reduction** vs FullContext, restoring throughput from 0.59 TPS to ~18 TPS. The two recommended defaults — σ=8 (boxcar, dependency-free) and Gaussian (σ=4) — require no per-model calibration; we report where each is preferred per architecture and per task.
 
 ---
 
@@ -177,9 +177,9 @@ The flagship evaluation covers **4 independent model architectures × 8 LongBenc
 | RealSnapKV (literal spec) | 63.7% | 46.1% | 43.7% | 92.5% | 61.5% |
 | FullContext (oracle) | 100% | 100% | 100% | 100% | 100% |
 
-*Verified against raw `llm_judge_*.csv` outputs (61,681 judged samples; see `GROUND_TRUTH.md` §1). **Per-architecture #1 varies**: KiaOmni_Scissorhands wins Mistral (90.9%); KiaOmni_Adaptive wins BioMistral (99.3%); KiaOmni_Gaussian wins Qwen + Falcon3 and the cross-model mean. Wilson 95% CI half-width is ±5.2 pp at N=360 — gaps below that should be read as ties.*
+*Verified against raw `llm_judge_*.csv` outputs (61,681 judged samples). **Per-architecture #1 varies**: KiaOmni_Scissorhands wins Mistral (90.9%); KiaOmni_Adaptive wins BioMistral (99.3%); KiaOmni_Gaussian wins Qwen + Falcon3 and the cross-model mean. Wilson 95% CI half-width is ±5.2 pp at N=360 — gaps below that should be read as ties.*
 
-**Cross-architecture findings (verified against `GROUND_TRUTH.md`):**
+**Cross-architecture findings (verified against the raw `llm_judge_*.csv` outputs):**
 
 1. **KiaOmni_Gaussian leads the cross-model mean at B=512** (88.2% of FullContext across 4 architectures). The lead over H2O is **+17.5 pp** and over the literal-spec SnapKV is **+26.7 pp** — both far outside the Wilson 95% CI (±5.2 pp).
 
@@ -398,7 +398,7 @@ KV-cache eviction speedup is not constant — it **scales with context length**.
 
 **Findings:**
 
-1. **KiaOmni_Gaussian leads on Falcon3 (B=512: 81.4% macro-F1 of FC; 83.3% LLM-judge CORRECT% of FC — see `GROUND_TRUTH.md` §1).** It is also #1 at B=512 on Qwen (89.5%) and #1 on the 4-architecture mean (88.2%). On Mistral specifically, KiaOmni_Scissorhands is the top eviction policy (90.9% at B=512) and Gaussian is #2 (81.2%) — KiaOmni's family wins, but not always the same variant. The architecture-stable claim is the *family*, not any single σ choice.
+1. **KiaOmni_Gaussian leads on Falcon3 (B=512: 81.4% macro-F1 of FC; 83.3% LLM-judge CORRECT% of FC).** It is also #1 at B=512 on Qwen (89.5%) and #1 on the 4-architecture mean (88.2%). On Mistral specifically, KiaOmni_Scissorhands is the top eviction policy (90.9% at B=512) and Gaussian is #2 (81.2%) — KiaOmni's family wins, but not always the same variant. The architecture-stable claim is the *family*, not any single σ choice.
 
 2. **RealSnapKV remains bottom-tier on a third architecture** (50.5% of FC at B=512), confirming its weakness in this regime is not model-specific. (The implementation is faithful to arXiv:2404.14469 §4; see §5.0.)
 
@@ -476,7 +476,7 @@ KV-cache eviction speedup is not constant — it **scales with context length**.
 
 1. **Three-way tie at B=128:** KiaOmni_Gaussian, Ada-SnapKV, and KiaOmni_σ8 all achieve 47% CORRECT (82% of FullContext) — the best performance of any eviction policy at the most practical budget level.
 
-2. **KiaOmni_σ8 reaches 92% of FC at B=256 on BioMistral** (53% CORRECT) — competitive but **not the overall winner on this model**. Ada-SnapKV leads BioMistral at B=256 with 94.5% of FC (verified in `GROUND_TRUTH.md` §3). We disclose this explicitly: BioMistral is the one architecture in our suite where a non-KiaOmni baseline ranks #1 at the operational B=256 budget. KiaOmni still leads on the cross-model mean (§5.0) and on Qwen / Falcon3 individually.
+2. **KiaOmni_σ8 reaches 92% of FC at B=256 on BioMistral** (53% CORRECT) — competitive but **not the overall winner on this model**. Ada-SnapKV leads BioMistral at B=256 with 94.5% of FC (verified against the raw `llm_judge_*.csv` outputs). We disclose this explicitly: BioMistral is the one architecture in our suite where a non-KiaOmni baseline ranks #1 at the operational B=256 budget. KiaOmni still leads on the cross-model mean (§5.0) and on Qwen / Falcon3 individually.
 
 3. **RealSnapKV's 48.6% hallucination rate at B=96 is the strongest safety finding in this experiment.** No other policy exceeds 30.2% HALLUCINATED at B=96. RealSnapKV's aggressive token eviction leaves the model without sufficient context to answer correctly — but instead of refusing, the model generates confident wrong answers. This is the most dangerous failure mode in safety-sensitive medical deployments.
 
