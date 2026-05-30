@@ -115,7 +115,7 @@ Cross-references are plain prose, not `\ref`. Representative samples (do not rew
 - Line 31: "is reported as a confirmed result in §5.2b" — `§5.2b` is literal text.
 - Line 56: "See Appendix D.10" — literal.
 - Line 117: "(see §6.4)" — literal.
-- Line 156 footnote: previously referenced an external `GROUND_TRUTH.md` file; that file was removed and the footnote now points to §5 / the raw `llm_judge_*.csv` outputs.
+- Line 156 footnote: previously an external file reference; now points to §5 / the raw `llm_judge_*.csv` outputs.
 - Line 415: "(§5.7)" — literal.
 
 For a first compile, leave these as text. For final submission, replace with `\Cref{sec:hallucination}` and add `\label{sec:hallucination}` under each heading. The `§` symbol itself is Unicode — replace with `\S` or rely on xelatex.
