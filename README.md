@@ -18,6 +18,9 @@
 ![NIAH Heatmap — KiaOmni-σ8 vs Baselines at B=256](reports/benchmarks/niah-heatmap/plots/heatmap_KiaOmni_s8_B256.png)
 *NIAH retrieval accuracy grid for KiaOmni-σ8 at B=256 across context lengths and needle depths. Green = perfect retrieval, red = failure. Compare with H2O (`heatmap_H2O_B256.png`) and SnapKV (`heatmap_SnapKV_B256.png`) in [`reports/benchmarks/niah-heatmap/plots/`](reports/benchmarks/niah-heatmap/plots/).*
 
+![Main Table — Grouped Bar Chart](reports/full-comparison/plots/main_table_bar.png)
+*Table 1 visualized: % of FullContext CORRECT% at B=512. KiaOmni-Gaussian (cyan) leads on 3 of 4 architectures. Dashed line = FullContext oracle (100%).*
+
 | Policy | Qwen2.5-7B | Mistral-7B | Falcon3-7B | BioMistral-7B | **Mean** |
 |--------|:----------:|:----------:|:----------:|:-------------:|:--------:|
 | FullContext *(oracle)* | 100% | 100% | 100% | 100% | **100%** |
