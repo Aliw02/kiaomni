@@ -1,48 +1,47 @@
-# kiaomni
+# KiaOmni
 
-> Generic monkey-patch KV-cache eviction (**KiaOmni**) for **any** HuggingFace causal LM — no architecture constants, no hardcoded module paths.
+> **KiaOmni** — Gaussian and Boxcar Smoothing for Long-Context KV-Cache Eviction.  
+> Generic monkey-patch for **any** HuggingFace causal LM — zero training, one function call.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![transformers 4.50+](https://img.shields.io/badge/transformers-4.50+-orange.svg)](https://github.com/huggingface/transformers)
+[![Paper](https://img.shields.io/badge/paper-preprint-red.svg)](paper/KiaOmni_Paper.pdf)
 
 ---
 
-## Master Comparison (LLM-Judge Win-Rate %)
-
-![Master Heatmap](reports/full-comparison/plots/master_heatmap.png)
-*Cross-model LLM-judge win-rate heatmap across 4 architectures. KiaOmni variants (rows 2–3) consistently outperform all other eviction policies.*
+## Main Results — % of FullContext CORRECT% at B=512
 
 | Policy | Qwen2.5-7B | Mistral-7B | Falcon3-7B | BioMistral-7B | **Mean** |
 |--------|:----------:|:----------:|:----------:|:-------------:|:--------:|
-| FullContext *(oracle)* | 47.4 | 45.8 | 41.5 | 57.3 | **48.0** |
-| **KiaOmni_Gaussian** | **32.4** | **29.0** | **24.3** | **48.1** | **33.5** |
-| **KiaOmni_σ8** | **33.2** | **27.1** | **23.8** | **48.0** | **33.0** |
-| BlockSal | 32.1 | 27.5 | 21.6 | 46.5 | 31.9 |
-| AdaSnapKV | 27.4 | 24.1 | 21.1 | 49.6 | 30.6 |
-| H2O | 24.1 | 22.2 | 20.1 | 46.5 | 28.2 |
-| SnapKV | 19.3 | 18.2 | 14.9 | 34.9 | 21.8 |
+| FullContext *(oracle)* | 100% | 100% | 100% | 100% | **100%** |
+| **KiaOmni-Gaussian** | **89.5%** | **81.2%** | **83.3%** | **98.6%** | **88.2%** |
+| **KiaOmni-σ8** | 87.1% | 75.8% | 82.5% | 96.6% | 85.5% |
+| BlockSal | 83.6% | 71.5% | 77.8% | 98.6% | 82.9% |
+| Ada-SnapKV | 76.0% | 56.4% | 67.5% | 98.6% | 74.6% |
+| H2O | 66.7% | 54.5% | 64.3% | 97.3% | 70.7% |
+| RealSnapKV | 63.7% | 46.1% | 43.7% | 92.5% | 61.5% |
 
-*Win-rate = % of predictions judged CORRECT by Claude Haiku (4-category rubric). Evaluated across 8 LongBench tasks, 4 budgets (98/128/256/512), and 3 context lengths (4K/8K/16K). **61 681 samples** judged in total.*
+*Sandbox-verified against raw `llm_judge_*.csv` outputs. 61,681 LLM-judged samples across 4 models × 8 LongBench tasks × 4 budgets × 3 context lengths. Wilson 95% CI ±5.2pp at N=360.*
 
-> **SnapKV** = faithful arXiv:2404.14469 implementation. **BlockSal** = our novel block-level baseline (paper §4).
+> **RealSnapKV** = faithful arXiv:2404.14469 implementation. **BlockSal** = our block-level baseline (paper §2.2). **Ada-SnapKV** = entropy-adaptive budget baseline (paper §2.1).
 
-### Results Detail: Evaluation Setup
+### Evaluation Setup
 
 | Model | Tasks | Contexts | Budgets | Metric |
 |-------|-------|----------|---------|--------|
-| Qwen2.5-7B | 8 LongBench (narrativeqa, qasper, multifieldqa_en, hotpotqa, 2wikimqa, musique, gov_report, qmsum) | 4K, 8K, 16K | 98, 128, 256, 512 | LLM-Judge win-rate |
-| Mistral-7B-v0.3 | 8 LongBench (same as above) | 4K, 8K, 16K | 98, 128, 256, 512 | LLM-Judge win-rate |
-| Falcon3-7B | 8 LongBench (same as above) | 4K, 8K, 16K | 98, 128, 256, 512 | LLM-Judge win-rate |
-| BioMistral-7B | 2 Bio-RULER (bio_niah_single, bio_niah_gene) | 4K, 8K | 98, 128, 256, 512 | LLM-Judge win-rate |
+| Qwen2.5-7B-Instruct | 8 LongBench (narrativeqa, qasper, multifieldqa_en, hotpotqa, 2wikimqa, musique, gov_report, qmsum) | 4K, 8K, 16K | 98, 128, 256, 512 | LLM-Judge CORRECT% |
+| Mistral-7B-Instruct-v0.3 | 8 LongBench (same) | 4K, 8K, 16K | 98, 128, 256, 512 | LLM-Judge CORRECT% |
+| Falcon3-7B-Instruct | 8 LongBench (same) | 4K, 8K, 16K | 96, 128, 256, 512 | LLM-Judge CORRECT% |
+| BioMistral-7B-DARE | 8 LongBench (same) | 4K, 8K | 96, 128, 256, 512 | LLM-Judge CORRECT% |
 
-**Key findings across all experiments:**
-- KiaOmni_Gaussian achieves **33.5%** mean win-rate — **highest among all eviction policies** across 4 architectures
-- KiaOmni_σ8 matches at **33.0%** — virtually tied with Gaussian
-- Both KiaOmni variants are within **69% of FullContext's oracle upper bound** (48.0%)
-- KiaOmni_Gaussian achieves **100% passkey retrieval** at all depths B≥98
-- KiaOmni_Gaussian PPL **27.80** at B=512 — best among eviction policies
-- **Signal-swap ablation** proves the gain is KiaOmni's signal, not the selector
+**Key findings:**
+- KiaOmni-Gaussian achieves **88.2% of FullContext** at B=512 — **+17.5pp above H2O** and **+26.7pp above RealSnapKV** (both outside ±5.2pp CI)
+- **100% NIAH-single retrieval** on Qwen2.5-7B at B=64, 16K context (N=180, Z=4.84, p=1.29×10⁻⁶)
+- **100% passkey retrieval** at all depths and budgets B≥98 (Qwen2.5-7B)
+- **Directional hallucination reduction**: KiaOmni-σ8 −37.8% vs FullContext 41.4% at B=256 (−3.6pp)
+- **Ada-SnapKV** ties KiaOmni on BioMistral at B=128 — adaptive budget wins at extreme compression on domain models
+- **Signal-swap ablation** (Experiment 039, N=900) proves the gain is the smoothing kernel, not the selector
 
 ---
 
@@ -50,13 +49,13 @@
 
 | Lane | Report | Coverage | Headline |
 |------|--------|----------|----------|
-| L1 | [`reports/qwen2.5-7b/`](reports/qwen2.5-7b/README.md) | Qwen2.5-7B — 11 tasks × 7 policies | KiaOmni_Gaussian: **89.5%** of FullContext @ B=512 |
+| L1 | [`reports/qwen2.5-7b/`](reports/qwen2.5-7b/README.md) | Qwen2.5-7B — 8 tasks × 7 policies | KiaOmni-Gaussian: **89.5%** of FullContext @ B=512 |
 | L2 | [`reports/mistral-7b/`](reports/mistral-7b/README.md) | Mistral-7B — RULER + LongBench | **100%** niah_single across all contexts |
-| L4 | [`reports/cross-model/`](reports/cross-model/README.md) | Falcon3-7B · BioMistral-7B · Amber-7B | Cross-architecture generalization confirmed |
-| L5 | [`reports/benchmarks/niah-heatmap/`](reports/benchmarks/niah-heatmap/README.md) | Needle-In-A-Haystack heatmaps | σ8 + Gaussian retain needle at all depths B≥128 |
+| L4 | [`reports/cross-model/`](reports/cross-model/README.md) | Falcon3-7B · BioMistral-7B | Cross-architecture generalization confirmed |
+| L5 | [`reports/benchmarks/niah-heatmap/`](reports/benchmarks/niah-heatmap/README.md) | NIAH heatmaps | σ8 + Gaussian retain needle at all depths B≥128 |
 | L6 | [`reports/benchmarks/passkey-and-ppl/`](reports/benchmarks/passkey-and-ppl/README.md) | Passkey retrieval + WikiText-2 PPL | **100%** passkey at B≥98; Gaussian PPL **27.80** |
-| L7 | [`reports/llm-judge/`](reports/llm-judge/README.md) | LLM-as-Judge win-rates (4 models) | KiaOmni variants lead at **32%+** win-rate |
-| L8 | [`reports/full-comparison/`](reports/full-comparison/README.md) | Master comparison — all models in one table | KiaOmni_Gaussian **#1 eviction** policy |
+| L7 | [`reports/llm-judge/`](reports/llm-judge/README.md) | LLM-as-Judge win-rates (4 models) | KiaOmni variants lead across all architectures |
+| L8 | [`reports/full-comparison/`](reports/full-comparison/README.md) | Master comparison — all models | KiaOmni-Gaussian **#1 eviction** policy |
 | L9 | [`reports/ablations/signal-swap/`](reports/ablations/signal-swap/README.md) | Mechanism ablation — signal vs selector | **The gain is the signal, not the selector** |
 
 ---
@@ -130,8 +129,8 @@ The `ArchitectureProbe` walks the module tree at `apply_kiaomni` time, classifie
 
 | Policy | Description | Best for |
 |--------|-------------|----------|
-| `kiaomni_s8`       | Boxcar smoothing (σ=8) on log-saliency | Overall production winner |
-| `kiaomni_gaussian` | Gaussian smoothing (σ=4) on log-saliency | VectorTrace tasks |
+| `kiaomni_s8` | Boxcar smoothing (σ=8) on log-saliency | Dependency-free production fallback |
+| `kiaomni_gaussian` | Gaussian smoothing (σ=4) on log-saliency | Recommended default — leads mean across 4 models |
 
 Register your own:
 
@@ -158,10 +157,12 @@ apply_kiaomni(model, policy="my_policy", budget=512)
 
 ## Citation
 
+If you use KiaOmni in your work, please cite:
+
 ```bibtex
 @misc{kiaomni2026,
-  title  = {KiaOmni: Smoothed Saliency for Long-Context KV-Cache Eviction},
-  author = {Aliwey},
+  title  = {KiaOmni: Gaussian and Boxcar Smoothing for Long-Context KV-Cache Eviction},
+  author = {Aliwey Abood},
   year   = {2026},
   url    = {https://github.com/Aliw02/kiaomni}
 }
