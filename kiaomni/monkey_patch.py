@@ -26,13 +26,12 @@ guarantee.
 
 Quickstart
 ----------
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    from kiaomni import apply_kiaomni
+    from transformers import AutoTokenizer
+    from kiaomni import apply_kiaomni, load_model
 
     tok = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
-    model = AutoModelForCausalLM.from_pretrained(
-        "Qwen/Qwen2.5-7B-Instruct",
-        attn_implementation="eager",   # optional — FA2/FA3/SDPA also work
+    model = load_model(
+        "Qwen/Qwen2.5-7B-Instruct",    # flash_attention_2 → sdpa → eager
         torch_dtype="auto",
     )
     apply_kiaomni(model, policy="kiaomni_s8", budget=256)

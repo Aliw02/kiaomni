@@ -2,6 +2,13 @@
 
 Validates that the fused-concat (c_attn) QKV path runs to completion
 on a CPU and produces sensible kept-index counts.
+
+Hub-availability failures (rate-limit 429 on shared CI runner IPs,
+offline cache miss) skip rather than fail: they say nothing about the
+code under test. ``requests.RequestException`` and huggingface_hub's
+``LocalEntryNotFoundError`` both inherit from ``OSError``, and
+transformers re-wraps remaining hub errors into ``OSError`` itself,
+so one except clause covers every download failure mode.
 """
 from __future__ import annotations
 
@@ -10,17 +17,26 @@ import pytest
 torch = pytest.importorskip("torch")
 transformers = pytest.importorskip("transformers")
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
 
-from kiaomni import apply_kiaomni, remove_kiaomni
+from kiaomni import apply_kiaomni, load_model, remove_kiaomni
+
+
+def _load_gpt2(model_id: str):
+    try:
+        tok = AutoTokenizer.from_pretrained(model_id)
+        # flash_attention_2 → sdpa → eager, same chain as the experiments.
+        model = load_model(model_id)
+    except OSError as exc:
+        pytest.skip(f"HF Hub unavailable (rate-limit or offline): {exc}")
+    return tok, model
 
 
 @pytest.mark.slow
 def test_gpt2_end_to_end_eviction():
     model_id = "gpt2"
-    tok = AutoTokenizer.from_pretrained(model_id)
+    tok, model = _load_gpt2(model_id)
     tok.pad_token = tok.eos_token
-    model = AutoModelForCausalLM.from_pretrained(model_id, attn_implementation="eager")
 
     probe = apply_kiaomni(model, policy="kiaomni_s8", budget=128)
     assert probe.qkv_pattern == "fused_concat"

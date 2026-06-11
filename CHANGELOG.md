@@ -6,6 +6,26 @@ the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **`kiaomni.load_model()` with attention-backend fallback chain.**
+  Loads any `AutoModelForCausalLM` trying `flash_attention_2 → sdpa →
+  eager` in order (the same loader pattern used by
+  `experiments/033_full_comparison.py`). Eager is no longer the
+  documented default anywhere — it is the last-resort backend, needed
+  only by the `output_attentions=True` saliency fallback.
+  `ATTN_FALLBACK_CHAIN` is exported for customization.
+
+### Changed
+- **GPT-2 smoke test skips (not fails) on HF Hub unavailability**
+  (rate-limit 429 / offline) and loads via `load_model()`.
+- **CI caches `~/.cache/huggingface`** across runs and forwards an
+  optional `HF_TOKEN` secret, eliminating repeated GPT-2 downloads from
+  rate-limited shared runner IPs.
+- Quickstart docs (README, `monkey_patch.py`) now use `load_model()`
+  instead of hard-coding `attn_implementation="eager"`.
+
 ## [0.3.0] — 2026-05-21
 
 ### Added

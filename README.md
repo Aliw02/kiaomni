@@ -109,18 +109,15 @@ pip install kiaomni[gaussian]
 ## Quickstart
 
 ```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from kiaomni import apply_kiaomni
+from transformers import AutoTokenizer
+from kiaomni import apply_kiaomni, load_model
 
 # Any ungated HF causal LM works — TinyLlama / Qwen / Mistral / GPT-2 ...
 MODEL_ID = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 
 tok = AutoTokenizer.from_pretrained(MODEL_ID)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_ID,
-    # attn_implementation="eager",  # optional — hooks fire before fused kernels
-    torch_dtype="auto",
-)
+# Picks the fastest available backend: flash_attention_2 → sdpa → eager
+model = load_model(MODEL_ID, torch_dtype="auto")
 
 apply_kiaomni(model, policy="kiaomni_gaussian", budget=256)
 
@@ -144,7 +141,7 @@ Capabilities that ship in the package but are easy to miss:
 | **Removable / swappable at runtime** | `remove_kiaomni(model)` restores the original `generate` cleanly, and `apply_kiaomni` is idempotent — re-applying unwinds the previous patch first. Swap policies or budgets live on a loaded model, no reload needed (handy for A/B-testing eviction policies). |
 | **HF `generate` contract preserved** | The returned tensor is `[original_prompt ‖ new_tokens]`, so downstream code that slices `out[:, input_len:]` keeps working even though the model internally saw a shorter prompt. `GenerateOutput` dataclasses pass through untouched. |
 | **Quantized & multi-device safe** | The patch captures the *instance-level* `generate`, preserving Accelerate's device-placement and bitsandbytes NF4 hooks (`device_map="auto"` works). No `.to()` calls are ever made. |
-| **Attention-backend agnostic** | Saliency hooks on `q_proj`/`k_proj` fire *before* the fused kernel, so FlashAttention-2/3 and SDPA work out of the box (validated on Qwen2.5-7B NF4 under FA-2). Only the low-confidence `output_attentions=True` fallback needs `eager`. |
+| **Attention-backend agnostic** | Saliency hooks on `q_proj`/`k_proj` fire *before* the fused kernel, so FlashAttention-2/3 and SDPA work out of the box (validated on Qwen2.5-7B NF4 under FA-2). `kiaomni.load_model()` picks the fastest available backend automatically (`flash_attention_2 → sdpa → eager` — the same chain the paper experiments use). Only the low-confidence `output_attentions=True` fallback needs `eager`. |
 | **Four auto-selected extraction strategies** | `hook-separate`, `hook-fused-concat`, `hook-fused-interleaved`, and the `output_attentions` fallback — chosen automatically from the probe. Fused-interleaved + GQA combinations auto-route to the safe fallback instead of crashing. |
 
 ```python
@@ -187,7 +184,7 @@ apply_kiaomni(model, policy="my_policy", budget=512)
 
 ## Requirements
 
-- `attn_implementation="eager"` is recommended but not enforced — hook-based saliency on `q_proj`/`k_proj` fires before fused kernels (proven by `039_swap_experiment.py`). A warning is logged for SDPA/Flash-Attn.
+- No specific attention backend required — hook-based saliency on `q_proj`/`k_proj` fires before fused kernels (proven by `039_swap_experiment.py`). Use `kiaomni.load_model()` to auto-select `flash_attention_2 → sdpa → eager`; eager is only the last resort, needed solely by the `output_attentions=True` fallback path.
 - `transformers >= 4.50` — newer DynamicCache API.
 - Works with NF4 / 4-bit bitsandbytes models (no `.to()` calls made).
 
