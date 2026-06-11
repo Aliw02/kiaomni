@@ -1,7 +1,8 @@
 # KiaOmni
 
 > **KiaOmni** — Gaussian and Boxcar Smoothing for Long-Context KV-Cache Eviction.  
-> Generic monkey-patch for **any** HuggingFace causal LM — zero training, one function call.
+> Generic monkey-patch for **any** HuggingFace causal LM — zero training, one function call.  
+> Works under **FlashAttention-2/3, SDPA, and eager** backends · batch-aware · removable at runtime.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -19,7 +20,7 @@
 *NIAH retrieval accuracy grid for KiaOmni-σ8 at B=256 across context lengths and needle depths. Green = perfect retrieval, red = failure. Compare with H2O (`heatmap_H2O_B256.png`) and SnapKV (`heatmap_SnapKV_B256.png`) in [`reports/benchmarks/niah-heatmap/plots/`](reports/benchmarks/niah-heatmap/plots/).*
 
 ![Main Table — Grouped Bar Chart](reports/full-comparison/plots/main_table_bar.png)
-*Table 1 visualized: % of FullContext CORRECT% at B=512. KiaOmni-Gaussian (cyan) leads on 3 of 4 architectures. Dashed line = FullContext oracle (100%).*
+*Paper Table 3 visualized: % of FullContext CORRECT% at B=512. KiaOmni-Gaussian (cyan) leads on 3 of 4 architectures. Dashed line = FullContext oracle (100%).*
 
 | Policy | Qwen2.5-7B | Mistral-7B | Falcon3-7B | BioMistral-7B | **Mean** |
 |--------|:----------:|:----------:|:----------:|:-------------:|:--------:|
@@ -32,6 +33,17 @@
 | RealSnapKV | 63.7% | 46.1% | 43.7% | 92.5% | 61.5% |
 
 *Sandbox-verified against raw `llm_judge_*.csv` outputs. 61,681 LLM-judged samples across 4 models × 8 LongBench tasks × 4 budgets × 3 context lengths. Wilson 95% CI ±5.2pp at N=360.*
+
+### Cross-Model Mean — % of FullContext at Every Budget
+
+| Budget | KiaOmni-Gaussian | KiaOmni-σ8 | BlockSal | Ada-SnapKV | H2O | RealSnapKV |
+|:-------|:----------------:|:----------:|:--------:|:----------:|:---:|:----------:|
+| B=98 | **52.0%** | 51.4% | 48.4% | 49.0% | 45.8% | 31.6% |
+| B=128 | **61.1%** | 59.4% | 54.1% | 55.4% | 53.2% | 35.6% |
+| B=256 | 73.4% | 74.4% | **75.8%** | 69.2% | 59.5% | 49.0% |
+| B=512 | **88.2%** | 85.5% | 82.9% | 74.6% | 70.7% | 61.5% |
+
+KiaOmni-Gaussian leads the cross-model mean at B=98, 128, and 512; BlockSal is marginally ahead at B=256 — reported in full rather than cherry-picked. The complete result set (every model × budget × context, plus per-task detail) is in the paper's Tables 1–4 and Appendix B, regenerable via [`final_paper_data/build_main_table.py`](final_paper_data/build_main_table.py) from [`reports/llm-judge/data/llm_judge_results.csv`](reports/llm-judge/data/llm_judge_results.csv).
 
 > **RealSnapKV** = faithful arXiv:2404.14469 implementation. **BlockSal** = our block-level baseline (paper §2.2). **Ada-SnapKV** = entropy-adaptive budget baseline (paper §2.1).
 
@@ -48,7 +60,7 @@
 - KiaOmni-Gaussian achieves **88.2% of FullContext** at B=512 — **+17.5pp above H2O** and **+26.7pp above RealSnapKV** (both outside ±5.2pp CI)
 - **100% NIAH-single retrieval** on Qwen2.5-7B at B=64, 16K context (N=180, Z=4.84, p=1.29×10⁻⁶)
 - **100% passkey retrieval** at all depths and budgets B≥98 (Qwen2.5-7B)
-- **Directional hallucination reduction**: KiaOmni-σ8 −37.8% vs FullContext 41.4% at B=256 (−3.6pp)
+- **Directional hallucination reduction**: KiaOmni-σ8 37.8% vs FullContext 41.4% at B=256 (−3.6pp, n.s. at N=360)
 - **Ada-SnapKV** ties KiaOmni on BioMistral at B=128 — adaptive budget wins at extreme compression on domain models
 - **Signal-swap ablation** (Experiment 039, N=900) proves the gain is the smoothing kernel, not the selector
 
@@ -79,6 +91,7 @@ cd kiaomni
 pip install -e .
 python experiments/033_full_comparison.py    # Qwen2.5-7B benchmark
 python experiments/llm_judge.py --model qwen  # LLM-as-Judge
+python final_paper_data/build_main_table.py   # regenerate paper Tables 1-4 from judge CSV
 ```
 
 See [`experiments/README.md`](experiments/README.md) for the full script index, 10 canonical benchmarks, and reproduction guide.
@@ -119,7 +132,30 @@ outputs = model.generate(inputs.input_ids, max_new_tokens=128)
 print("Model: " + tok.decode(outputs[0], skip_special_tokens=True))
 ```
 
-That's it. Any prompt longer than `budget` tokens is automatically evicted down to `budget` positions before the first decode step.
+That's it. Any prompt longer than `budget` tokens is automatically evicted down to `budget` positions before the first decode step. Prompts that already fit in the budget pass through untouched — zero overhead.
+
+## Beyond the basics
+
+Capabilities that ship in the package but are easy to miss:
+
+| Feature | What it does |
+|---------|--------------|
+| **Batched generation** | `B>1` inputs get *independent per-row eviction*: each row keeps its own top-`budget` positions, then rows are re-padded with a correct attention mask. Saliency extraction is batch-aware end-to-end (`(B, L)`). |
+| **Removable / swappable at runtime** | `remove_kiaomni(model)` restores the original `generate` cleanly, and `apply_kiaomni` is idempotent — re-applying unwinds the previous patch first. Swap policies or budgets live on a loaded model, no reload needed (handy for A/B-testing eviction policies). |
+| **HF `generate` contract preserved** | The returned tensor is `[original_prompt ‖ new_tokens]`, so downstream code that slices `out[:, input_len:]` keeps working even though the model internally saw a shorter prompt. `GenerateOutput` dataclasses pass through untouched. |
+| **Quantized & multi-device safe** | The patch captures the *instance-level* `generate`, preserving Accelerate's device-placement and bitsandbytes NF4 hooks (`device_map="auto"` works). No `.to()` calls are ever made. |
+| **Attention-backend agnostic** | Saliency hooks on `q_proj`/`k_proj` fire *before* the fused kernel, so FlashAttention-2/3 and SDPA work out of the box (validated on Qwen2.5-7B NF4 under FA-2). Only the low-confidence `output_attentions=True` fallback needs `eager`. |
+| **Four auto-selected extraction strategies** | `hook-separate`, `hook-fused-concat`, `hook-fused-interleaved`, and the `output_attentions` fallback — chosen automatically from the probe. Fused-interleaved + GQA combinations auto-route to the safe fallback instead of crashing. |
+
+```python
+from kiaomni import apply_kiaomni, remove_kiaomni
+
+apply_kiaomni(model, policy="kiaomni_gaussian", budget=256)
+# ... benchmark ...
+apply_kiaomni(model, policy="kiaomni_s8", budget=128)   # idempotent re-apply
+# ... benchmark ...
+remove_kiaomni(model)                                    # back to vanilla generate
+```
 
 ## Supported architectures
 
