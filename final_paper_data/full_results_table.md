@@ -2,10 +2,6 @@
 
 CORRECT% (LLM-judge) for every **model × budget × task × policy**.
 Source: `llm_judge_results.csv` — 61,681 judged predictions.
-✦ = KiaOmni variant · **Bold** = best eviction policy per row · *Italic* = FullContext oracle
-Falcon3 B=96 aligned to B=98 column.
-
-Source: `llm_judge_results.csv` — 61,681 judged predictions.
 ✦ = KiaOmni variant · **Bold** = best eviction policy per row · *Italic* = FullContext oracle · Falcon3 B=96 aligned to B=98 column.
 
 ### Qwen2.5-7B

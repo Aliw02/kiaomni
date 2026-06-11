@@ -32,7 +32,7 @@ Quickstart
     tok = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
     model = AutoModelForCausalLM.from_pretrained(
         "Qwen/Qwen2.5-7B-Instruct",
-        attn_implementation="eager",   # required
+        attn_implementation="eager",   # optional — FA2/FA3/SDPA also work
         torch_dtype="auto",
     )
     apply_kiaomni(model, policy="kiaomni_s8", budget=256)
@@ -75,8 +75,11 @@ def apply_kiaomni(
 
     Parameters
     ----------
-    model    : any HuggingFace AutoModelForCausalLM loaded with
-               ``attn_implementation="eager"``.
+    model    : any HuggingFace AutoModelForCausalLM. Works under
+               flash_attention_2/3, sdpa, and eager backends — saliency
+               hooks on q_proj/k_proj fire before the fused kernel. Only
+               the low-confidence ``output_attentions=True`` fallback
+               requires ``attn_implementation="eager"``.
     policy   : key from ``kiaomni.policies.POLICY_REGISTRY``.
     budget   : number of input-token positions to retain.
     n_sink   : how many initial tokens to always protect.
