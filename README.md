@@ -81,6 +81,34 @@ KiaOmni-Gaussian leads the cross-model mean at B=98, 128, and 512; BlockSal is m
 
 ---
 
+## 🚀 Live Demo — Kaggle Notebook
+
+A self-contained, fully reproducible head-to-head comparison you can run in one click:
+
+**[`notebook/demo/kv-cachecompressionbenchmark.ipynb`](notebook/demo/kv-cachecompressionbenchmark.ipynb)**
+
+| | Detail |
+|---|---|
+| **Model** | Qwen2.5-7B-Instruct · NF4 4-bit · SDPA · Greedy |
+| **Vs** | KiaOmni-Gaussian · SnapKV (kvpress ref.) · Vanilla (full cache) |
+| **Tasks** | Single-needle · Multi-needle · Reasoning · Summarization |
+| **Budgets** | 98 · 128 · 256 · 512 · 1024 · 2048 · 3400 retained tokens |
+| **Run on Kaggle** | Settings → GPU (T4/P100) · Internet ON → Run All |
+
+### Demo Results (needle mean accuracy across budgets)
+
+![Demo Results](notebook/demo/demo_results.png)
+
+**Key takeaways:**
+- KiaOmni-Gaussian at **B=512 (12.8% of cache) scores 80%** — surpassing Vanilla's 66.7% with the full cache
+- SnapKV needs **B=3400 (85% of cache)** to merely tie Vanilla
+- KiaOmni VRAM holds at **3.15 GB from B=98 through B=1024** — half of SnapKV at every budget
+- On the reasoning task: KiaOmni **40%** · SnapKV **0%** · Vanilla **0%**
+
+Full per-task tables and details → [`notebook/demo/RESULTS.md`](notebook/demo/RESULTS.md)
+
+---
+
 ## 🧪 Reproduce
 
 All experiment scripts live in [`experiments/`](experiments/README.md):
