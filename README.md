@@ -189,7 +189,7 @@ remove_kiaomni(model)                                    # back to vanilla gener
 | ✅ Verified (ungated) | TinyLlama, Mistral, Qwen2 / Qwen2.5, GPT-2, GPT-NeoX / Pythia | Hook-based extraction (fast) |
 | ✅ Verified (gated — needs HF auth) | Meta Llama 3 / 3.1 | Hook-based extraction (fast) |
 | 🟡 Probed / fallback | Falcon (MQA), MPT, exotic variants | Auto-routes to `output_attentions=True` (slower but correct) |
-| ❌ Unsupported | T5, BART, BERT (not causal-LM) | n/a |
+| ⛔ Out of scope | T5, BART, BERT — encoder-only / encoder-decoder, no causal KV-cache decode loop | n/a |
 
 All examples in `examples/` use **ungated** models so they run on a fresh `pip install` with no `huggingface-cli login` required.
 
