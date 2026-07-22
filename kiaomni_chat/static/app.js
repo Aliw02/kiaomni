@@ -879,9 +879,10 @@ function setupCompareHandlers() {
     state.compareAbort = new AbortController();
     status.textContent = "running 4 policies…";
 
-    // Build the history we'll send. Use the FullContext thread as canonical.
-    // For the first turn, history is just this user turn.
+    // Build the history we'll send. Past turns + current user turn.
     const hist = compareHistoryAsMessages();
+    hist.push({ role: "user", content: text });
+
 
     try {
       const r = await fetch("/api/compare/turn", {
