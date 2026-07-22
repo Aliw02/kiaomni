@@ -449,6 +449,7 @@ class KiaOmniEngine:
                 try:
                     with torch.inference_mode():
                         if policy == POLICY_SNAPKV and L_in > budget:
+                            # pyrefly: ignore [missing-import]
                             from kvpress import SnapKVPress
                             ratio = 1.0 - budget / L_in
                             press = SnapKVPress(compression_ratio=ratio, window_size=64, kernel_size=5)
