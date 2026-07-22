@@ -408,10 +408,10 @@ class KiaOmniEngine:
                 pruned = input_ids
                 keep_indices = list(range(L_in))
 
-            # Empty CUDA memory cache & reset peak tracker AFTER saliency extraction so peak memory reflects generation pass only (~3.15 GB)
+            # Reset peak tracker AFTER saliency extraction so peak memory reflects generation pass only (~3.15 GB)
             if torch.cuda.is_available():
-                torch.cuda.empty_cache()
                 torch.cuda.reset_peak_memory_stats()
+
 
 
 
