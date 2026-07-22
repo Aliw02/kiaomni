@@ -761,7 +761,8 @@ function renderCompare() {
         }).join("")}
       </div>
       <div class="compare-toolbar">
-        <button id="cmp-load-sample" class="btn-secondary" type="button">Load sample article</button>
+        <button id="cmp-load-sample" class="btn-secondary" type="button">Load sample (All-in-One)</button>
+        <button id="cmp-run-seq" class="btn-primary" type="button" style="background:#2563eb; color:#fff; font-weight:600; border-color:#2563eb;">🚀 Run Sequential Q&A (Turn-by-Turn)</button>
         <button id="cmp-save-json" class="btn-secondary" type="button">Save chat (JSON)</button>
         <button id="cmp-copy-text" class="btn-secondary" type="button">Copy text</button>
         <button id="cmp-download-text" class="btn-secondary" type="button">Download .txt</button>
@@ -863,6 +864,88 @@ async function loadSampleIntoCmp() {
       questionsBlock;
     ta.dispatchEvent(new Event("input"));
     ta.focus();
+  }
+}
+
+async function runSequentialArticleQA() {
+  const status = $("#cmp-status");
+  const runSeqBtn = $("#cmp-run-seq");
+
+  if (runSeqBtn) runSeqBtn.disabled = true;
+
+  // 1. Fetch article
+  let article = "";
+  try {
+    const r = await fetch("/static/sample_data/article.txt");
+    if (r.ok) article = (await r.text()).trim();
+  } catch (_) { /* ignore */ }
+  if (!article) article = ARTICLE_FALLBACK.trim();
+
+  // 2. Reset existing turns
+  compareState.turns = [];
+  for (const p of POLICIES) {
+    const msgs = document.querySelector(`[data-messages-for="${p}"]`);
+    if (msgs) msgs.innerHTML = `<div class="compare-msg-empty">starting turn-by-turn Q&A…</div>`;
+    const statsEl = document.querySelector(`[data-stats-for="${p}"]`);
+    if (statsEl) statsEl.textContent = "—";
+  }
+
+  // Helper function to send one turn and wait for result
+  async function sendTurn(userText, statusMsg) {
+    if (status) status.textContent = statusMsg;
+    // Build history
+    const hist = compareHistoryAsMessages();
+    hist.push({ role: "user", content: userText });
+
+    const r = await fetch("/api/compare/turn", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        history: hist,
+        budget: state.budget,
+        max_new_tokens: state.maxNew,
+        policies: POLICIES,
+        use_system_prompt: state.useSystemPrompt,
+      }),
+    });
+
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}`);
+    }
+
+    const data = await r.json();
+    const responses = {};
+    for (const res of data.results) {
+      responses[res.policy] = res.error
+        ? { error: res.error, message: res.message }
+        : { text: res.text, stats: res.stats, wall_ms: res.wall_ms };
+    }
+
+    // Render turn
+    appendCmpTurn(userText, responses);
+    return data;
+  }
+
+  try {
+    // Turn 1: Send the Article text
+    const turn1Text = `Here is the reference research document:\n\n${article}\n\nI will ask you several questions about this document sequentially. Please retain this context for subsequent questions.`;
+    await sendTurn(turn1Text, "Turn 1/10: Sending Article Context…");
+
+    // Turn 2 through 10: Send each question sequentially
+    for (let i = 0; i < TEST_QUESTIONS.length; i++) {
+      const qObj = TEST_QUESTIONS[i];
+      const qText = `(Q${i + 1}) ${qObj.q}`;
+      await sendTurn(qText, `Turn ${i + 2}/10: Running Question ${i + 1} (${qObj.type})…`);
+      await new Promise((res) => setTimeout(res, 300));
+    }
+
+    if (status) status.textContent = "✅ Turn-by-Turn Sequential Q&A completed!";
+    showToast("✅ Sequential Q&A run completed! All 9 questions answered turn-by-turn.", false);
+  } catch (err) {
+    if (status) status.innerHTML = `<span class="tag tag-fail">${escapeHTML(String(err))}</span>`;
+    showToast(`Sequential Run Error: ${err.message}`, true);
+  } finally {
+    if (runSeqBtn) runSeqBtn.disabled = false;
   }
 }
 
@@ -991,6 +1074,7 @@ function setupCompareHandlers() {
   });
 
   $("#cmp-load-sample")?.addEventListener("click", loadSampleIntoCmp);
+  $("#cmp-run-seq")?.addEventListener("click", () => runSequentialArticleQA());
   $("#cmp-reset")?.addEventListener("click", () => {
     compareState.turns = [];
     for (const p of POLICIES) {
