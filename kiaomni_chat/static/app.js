@@ -510,14 +510,15 @@ function setupChatHandlers() {
     cancelBtn.disabled = true;
   });
 
-  cancelBtn.addEventListener("click", () => {
+  cancelBtn?.addEventListener("click", () => {
     if (state.abortCtrl) state.abortCtrl.abort();
   });
 
   // Save / Copy / Download
-  $("#chat-save-json").addEventListener("click", () => saveChatAsJson());
-  $("#chat-copy-text").addEventListener("click", () => copyChatAsText());
-  $("#chat-download-text").addEventListener("click", () => downloadChatAsText());
+  $("#chat-save-json")?.addEventListener("click", () => saveChatAsJson());
+  $("#chat-copy-text")?.addEventListener("click", () => copyChatAsText());
+  $("#chat-download-text")?.addEventListener("click", () => downloadChatAsText());
+
 }
 
 function renderMessages() {
@@ -985,12 +986,12 @@ function setupCompareHandlers() {
     }
   });
 
-  cancelBtn.addEventListener("click", () => {
+  cancelBtn?.addEventListener("click", () => {
     if (state.compareAbort) state.compareAbort.abort();
   });
 
-  $("#cmp-load-sample").addEventListener("click", loadSampleIntoCmp);
-  $("#cmp-reset").addEventListener("click", () => {
+  $("#cmp-load-sample")?.addEventListener("click", loadSampleIntoCmp);
+  $("#cmp-reset")?.addEventListener("click", () => {
     compareState.turns = [];
     for (const p of POLICIES) {
       const msgs = document.querySelector(`[data-messages-for="${p}"]`);
@@ -1003,9 +1004,10 @@ function setupCompareHandlers() {
   });
 
   // Save / Copy / Download
-  $("#cmp-save-json").addEventListener("click", () => saveCompareAsJson());
-  $("#cmp-copy-text").addEventListener("click", () => copyCompareAsText());
-  $("#cmp-download-text").addEventListener("click", () => downloadCompareAsText());
+  $("#cmp-save-json")?.addEventListener("click", () => saveCompareAsJson());
+  $("#cmp-copy-text")?.addEventListener("click", () => copyCompareAsText());
+  $("#cmp-download-text")?.addEventListener("click", () => downloadCompareAsText());
+
 }
 
 function compareRecord() {
