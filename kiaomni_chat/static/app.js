@@ -847,13 +847,21 @@ function setupCompareHandlers() {
   const cancelBtn = $("#cmp-cancel");
   const status = $("#cmp-status");
 
-  // Enter to send, Shift+Enter for newline
+  // Enter or Ctrl+Enter to send (Shift+Enter for newline)
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
       form.requestSubmit();
     }
   });
+
+  // Explicit click handler for Send turn button
+  sendBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    form.requestSubmit();
+  });
+
+
   // Auto-grow
   input.addEventListener("input", () => {
     input.style.height = "auto";
