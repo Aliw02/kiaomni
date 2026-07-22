@@ -17,11 +17,10 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     policy: PolicyName = "kiaomni_gaussian"
     budget: int = Field(default=512, ge=64, le=4096)
-    # Cap is 8192 so the model can fully answer multi-part questions; the
-    # model still stops at EOS naturally, so this is just a safety ceiling.
     max_new_tokens: int = Field(default=2048, ge=8, le=8192)
     session_id: str | None = None
     temperature: float = Field(default=0.0, ge=0.0, le=1.0)
+    use_system_prompt: bool = False
 
 
 class CompareRequest(BaseModel):
@@ -31,6 +30,7 @@ class CompareRequest(BaseModel):
     policies: list[PolicyName] = Field(
         default_factory=lambda: ["fullcontext", "kiaomni_s8", "kiaomni_gaussian", "snapkv"]
     )
+    use_system_prompt: bool = False
 
 
 class CompareTurnRequest(BaseModel):
@@ -43,6 +43,7 @@ class CompareTurnRequest(BaseModel):
     policies: list[PolicyName] = Field(
         default_factory=lambda: ["fullcontext", "kiaomni_s8", "kiaomni_gaussian", "snapkv"]
     )
+    use_system_prompt: bool = False
 
 
 class DemoRunRequest(BaseModel):
@@ -50,6 +51,7 @@ class DemoRunRequest(BaseModel):
     policy: PolicyName = "kiaomni_gaussian"
     budget: int = Field(default=512, ge=64, le=4096)
     n_samples: int = Field(default=3, ge=1, le=20)
+    use_system_prompt: bool = False
 
 
 class DocQARequest(BaseModel):
@@ -58,6 +60,8 @@ class DocQARequest(BaseModel):
     policy: PolicyName = "kiaomni_gaussian"
     budget: int = Field(default=512, ge=64, le=4096)
     max_new_tokens: int = Field(default=2048, ge=8, le=8192)
+    use_system_prompt: bool = False
+
 
 
 class SessionCreateRequest(BaseModel):

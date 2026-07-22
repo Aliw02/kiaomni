@@ -18,28 +18,30 @@ family. The latest generation — Llama 3.1, Qwen2.5 — supports 128 K
 contexts. As context windows grew, the cost of the KV cache grew
 quadratically, motivating prompt-side eviction strategies like KiaOmni.`;
 
-// The 9 test questions for the SpaceX Starship 2024–2025 article.
-// Tier 1 = NIAH (single + multi-needle), Tier 2 = summarization, Tier 3 = reasoning.
+// The 9 test questions for the 2025 Frontier LLM Benchmark article (Feb 2025 facts).
+// Tier 1 = Fact Retrieval, Tier 2 = Summarization, Tier 3 = Multi-hop Reasoning.
 const TEST_QUESTIONS = [
-  { id: "q1", tier: 1, type: "NIAH",
-    q: "On what date did the third integrated flight test (IFT-3) of Starship launch?" },
-  { id: "q2", tier: 1, type: "NIAH",
-    q: "What altitude did the Starship upper stage reach during IFT-3?" },
-  { id: "q3", tier: 1, type: "NIAH",
-    q: "What peak temperature did the heatshield experience during IFT-4's re-entry?" },
-  { id: "q4", tier: 1, type: "NIAH",
-    q: "On what date was the first successful booster catch achieved?" },
-  { id: "q5", tier: 1, type: "NIAH multi-needle",
-    q: "List the dates and outcomes of the five integrated flight tests (IFT-3 through IFT-7). Five facts: date + outcome for each." },
-  { id: "q6", tier: 1, type: "NIAH multi-needle",
-    q: "List the specifications of the Starship vehicle. Five facts needed: total height, total liftoff mass, total liftoff thrust, number of first-stage engines, number of upper-stage engines." },
+  { id: "q1", tier: 1, type: "Fact Retrieval",
+    q: "On what exact date was DeepSeek-R1 released, and what score did it achieve on MATH-500?" },
+  { id: "q2", tier: 1, type: "Fact Retrieval",
+    q: "On what exact date was Qwen2.5-Max introduced, and what context length does it support?" },
+  { id: "q3", tier: 1, type: "Fact Retrieval",
+    q: "On what exact date was KiaOmni-v2 introduced, and what Peak VRAM footprint did it achieve (in GB)?" },
+  { id: "q4", tier: 1, type: "Fact Retrieval",
+    q: "Compare the accuracy of KiaOmni-v2 (96.4%) vs SnapKV (71.2%) on the 128K multi-turn reasoning benchmark." },
+  { id: "q5", tier: 1, type: "Multi-part",
+    q: "List the exact dates and releases of the 4 major 2025 AI milestones described in the article." },
+  { id: "q6", tier: 1, type: "Specifications",
+    q: "List the tokens/sec generation speeds of the 4 hardware setups (Setup A, Setup B, Setup C, Setup D)." },
   { id: "q7", tier: 3, type: "Multi-hop reasoning",
-    q: "Why is the chopstick-catch approach more ambitious than leg-landing, and what engineering capabilities had to be proven before attempting the catch?" },
+    q: "Why does Qwen2.5-Max require 256 GB of FP16 memory for 1M context, and how does KiaOmni-v2 reduce this footprint to 3.15 GB?" },
   { id: "q8", tier: 3, type: "Multi-hop reasoning",
-    q: "Why did IFT-6 catch the booster successfully but lose the ship during the same mission, and what does the pattern of ship failures tell us about the engineering maturity of the two stages?" },
+    q: "How does combining DeepSeek-R1-Distill-14B with KiaOmni-v2 benefit local edge deployment on consumer GPUs (Setup A)?" },
   { id: "q9", tier: 2, type: "Summarization",
-    q: "Summarize the SpaceX Starship 2024–2025 test campaign in exactly 5 bullet points, covering: the vehicle, the early test flights, the catch breakthrough, the January 2025 milestone, and the broader industry impact." },
+    q: "Summarize the 2025 AI benchmark report in exactly 5 bullet points covering DeepSeek-R1, Qwen2.5-Max, KiaOmni-v2, Hardware setups, and Edge deployment impact." },
 ];
+
+
 
 // ── VRAM formatting ────────────────────────────────────────────────────
 // Two numbers come back from the engine:
@@ -181,6 +183,7 @@ const state = {
   policy: "kiaomni_gaussian",
   budget: 512,
   maxNew: 2048,
+  useSystemPrompt: false,
   sessionId: null,
   messages: [],  // {role, content, meta?}
   abortCtrl: null,
@@ -211,6 +214,12 @@ $("#budget").addEventListener("input", (e) => {
   $("#budget-hint").textContent = state.budget;
   updateBudgetPct();
 });
+if ($("#sys-prompt-toggle")) {
+  $("#sys-prompt-toggle").addEventListener("change", (e) => {
+    state.useSystemPrompt = e.target.checked;
+  });
+}
+
 
 function updateBudgetPct() {
   const ctx = state.modelContextWindow || 131072;
@@ -406,7 +415,9 @@ function setupChatHandlers() {
       budget: state.budget,
       max_new_tokens: state.maxNew,
       session_id: state.sessionId,
+      use_system_prompt: state.useSystemPrompt,
     }, (ev) => {
+
       if (ev.type === "token") {
         currentText += ev.text;
         if (currentAssistantEl) {
@@ -878,7 +889,9 @@ function setupCompareHandlers() {
           budget: state.budget,
           max_new_tokens: state.maxNew,
           policies: POLICIES,
+          use_system_prompt: state.useSystemPrompt,
         }),
+
         signal: state.compareAbort.signal,
       });
       if (!r.ok) {

@@ -45,6 +45,7 @@ def compare(req: CompareRequest) -> dict:
                 policy=policy,
                 budget=req.budget,
                 max_new_tokens=req.max_new_tokens,
+                use_system_prompt=req.use_system_prompt,
             )
             wall_ms = (time.perf_counter() - t0) * 1000.0
             results.append({
@@ -99,7 +100,9 @@ def compare_turn(req: CompareTurnRequest) -> dict:
                 policy=policy,
                 budget=req.budget,
                 max_new_tokens=req.max_new_tokens,
+                use_system_prompt=req.use_system_prompt,
             )
+
             wall_ms = (time.perf_counter() - t0) * 1000.0
             turn_results.append({
                 "policy": policy,

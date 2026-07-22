@@ -221,7 +221,11 @@ class KiaOmniEngine:
 
     # ── Tokenization helpers ──────────────────────────────────────────────
 
-    def build_input_ids(self, messages: list[ChatMessage] | list[dict]) -> torch.Tensor:
+    def build_input_ids(
+        self,
+        messages: list[ChatMessage] | list[dict],
+        use_system_prompt: bool = False,
+    ) -> torch.Tensor:
         """Apply the model's chat template and return a 2-D ``(1, L)`` long tensor on the model device.
 
         Accepts either ``ChatMessage`` objects or plain dicts (with ``role`` and
@@ -235,6 +239,13 @@ class KiaOmniEngine:
                  "content": m["content"] if isinstance(m, dict) else m.content}
                 for m in messages
             ]
+            if use_system_prompt and (not payload or payload[0].get("role") != "system"):
+                kv_sys = (
+                    "You are a helpful AI assistant. Note: The provided context has been compressed "
+                    "using KV-Cache eviction. Rely strictly on the key facts preserved in the text to answer accurately."
+                )
+                payload.insert(0, {"role": "system", "content": kv_sys})
+
             ids = self._tokenizer.apply_chat_template(
                 payload, add_generation_prompt=True, return_tensors="pt"
             )
@@ -242,6 +253,7 @@ class KiaOmniEngine:
                 f"chat-template output must be (1, L), got {tuple(ids.shape)}"
             )
             return ids.to(self._device)
+
 
     # ── User-content mask helpers (for chat-template saliency fix) ───────
 
@@ -337,6 +349,7 @@ class KiaOmniEngine:
         budget: int,
         max_new_tokens: int,
         temperature: float = 0.0,
+        use_system_prompt: bool = False,
     ) -> Iterator[dict[str, Any]]:
         """Yield SSE-shaped events: ``{type: 'status'|'token'|'stats'|'error', ...}``.
 
@@ -347,8 +360,9 @@ class KiaOmniEngine:
                 raise EngineNotReady("model not loaded")
 
             t_request = time.perf_counter()
-            input_ids = self.build_input_ids(messages)
+            input_ids = self.build_input_ids(messages, use_system_prompt=use_system_prompt)
             L_in = int(input_ids.shape[1])
+
             assert L_in > 0, "empty prompt"
 
             # Pre-call VRAM check — refuse if we are near the wall.
@@ -510,6 +524,7 @@ class KiaOmniEngine:
         budget: int,
         max_new_tokens: int,
         temperature: float = 0.0,
+        use_system_prompt: bool = False,
     ) -> GenerationResult:
         """Collect all tokens, return a single result. Used by compare / demo / docqa."""
         chunks: list[str] = []
@@ -518,7 +533,9 @@ class KiaOmniEngine:
         for ev in self.stream_generate(
             messages, policy=policy, budget=budget,
             max_new_tokens=max_new_tokens, temperature=temperature,
+            use_system_prompt=use_system_prompt,
         ):
+
             t = ev["type"]
             if t == "error":
                 if ev.get("error") == "oom":

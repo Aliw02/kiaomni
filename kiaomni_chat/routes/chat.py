@@ -56,7 +56,9 @@ def chat(req: ChatRequest, request: Request) -> StreamingResponse:
                 budget=req.budget,
                 max_new_tokens=req.max_new_tokens,
                 temperature=req.temperature,
+                use_system_prompt=req.use_system_prompt,
             ):
+
                 if ev.get("type") == "error" and ev.get("error") == "oom":
                     oom = True
                 yield _sse(ev)
