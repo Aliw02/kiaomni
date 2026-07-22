@@ -4,6 +4,31 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// ── Toast Error Notifications ──────────────────────────────────────────────
+export function showToast(msg, isError = true) {
+  console.error(`[${isError ? "Error" : "Info"}]`, msg);
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    container.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  toast.style.cssText = `background:${isError ? "rgba(220,38,38,0.95)" : "rgba(30,41,59,0.95)"};color:#fff;padding:12px 18px;border-radius:8px;font-family:monospace;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,0.5);max-width:420px;word-break:break-word;border:1px solid rgba(255,255,255,0.2);`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 7000);
+}
+
+window.addEventListener("error", (e) => {
+  showToast(`Uncaught UI Error: ${e.message} (${e.filename ? e.filename.split('/').pop() : 'app.js'}:${e.lineno})`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  showToast(`Unhandled Rejection: ${e.reason && e.reason.message ? e.reason.message : String(e.reason)}`);
+});
+
+
 // Fallback article used only if /static/sample_data/article.txt fails to load.
 // Shorter, just enough to test the side-by-side path.
 const ARTICLE_FALLBACK = `The Transformer architecture was introduced in the 2017 paper
@@ -205,40 +230,38 @@ $$(".tab").forEach((btn) => {
 });
 
 // ── Settings sync ──────────────────────────────────────────────────────
-$("#policy").addEventListener("change", (e) => {
+$("#policy")?.addEventListener("change", (e) => {
   state.policy = e.target.value;
-  $("#budget").disabled = state.policy === "fullcontext";
+  if ($("#budget")) $("#budget").disabled = state.policy === "fullcontext";
 });
-$("#budget").addEventListener("input", (e) => {
+$("#budget")?.addEventListener("input", (e) => {
   state.budget = Number(e.target.value);
-  $("#budget-hint").textContent = state.budget;
+  if ($("#budget-hint")) $("#budget-hint").textContent = String(state.budget);
   updateBudgetPct();
 });
-if ($("#sys-prompt-toggle")) {
-  $("#sys-prompt-toggle").addEventListener("change", (e) => {
-    state.useSystemPrompt = e.target.checked;
-  });
-}
-
+$("#sys-prompt-toggle")?.addEventListener("change", (e) => {
+  state.useSystemPrompt = e.target.checked;
+});
 
 function updateBudgetPct() {
   const ctx = state.modelContextWindow || 131072;
   const pct = (state.budget / ctx) * 100;
   // Format the context size for the label — 131072 → "128K", 32768 → "32K"
   const ctxLabel = ctx >= 1024 ? `${Math.round(ctx / 1024)}K` : `${ctx}`;
-  $("#budget-pct").textContent = `~${pct.toFixed(2)}% of ${ctxLabel} context`;
+  if ($("#budget-pct")) $("#budget-pct").textContent = `~${pct.toFixed(2)}% of ${ctxLabel} context`;
 }
-$("#max-new").addEventListener("change", (e) => {
+$("#max-new")?.addEventListener("change", (e) => {
   state.maxNew = Number(e.target.value);
 });
-$("#new-session").addEventListener("click", () => createSession());
-$("#restart").addEventListener("click", () => {
+$("#new-session")?.addEventListener("click", () => createSession());
+$("#restart")?.addEventListener("click", () => {
   if (confirm("Restart the container? All sessions and VRAM will be cleared.")) {
     fetch("/api/restart", { method: "POST" }).then(() => {
       document.body.innerHTML = "<div style='padding:40px;font-family:monospace'>Restarting… refresh in a few seconds.</div>";
     });
   }
 });
+
 
 // ── Status polling ────────────────────────────────────────────────────
 async function pollHealth() {
@@ -373,6 +396,8 @@ function setupChatHandlers() {
   const cancelBtn = $("#cancel-btn");
   const sendBtn = $("#send-btn");
   const status = $("#chat-status");
+  if (!form || !input) return;
+
 
   // Enter to send, Shift+Enter for newline
   input.addEventListener("keydown", (e) => {
@@ -846,6 +871,8 @@ function setupCompareHandlers() {
   const sendBtn = $("#cmp-send");
   const cancelBtn = $("#cmp-cancel");
   const status = $("#cmp-status");
+  if (!form || !input) return;
+
 
   // Enter to send, Shift+Enter for newline
   input.addEventListener("keydown", (e) => {

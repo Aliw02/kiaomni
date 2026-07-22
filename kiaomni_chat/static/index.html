@@ -49,6 +49,11 @@
         <div class="muted" id="budget-pct">loading context size…</div>
       </div>
       <div class="field">
+        <label for="max-new">Max new tokens <span class="hint" id="max-new-hint">2048</span></label>
+        <input id="max-new" type="number" min="16" max="8192" step="16" value="2048" />
+        <div class="muted">Model still stops at EOS — safety ceiling</div>
+      </div>
+      <div class="field">
         <label for="sys-prompt-toggle" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
           <input id="sys-prompt-toggle" type="checkbox" />
           <span>KV System Prompt Hint</span>
@@ -56,6 +61,7 @@
         <div class="muted">Injects KV-Cache pruning warning into system prompt to guide model reasoning.</div>
       </div>
     </details>
+
 
     <details>
       <summary>Session</summary>
