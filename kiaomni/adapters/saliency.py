@@ -105,10 +105,14 @@ class SaliencyAdapter:
         return q, k
 
     @staticmethod
-    def _last_query_softmax(q: torch.Tensor, k: torch.Tensor, hd: int) -> torch.Tensor:
-        """Softmax(QK^T/sqrt(hd)) for last query position → shape (B, nh, L)."""
-        sc = torch.matmul(q[:, :, -1:, :], k.transpose(-2, -1)) * (hd ** -0.5)
-        return torch.softmax(sc, dim=-1)[:, :, 0, :]
+    def _last_query_softmax(q: torch.Tensor, k: torch.Tensor, hd: int, window_size: int = 32) -> torch.Tensor:
+        """Softmax(QK^T/sqrt(hd)) pooled over query observation window (default W=32) -> shape (B, nh, L)."""
+        w = min(window_size, q.shape[2])
+        q_win = q[:, :, -w:, :]  # (B, nh, w, hd)
+        sc = torch.matmul(q_win, k.transpose(-2, -1)) * (hd ** -0.5)
+        probs = torch.softmax(sc, dim=-1)  # (B, nh, w, L)
+        return probs.max(dim=2).values  # (B, nh, L)
+
 
     # --- strategy: hook-based ------------------------------------------
 
@@ -228,12 +232,15 @@ class SaliencyAdapter:
                 "This model is incompatible with KiaOmni."
             )
 
-        # attns: tuple of (B, nh, L, L). Take last-query row, avg over heads & layers.
+        # attns: tuple of (B, nh, L, L). Take last w query rows, max-pool over window, avg over heads & layers.
         per_layer: list = []
+        w = min(32, L)
         for a in attns:
-            last_row = a[:, :, -1, :].to(torch.float32)         # (B, nh, L)
-            per_layer.append(last_row.mean(1).cpu().numpy())    # (B, L)
+            win_rows = a[:, :, -w:, :].to(torch.float32)         # (B, nh, w, L)
+            max_win = win_rows.max(dim=2).values                 # (B, nh, L)
+            per_layer.append(max_win.mean(1).cpu().numpy())      # (B, L)
         return np.stack(per_layer).mean(0).astype(np.float32)
+
 
 
 __all__ = ["SaliencyAdapter"]
