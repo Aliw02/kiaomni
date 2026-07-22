@@ -1,0 +1,129 @@
+{
+  "schema_version": 3,
+  "topic": "SpaceX Starship 2024–2025 test campaign (IFT-3 through IFT-7)",
+  "article_path": "/static/sample_data/article.txt",
+  "tested_at": "2026-07-17",
+  "notes": "Qwen training data cuts off ~2023. The IFT-3..IFT-7 flights (March 2024 → January 2025) are post-cutoff. Article is the only source the model has for these facts.",
+  "questions": [
+    {
+      "id": "q1_niah",
+      "tier": 1,
+      "type": "NIAH (single needle)",
+      "question": "On what date did the third integrated flight test (IFT-3) of Starship launch?",
+      "expected_answer": "March 14, 2024",
+      "match": "date",
+      "section": "IFT-3",
+      "scoring_hint": "accept 'March 14, 2024' or '14 March 2024' or '3/14/2024'"
+    },
+    {
+      "id": "q2_niah",
+      "tier": 1,
+      "type": "NIAH (single needle)",
+      "question": "What altitude did the Starship upper stage reach during IFT-3?",
+      "expected_answer": "234 kilometers (peak altitude)",
+      "match": "altitude",
+      "section": "IFT-3",
+      "scoring_hint": "accept '234 km' or '234 kilometers'"
+    },
+    {
+      "id": "q3_niah",
+      "tier": 1,
+      "type": "NIAH (single needle)",
+      "question": "What peak temperature did the heatshield experience during IFT-4's re-entry?",
+      "expected_answer": "approximately 1,500 °C",
+      "match": "temperature",
+      "section": "IFT-4",
+      "scoring_hint": "accept '1,500 °C' or '1500 degrees' or '1,500 degrees Celsius'"
+    },
+    {
+      "id": "q4_niah",
+      "tier": 1,
+      "type": "NIAH (single needle)",
+      "question": "On what date was the first successful booster catch achieved?",
+      "expected_answer": "October 13, 2024 (IFT-5)",
+      "match": "date + flight number",
+      "section": "IFT-5",
+      "scoring_hint": "accept 'October 13, 2024' or 'IFT-5' or both"
+    },
+    {
+      "id": "q5_multi_needle",
+      "tier": 1,
+      "type": "NIAH (multi-needle)",
+      "question": "List the dates and outcomes of the five integrated flight tests (IFT-3 through IFT-7). Five facts: date + outcome for each.",
+      "expected_answer": [
+        {"flight": "IFT-3", "date": "March 14, 2024", "outcome": "Reached space (234 km), lost on re-entry over Indian Ocean"},
+        {"flight": "IFT-4", "date": "June 6, 2024", "outcome": "First controlled re-entry, soft splashdown in Indian Ocean"},
+        {"flight": "IFT-5", "date": "October 13, 2024", "outcome": "First successful Super Heavy booster catch at Starbase; ship splashed down"},
+        {"flight": "IFT-6", "date": "November 19, 2024", "outcome": "Booster caught successfully, ship lost during coast phase due to propellant leak"},
+        {"flight": "IFT-7", "date": "January 16, 2025", "outcome": "Both booster and ship successfully caught — first time ship was caught"}
+      ],
+      "section": "IFT-3 to IFT-7",
+      "scoring_hint": "credit 0.2 per (date+outcome) pair correct; 1.0 for all 5"
+    },
+    {
+      "id": "q6_multi_needle",
+      "tier": 1,
+      "type": "NIAH (multi-needle)",
+      "question": "List the specifications of the Starship vehicle. Five facts needed: total height, total liftoff mass, total liftoff thrust, number of first-stage engines, number of upper-stage engines.",
+      "expected_answer": [
+        {"spec": "Total height", "value": "121 meters"},
+        {"spec": "Total liftoff mass", "value": "approximately 5,000 metric tons"},
+        {"spec": "Total liftoff thrust", "value": "approximately 7,500 metric tons"},
+        {"spec": "Number of first-stage engines", "value": "33 Raptor 2 engines"},
+        {"spec": "Number of upper-stage engines", "value": "6 Raptor 2 engines (3 sea-level, 3 vacuum-optimized)"}
+      ],
+      "section": "The Vehicle",
+      "scoring_hint": "credit 0.2 per spec; 1.0 for all 5"
+    },
+    {
+      "id": "q7_multi_hop",
+      "tier": 3,
+      "type": "Multi-hop reasoning",
+      "question": "Why is the chopstick-catch approach more ambitious than leg-landing, and what engineering capabilities had to be proven before attempting the catch?",
+      "expected_reasoning_chain": [
+        "Falcon 9 uses landing legs, which adds mass and structure to the rocket",
+        "Legs require a wider landing zone and a slower terminal velocity, which the booster can achieve with its 1 Merlin vacuum engine",
+        "Super Heavy has 33 Raptor engines, of which only the 13 center engines can be used for the catch burn (the outer 20 are not gimbaling-correct for landing)",
+        "The catch requires the booster to slide into the tower's mechanical arms at near-zero vertical velocity, which means a much more precise hover-and-slide maneuver than leg landing",
+        "The booster must arrive at the catch point with a positional accuracy of ~30 cm",
+        "Before attempting the catch, SpaceX had to prove the 13-engine hover-and-slide could work, which required multiple IFTs (3, 4) to demonstrate reliable booster return",
+        "Therefore the catch was a 3-flight iteration: demonstrate return (IFT-3, 4), then attempt catch (IFT-5) — not a first-flight aspiration"
+      ],
+      "section": "The Vehicle + IFT-5",
+      "scoring_hint": "credit 0.15 per chain element mentioned; 1.0 for 6+ elements"
+    },
+    {
+      "id": "q8_multi_hop",
+      "tier": 3,
+      "type": "Multi-hop reasoning",
+      "question": "Why did IFT-6 catch the booster successfully but lose the ship during the same mission, and what does the pattern of ship failures tell us about the engineering maturity of the two stages?",
+      "expected_reasoning_chain": [
+        "IFT-6 successfully caught the Super Heavy booster for the second time",
+        "The Starship upper stage lost contact before its planned splashdown",
+        "SpaceX attributed the loss to a propellant leak that developed during the coast phase",
+        "The booster has been retrieved successfully 3 times (IFT-5, 6, 7), suggesting the Super Heavy stage is at a higher engineering maturity",
+        "The ship has been retrieved only once (IFT-7); in 4 of 5 flights the ship was lost",
+        "The pattern suggests: the booster is more mature because the catch mechanics have been iterated on since IFT-5",
+        "The ship is less mature because it has more complex re-entry and landing requirements (more systems, more failure modes)",
+        "Therefore IFT-6 is a normal iterative development outcome: one stage (booster) is now production-quality, the other (ship) is still being refined"
+      ],
+      "section": "IFT-6 + The Broader Significance",
+      "scoring_hint": "credit 0.12 per chain element; 1.0 for 7+ elements"
+    },
+    {
+      "id": "q9_summary",
+      "tier": 2,
+      "type": "Summarization",
+      "question": "Summarize the SpaceX Starship 2024–2025 test campaign in exactly 5 bullet points, covering: the vehicle, the early test flights, the catch breakthrough, the January 2025 milestone, and the broader industry impact.",
+      "expected_topics": [
+        "Vehicle: 121m tall Starship with 33-engine Super Heavy booster, full reuse design with chopstick-catch on launch tower, total liftoff mass ~5000t, thrust ~7500t — most powerful rocket ever built",
+        "Early test flights: IFT-3 (March 2024) reached space at 234 km but lost on re-entry; IFT-4 (June 2024) achieved first controlled re-entry with 1500°C peak heating survived; IFT-5 (October 2024) first booster catch at Starbase",
+        "Catch breakthrough: chopstick arms on the launch tower caught the 200t Super Heavy booster at near-zero vertical velocity, a 30cm positional accuracy maneuver, no precedent in spaceflight",
+        "January 2025 milestone (IFT-7): first time both stages of an orbital launch system were caught on the same launch tower — the ship was caught by a second tower after a 37-minute coast, proving rapid full reuse is feasible",
+        "Broader impact: every other launch provider (SLS, Vulcan, New Glenn, Neutron, Ariane 6) is now revising architecture to compete with or partner on full reuse; the test campaign is the textbook example of SpaceX's iterative design philosophy"
+      ],
+      "section": "all",
+      "scoring_hint": "human review: credit 0.2 per topic covered; 1.0 for all 5"
+    }
+  ]
+}

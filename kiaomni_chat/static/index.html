@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>KiaOmni Chat — production stress test</title>
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">K</span>
+    <div class="brand-text">
+      <h1>KiaOmni Chat</h1>
+      <p class="sub">Production stress test · no GC · A100-40GB · Qwen2.5-7B NF4</p>
+    </div>
+  </div>
+  <div class="status" id="status">
+    <span class="dot dot-init" id="status-dot" aria-hidden="true"></span>
+    <span id="status-text">connecting…</span>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Scenarios">
+  <button class="tab" role="tab" data-tab="chat" aria-selected="true">Chat</button>
+  <button class="tab" role="tab" data-tab="demo">Demo Tasks</button>
+  <button class="tab" role="tab" data-tab="docqa">Document Q&amp;A</button>
+  <button class="tab" role="tab" data-tab="compare">Side-by-Side</button>
+  <button class="tab" role="tab" data-tab="multiturn">Multi-Turn</button>
+</nav>
+
+<main class="layout">
+  <aside class="sidebar" aria-label="Settings">
+    <details open>
+      <summary>Eviction policy</summary>
+      <div class="field">
+        <label for="policy">Policy</label>
+        <select id="policy">
+          <option value="kiaomni_gaussian" selected>KiaOmni-Gaussian (σ=4)</option>
+          <option value="kiaomni_s8">KiaOmni-Boxcar (σ=8)</option>
+          <option value="fullcontext">FullContext (no eviction)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="budget">Budget <span class="hint" id="budget-hint">512</span></label>
+        <input id="budget" type="range" min="64" max="2048" step="64" value="512" />
+        <div class="muted" id="budget-pct">loading context size…</div>
+      </div>
+      <div class="field">
+        <label for="max-new">Max new tokens <span class="hint" id="max-new-hint">2048</span></label>
+        <input id="max-new" type="number" min="16" max="8192" step="16" value="2048" />
+        <div class="muted">Model still stops at EOS — this is just a safety ceiling</div>
+      </div>
+    </details>
+    <details>
+      <summary>Session</summary>
+      <div class="field">
+        <button id="new-session" class="btn-secondary">New session</button>
+        <div class="muted" id="session-info">No session yet</div>
+      </div>
+    </details>
+    <details>
+      <summary>Danger zone</summary>
+      <div class="field">
+        <button id="restart" class="btn-danger">Restart container</button>
+        <p class="muted">Escape hatch for the no-GC stress test. Modal will
+        respawn the container with fresh VRAM.</p>
+      </div>
+    </details>
+  </aside>
+
+  <section class="panel" id="panel">
+    <!-- Scenario panels are filled by app.js -->
+  </section>
+</main>
+
+<details class="telemetry" id="telemetry-drawer">
+  <summary>
+    <span>Telemetry</span>
+    <span class="badges" id="oom-badge"></span>
+  </summary>
+  <div class="telemetry-body">
+    <div class="chart-wrap">
+      <canvas id="vram-chart" height="120"></canvas>
+      <div class="legend">
+        <span><i class="sw sw-alloc"></i> allocated</span>
+        <span><i class="sw sw-resv"></i> reserved</span>
+        <span><i class="sw sw-max"></i> max</span>
+      </div>
+    </div>
+    <div class="stats-grid" id="stats-grid"></div>
+  </div>
+</details>
+
+<script src="/static/app.js" type="module"></script>
+</body>
+</html>

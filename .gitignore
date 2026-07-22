@@ -16,3 +16,38 @@ htmlcov/
 *.swp
 main-results/
 KiaOmni_Paper.md
+Zero_to_Hero_Training/
+
+# AI Agent sessions & scratch
+.claude/
+.codex/
+brain/
+scratch/
+
+# Benchmark outputs and temporary results
+035_v1_qwen_longctx_results/
+*_results/
+*.csv
+hallucination_033_summary.csv
+lb_results_summary.txt
+results_summary.txt
+results_summary2.txt
+semantic_summary.csv
+doc_dump.txt
+_tmp_tables.py
+kiaomni_chat_snapshot.json
+
+# Historical research archives
+Critical/
+DailyReports/
+Defense/
+Phase1/
+Proposals/
+proffes/
+AplusRealTests/
+AplusTest/
+RealTest/
+Helper-Algos/
+new_draft/
+test_lb_download/
+
