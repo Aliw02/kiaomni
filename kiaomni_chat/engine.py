@@ -296,9 +296,8 @@ class KiaOmniEngine:
         budget: int,
     ) -> tuple[list[int], np.ndarray, int]:
         """Compute keep indices using the library's ``SaliencyAdapter`` +
-        ``select_keep``, but with non-user-content tokens masked to zero
-        before scoring so chat-template structural positions don't dominate
-        the saliency map.
+        ``select_keep`` directly on true log-saliency, matching official
+        kiaomni benchmark behavior (protecting sinks + recency automatically).
 
         Returns ``(keep_indices, raw_saliency, tokens_kept)``.
         """
@@ -317,17 +316,12 @@ class KiaOmniEngine:
         sal_raw = self._sal_adapter.extract(input_ids, self._model)
         sal_mean = sal_raw[0].copy()
 
-        # Mask out non-user-content positions
-        user_mask = self._user_content_mask(input_ids, messages, L)
-        masked = sal_mean.copy()
-        masked[~user_mask] = 0.0
-
-        # Apply policy scoring
+        # Apply policy scoring directly on raw log-saliency (matching official paper & demo)
         from kiaomni.policies import get_policy
         score_fn = get_policy(policy)
-        score = score_fn(masked)
+        score = score_fn(sal_mean)
 
-        # Select positions via the library's budget-aware selector
+        # Select positions via the library's budget-aware selector (n_sink=16, recency=32)
         from kiaomni.utils import select_keep
         keep = select_keep(score, budget, L)
 
@@ -400,9 +394,10 @@ class KiaOmniEngine:
                 pruned = input_ids
                 keep_indices = list(range(L_in))
 
-            # Reset peak tracker so prefill_ms / decode_ms reflect this call only
+            # Reset peak tracker AFTER saliency extraction so peak memory reflects generation pass only
             if torch.cuda.is_available():
                 torch.cuda.reset_peak_memory_stats()
+
 
             # Build a streamer; we feed it the generate call in a thread.
             tokenizer = self._tokenizer
