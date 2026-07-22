@@ -27,6 +27,9 @@ scratch/
 # Benchmark outputs and temporary results
 035_v1_qwen_longctx_results/
 *_results/
+results/
+engine/
+notebook/kv_cache_benchmark/
 *.csv
 hallucination_033_summary.csv
 lb_results_summary.txt
