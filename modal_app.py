@@ -48,7 +48,8 @@ image = (
     )
     .add_local_dir("./kiaomni", "/root/kiaomni", copy=True)
     .add_local_dir("./kiaomni_chat", "/root/kiaomni_chat", copy=True)
-    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "KIAOMNI_BUILD": "v17", "PYTHONPATH": "/root:/root/kiaomni:/root/kiaomni_chat"})
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "KIAOMNI_BUILD": "v18", "PYTHONPATH": "/root:/root/kiaomni:/root/kiaomni_chat"})
+
 
 
 
