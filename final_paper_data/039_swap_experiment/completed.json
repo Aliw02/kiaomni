@@ -1,0 +1,2432 @@
+{
+  "niah_single_t000": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.037037037037037035,
+        "em": 0.0,
+        "rouge_l": 0.037037037037037035,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t001": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.6666666666666666,
+        "em": 0.0,
+        "rouge_l": 0.6666666666666666,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.18181818181818182,
+        "em": 0.0,
+        "rouge_l": 0.18181818181818182,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03278688524590164,
+        "em": 0.0,
+        "rouge_l": 0.03278688524590164,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t002": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.043478260869565216,
+        "em": 0.0,
+        "rouge_l": 0.04347826086956522,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.037037037037037035,
+        "em": 0.0,
+        "rouge_l": 0.037037037037037035,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.034482758620689655,
+        "em": 0.0,
+        "rouge_l": 0.034482758620689655,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.030303030303030304,
+        "em": 0.0,
+        "rouge_l": 0.030303030303030307,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.04,
+        "em": 0.0,
+        "rouge_l": 0.039999999999999994,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t003": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t004": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.04081632653061224,
+        "em": 0.0,
+        "rouge_l": 0.04081632653061225,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t005": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t006": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.08695652173913043,
+        "em": 0.0,
+        "rouge_l": 0.08695652173913045,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.06451612903225806,
+        "em": 0.0,
+        "rouge_l": 0.06451612903225806,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.02857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.02857142857142857,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03278688524590164,
+        "em": 0.0,
+        "rouge_l": 0.03278688524590164,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.031746031746031744,
+        "em": 0.0,
+        "rouge_l": 0.031746031746031744,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t007": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.046511627906976744,
+        "em": 0.0,
+        "rouge_l": 0.046511627906976744,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.041666666666666664,
+        "em": 0.0,
+        "rouge_l": 0.04166666666666667,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.08333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.08333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t008": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t009": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.046511627906976744,
+        "em": 0.0,
+        "rouge_l": 0.046511627906976744,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0425531914893617,
+        "em": 0.0,
+        "rouge_l": 0.042553191489361694,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.1111111111111111,
+        "em": 0.0,
+        "rouge_l": 0.1111111111111111,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.05555555555555555,
+        "em": 0.0,
+        "rouge_l": 0.05555555555555556,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t010": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03636363636363636,
+        "em": 0.0,
+        "rouge_l": 0.03636363636363636,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.038461538461538464,
+        "em": 0.0,
+        "rouge_l": 0.038461538461538464,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03571428571428571,
+        "em": 0.0,
+        "rouge_l": 0.03571428571428572,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t011": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.11764705882352941,
+        "em": 0.0,
+        "rouge_l": 0.11764705882352941,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03225806451612903,
+        "em": 0.0,
+        "rouge_l": 0.03225806451612903,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.11764705882352941,
+        "em": 0.0,
+        "rouge_l": 0.11764705882352941,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.11764705882352941,
+        "em": 0.0,
+        "rouge_l": 0.11764705882352941,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.11764705882352941,
+        "em": 0.0,
+        "rouge_l": 0.11764705882352941,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t012": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.043478260869565216,
+        "em": 0.0,
+        "rouge_l": 0.04347826086956522,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.043478260869565216,
+        "em": 0.0,
+        "rouge_l": 0.04347826086956522,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t013": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.125,
+        "em": 0.0,
+        "rouge_l": 0.125,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03225806451612903,
+        "em": 0.0,
+        "rouge_l": 0.03225806451612903,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03571428571428571,
+        "em": 0.0,
+        "rouge_l": 0.03571428571428572,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.16666666666666666,
+        "em": 0.0,
+        "rouge_l": 0.16666666666666669,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.18181818181818182,
+        "em": 0.0,
+        "rouge_l": 0.18181818181818182,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03076923076923077,
+        "em": 0.0,
+        "rouge_l": 0.03076923076923077,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_single_t014": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.041666666666666664,
+        "em": 0.0,
+        "rouge_l": 0.04166666666666667,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.05,
+        "em": 0.0,
+        "rouge_l": 0.05,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.15384615384615385,
+        "em": 0.0,
+        "rouge_l": 0.15384615384615385,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.04878048780487805,
+        "em": 0.0,
+        "rouge_l": 0.04878048780487806,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.046511627906976744,
+        "em": 0.0,
+        "rouge_l": 0.046511627906976744,
+        "contains": 1.0
+      }
+    }
+  },
+  "niah_multikey_t000": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t001": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t002": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t003": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t004": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t005": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t006": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t007": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t008": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t009": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t010": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t011": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t012": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t013": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "niah_multikey_t014": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    }
+  },
+  "vt_t000": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.045454545454545456,
+        "em": 0.0,
+        "rouge_l": 0.04545454545454545,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.031746031746031744,
+        "em": 0.0,
+        "rouge_l": 0.031746031746031744,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.05714285714285714,
+        "em": 0.0,
+        "rouge_l": 0.05714285714285715,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t001": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06666666666666667,
+        "em": 0.0,
+        "rouge_l": 0.06666666666666667,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.05714285714285714,
+        "em": 0.0,
+        "rouge_l": 0.05714285714285715,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.05714285714285714,
+        "em": 0.0,
+        "rouge_l": 0.05714285714285715,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.034482758620689655,
+        "em": 0.0,
+        "rouge_l": 0.034482758620689655,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t002": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.05,
+        "em": 0.0,
+        "rouge_l": 0.05,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03636363636363636,
+        "em": 0.0,
+        "rouge_l": 0.03636363636363636,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.04081632653061224,
+        "em": 0.0,
+        "rouge_l": 0.04081632653061225,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.08333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.08333333333333333,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.3333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.33333333333333337,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.045454545454545456,
+        "em": 0.0,
+        "rouge_l": 0.04545454545454545,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t003": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06451612903225806,
+        "em": 0.0,
+        "rouge_l": 0.06451612903225806,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03076923076923077,
+        "em": 0.0,
+        "rouge_l": 0.030303030303030307,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.058823529411764705,
+        "em": 0.0,
+        "rouge_l": 0.05882352941176471,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.05405405405405406,
+        "em": 0.0,
+        "rouge_l": 0.05405405405405406,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.041666666666666664,
+        "em": 0.0,
+        "rouge_l": 0.04166666666666667,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t004": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.06666666666666667,
+        "em": 0.0,
+        "rouge_l": 0.06666666666666667,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.14285714285714285,
+        "em": 0.0,
+        "rouge_l": 0.14285714285714288,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.07692307692307693,
+        "em": 0.0,
+        "rouge_l": 0.07692307692307693,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.14285714285714285,
+        "em": 0.0,
+        "rouge_l": 0.14285714285714288,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.037037037037037035,
+        "em": 0.0,
+        "rouge_l": 0.037037037037037035,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.05714285714285714,
+        "em": 0.0,
+        "rouge_l": 0.05714285714285715,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.3333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.33333333333333337,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t005": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.08333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.08333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.046511627906976744,
+        "em": 0.0,
+        "rouge_l": 0.046511627906976744,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.05263157894736842,
+        "em": 0.0,
+        "rouge_l": 0.052631578947368425,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.045454545454545456,
+        "em": 0.0,
+        "rouge_l": 0.04545454545454545,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.04081632653061224,
+        "em": 0.0,
+        "rouge_l": 0.04081632653061225,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.05555555555555555,
+        "em": 0.0,
+        "rouge_l": 0.05555555555555556,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.05,
+        "em": 0.0,
+        "rouge_l": 0.05,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.07407407407407407,
+        "em": 0.0,
+        "rouge_l": 0.07407407407407407,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t006": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.045454545454545456,
+        "em": 0.0,
+        "rouge_l": 0.04545454545454545,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 1.0,
+        "em": 1.0,
+        "rouge_l": 1.0,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t007": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.2,
+        "em": 0.0,
+        "rouge_l": 0.19999999999999998,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06666666666666667,
+        "em": 0.0,
+        "rouge_l": 0.06666666666666667,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t008": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.3333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.33333333333333337,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.046511627906976744,
+        "em": 0.0,
+        "rouge_l": 0.046511627906976744,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.034482758620689655,
+        "em": 0.0,
+        "rouge_l": 0.034482758620689655,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t009": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.3333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.33333333333333337,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.04081632653061224,
+        "em": 0.0,
+        "rouge_l": 0.04081632653061225,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.3333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.33333333333333337,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03571428571428571,
+        "em": 0.0,
+        "rouge_l": 0.03571428571428572,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03508771929824561,
+        "em": 0.0,
+        "rouge_l": 0.03508771929824561,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03571428571428571,
+        "em": 0.0,
+        "rouge_l": 0.03571428571428572,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t010": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03225806451612903,
+        "em": 0.0,
+        "rouge_l": 0.03225806451612903,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.08333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.08333333333333333,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03278688524590164,
+        "em": 0.0,
+        "rouge_l": 0.03278688524590164,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06451612903225806,
+        "em": 0.0,
+        "rouge_l": 0.06451612903225806,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03389830508474576,
+        "em": 0.0,
+        "rouge_l": 0.03389830508474576,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t011": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.09090909090909091,
+        "em": 0.0,
+        "rouge_l": 0.0909090909090909,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06666666666666667,
+        "em": 0.0,
+        "rouge_l": 0.06666666666666667,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.06896551724137931,
+        "em": 0.0,
+        "rouge_l": 0.0689655172413793,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.045454545454545456,
+        "em": 0.0,
+        "rouge_l": 0.04545454545454545,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03225806451612903,
+        "em": 0.0,
+        "rouge_l": 0.03225806451612903,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03076923076923077,
+        "em": 0.0,
+        "rouge_l": 0.03076923076923077,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.04081632653061224,
+        "em": 0.0,
+        "rouge_l": 0.04081632653061225,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t012": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.13333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.13333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.08695652173913043,
+        "em": 0.0,
+        "rouge_l": 0.08695652173913045,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.03773584905660377,
+        "em": 0.0,
+        "rouge_l": 0.03773584905660378,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.03333333333333333,
+        "em": 0.0,
+        "rouge_l": 0.03333333333333333,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.06060606060606061,
+        "em": 0.0,
+        "rouge_l": 0.06060606060606061,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.09523809523809523,
+        "em": 0.0,
+        "rouge_l": 0.09523809523809523,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.11764705882352941,
+        "em": 0.0,
+        "rouge_l": 0.11764705882352941,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t013": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.06666666666666667,
+        "em": 0.0,
+        "rouge_l": 0.06666666666666667,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.09523809523809523,
+        "em": 0.0,
+        "rouge_l": 0.09523809523809523,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.07692307692307693,
+        "em": 0.0,
+        "rouge_l": 0.07692307692307693,
+        "contains": 1.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.038461538461538464,
+        "em": 0.0,
+        "rouge_l": 0.038461538461538464,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.03636363636363636,
+        "em": 0.0,
+        "rouge_l": 0.03636363636363636,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.03076923076923077,
+        "em": 0.0,
+        "rouge_l": 0.03076923076923077,
+        "contains": 1.0
+      }
+    }
+  },
+  "vt_t014": {
+    "256": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.2857142857142857,
+        "em": 0.0,
+        "rouge_l": 0.2857142857142857,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.05555555555555555,
+        "em": 0.0,
+        "rouge_l": 0.05555555555555556,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.0,
+        "em": 0.0,
+        "rouge_l": 0.0,
+        "contains": 0.0
+      }
+    },
+    "2048": {
+      "KiaOmni_NaturalSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "KiaOmni_SwappedSignal": {
+        "f1": 0.4,
+        "em": 0.0,
+        "rouge_l": 0.4,
+        "contains": 1.0
+      },
+      "SnapKV_NaturalSignal": {
+        "f1": 0.0392156862745098,
+        "em": 0.0,
+        "rouge_l": 0.0392156862745098,
+        "contains": 1.0
+      },
+      "SnapKV_SwappedSignal": {
+        "f1": 0.037037037037037035,
+        "em": 0.0,
+        "rouge_l": 0.037037037037037035,
+        "contains": 1.0
+      }
+    }
+  }
+}

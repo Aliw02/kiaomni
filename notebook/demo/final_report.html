@@ -1,0 +1,101 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.wrap { padding: 1.5rem 0; display: flex; flex-direction: column; gap: 1.25rem; direction: rtl; font-family: var(--font-sans); }
+.section-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.6rem; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+.tbl th { font-weight: 500; font-size: 12px; color: var(--color-text-secondary); padding: 6px 8px; border-bottom: 0.5px solid var(--color-border-tertiary); text-align: right; }
+.tbl td { padding: 8px; border-bottom: 0.5px solid var(--color-border-tertiary); vertical-align: middle; text-align: right; }
+.tbl tr:last-child td { border-bottom: none; }
+.pass { color: #085041; background: #E1F5EE; border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.warn { color: #633806; background: #FAEEDA; border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.fail { color: #791F1F; background: #FCEBEB; border-radius: 4px; padding: 1px 7px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.row-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 7px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; gap: 12px; }
+.row-item:last-child { border-bottom: none; }
+.hero { background: #E1F5EE; border: 0.5px solid #5DCAA5; border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+.hero-title { font-size: 17px; font-weight: 500; color: #085041; margin-bottom: 6px; }
+.hero-sub { font-size: 13px; color: #0F6E56; line-height: 1.7; }
+.alert-warn { background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: var(--border-radius-md); padding: 0.75rem 1rem; font-size: 13px; color: #633806; line-height: 1.6; }
+</style>
+
+<div class="wrap">
+
+  <div>
+    <div class="hero">
+      <div class="hero-title">KiaOmni-Gaussian — الفائز بوضوح</div>
+      <div class="hero-sub">
+        بـ B=512 فقط (12.8% من الكاش) تتجاوز Vanilla بالسياق الكامل — 80% مقابل 67%. SnapKV تحتاج B=3400 (85% من الكاش) لمجرد مساواة Vanilla. الفرق غير قابل للجدال.
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">النتائج لكل مهمة</div>
+    <div class="card">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:22%;">المهمة</th>
+            <th style="width:26%;">KiaOmni B=512</th>
+            <th style="width:26%;">SnapKV B=512</th>
+            <th style="width:26%;">Vanilla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Single-needle</td><td><span class="pass">100%</span></td><td><span class="warn">80%</span></td><td><span class="pass">100%</span></td></tr>
+          <tr><td>Multi-needle</td><td><span class="pass">100%</span></td><td><span class="fail">20%</span></td><td><span class="pass">100%</span></td></tr>
+          <tr><td>Reasoning</td><td><span class="warn">40% — تتفوق على Vanilla</span></td><td><span class="fail">0%</span></td><td><span class="fail">0%</span></td></tr>
+          <tr><td>Summary</td><td><span class="pass">100%</span></td><td><span class="pass">100%</span></td><td><span class="pass">100%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">الكفاءة — B=512 مقارنة بـ Vanilla</div>
+    <div class="card">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:30%;"></th>
+            <th style="width:23%;">tok/s</th>
+            <th style="width:23%;">VRAM</th>
+            <th style="width:24%;">Gen-PPL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Vanilla</td><td>2.22</td><td>6.40 GB</td><td>1.05</td></tr>
+          <tr><td>KiaOmni B=512</td><td style="color:#085041;font-weight:500;">2.89</td><td style="color:#085041;font-weight:500;">3.15 GB</td><td style="color:#085041;font-weight:500;">1.04</td></tr>
+          <tr><td>SnapKV B=512</td><td>2.89</td><td>6.36 GB</td><td>1.15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">أبرز 3 نقاط للريبو</div>
+    <div class="card">
+      <div class="row-item">
+        <span>KiaOmni بـ 12.8% من الكاش تتجاوز السياق الكامل — مو تساويه، تتجاوزه</span>
+        <span class="pass">النقطة الأقوى</span>
+      </div>
+      <div class="row-item">
+        <span>VRAM ثابت على 3.15 GB من B=98 حتى B=1024 — نصف SnapKV بكل الـ budgets</span>
+        <span class="pass">كفاءة معمارية</span>
+      </div>
+      <div class="row-item">
+        <span>الـ reasoning — KiaOmni تحل مسائل فشل فيها النموذج بالسياق الكامل</span>
+        <span class="pass">نتيجة غير متوقعة</span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">تحفظ واحد مهم</div>
+    <div class="alert-warn">
+      هذا النوتبوك demo على سياق 4K و5 عينات فقط. النتائج الكاملة موثقة بـ 61,681 عينة على 4 نماذج في الريبو — هذا النوتبوك يُسهّل التحقق السريع لا أكثر.
+    </div>
+  </div>
+
+</div>

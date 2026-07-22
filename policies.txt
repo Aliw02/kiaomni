@@ -1,0 +1,12 @@
+'Ada-SnapKV': N=1440
+'FullContext': N=1440
+'H2O': N=1440
+'KiaOmni_Adaptive': N=1440
+'KiaOmni_AnchorExp': N=1440
+'KiaOmni_Gaussian': N=1440
+'KiaOmni_Quest': N=1440
+'KiaOmni_RatioAdaptive': N=1440
+'KiaOmni_Scissorhands': N=1440
+'KiaOmni_σ8': N=1440
+'RealSnapKV': N=1440
+'SnapKV_Modified': N=1440
