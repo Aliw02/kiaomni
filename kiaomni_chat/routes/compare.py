@@ -116,17 +116,20 @@ def compare_turn(req: CompareTurnRequest) -> dict:
             turn_results.append({"policy": policy, "error": "oom", "message": str(exc)})
         except EngineNotReady as exc:
             raise HTTPException(status_code=503, detail=str(exc))
+        except Exception as exc:  # noqa: BLE001
+            turn_results.append({"policy": policy, "error": "stream", "message": str(exc)})
         finally:
-            last = turn_results[-1]
-            if "stats" in last:
-                sb = last["stats"]
-                get_telemetry().record_request(
-                    endpoint="compare_turn", policy=policy, budget=req.budget,
-                    tokens_in=sb["tokens_in"], tokens_kept=sb["tokens_kept"],
-                    prefill_ms=sb["prefill_ms"], decode_ms=sb["decode_ms"],
-                    tok_per_sec=sb["tok_per_sec"],
-                    vram_allocated_mb=sb["vram_allocated_mb"], oom=oom,
-                )
+            if turn_results:
+                last = turn_results[-1]
+                if "stats" in last:
+                    sb = last["stats"]
+                    get_telemetry().record_request(
+                        endpoint="compare_turn", policy=policy, budget=req.budget,
+                        tokens_in=sb["tokens_in"], tokens_kept=sb["tokens_kept"],
+                        prefill_ms=sb["prefill_ms"], decode_ms=sb["decode_ms"],
+                        tok_per_sec=sb["tok_per_sec"],
+                        vram_allocated_mb=sb["vram_allocated_mb"], oom=oom,
+                    )
     return {
         "results": turn_results,
         "oom": overall_oom,

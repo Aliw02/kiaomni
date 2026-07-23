@@ -365,18 +365,11 @@ class KiaOmniEngine:
 
             assert L_in > 0, "empty prompt"
 
-            # Pre-call VRAM check — refuse if we are near the wall.
+            # Pre-call VRAM management — clear CUDA cache if pool is near GPU ceiling (36 GB)
             vram_pre = self._vram()
-            if vram_pre["reserved_mb"] > 28 * 1024:
-                yield {
-                    "type": "error",
-                    "error": "vram_pressure",
-                    "message": (
-                        f"pre-call VRAM reserved = {vram_pre['reserved_mb']:.0f} MB "
-                        "exceeds 28 GB safety threshold. Restart the container or wait."
-                    ),
-                }
-                return
+            if torch.cuda.is_available() and vram_pre["reserved_mb"] > 36 * 1024:
+                torch.cuda.empty_cache()
+                vram_pre = self._vram()
 
             yield {
                 "type": "status",

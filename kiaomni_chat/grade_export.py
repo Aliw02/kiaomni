@@ -165,10 +165,20 @@ def _score_tier1(question: dict, answer: str) -> tuple[float, str, str]:
 
 
 def _index_questions(expected: dict) -> dict[str, dict]:
-    """Index the ``questions`` array by q1..q9 key (derived from position)."""
+    """Index the questions array by q1..qN key."""
     out: dict[str, dict] = {}
-    for i, q in enumerate(expected.get("questions", []), start=1):
-        out[f"q{i}"] = q
+    items = []
+    if isinstance(expected, dict) and "questions" in expected:
+        items = expected["questions"]
+    elif isinstance(expected, dict):
+        ctx = expected.get("context_size", "4k")
+        items = expected.get(ctx, expected.get("4k", []))
+    elif isinstance(expected, list):
+        items = expected
+
+    for i, q in enumerate(items, start=1):
+        qid = str(q.get("id") or f"q{i}").lower()
+        out[qid] = q
     return out
 
 
@@ -192,26 +202,44 @@ def _human_review_payload(question: dict) -> dict:
 def grade(export: dict, expected: dict) -> dict:
     """Walk the export, score every (policy × question) pair, return a graded dict."""
     mode = export.get("mode", "chat")
+    if isinstance(expected, dict) and "context_size" not in expected and "context_size" in export:
+        expected["context_size"] = export["context_size"]
     questions = _index_questions(expected)
     rows: list[dict] = []
     if mode == "side_by_side":
         for ti, turn in enumerate(export.get("turns", [])):
+            user_msg = turn.get("user", "")
+            # Check if this turn corresponds to a specific question (e.g. "(Q1)...")
+            q_match = re.search(r"\((Q\d+)\)", user_msg, re.IGNORECASE)
+            target_qkey = q_match.group(1).lower() if q_match else None
+
             for policy, resp in turn.get("responses", {}).items():
                 if not isinstance(resp, dict) or resp.get("error"):
                     rows.append({
                         "turn": ti + 1,
                         "policy": policy,
-                        "question_id": None,
+                        "question_id": target_qkey,
                         "tier": None,
                         "score": 0.0,
                         "notes": resp.get("error", "no response"),
                     })
                     continue
-                answers = _split_answers(resp.get("text", ""))
+                
+                resp_text = resp.get("text", "")
                 stats = resp.get("stats", {})
-                for qkey, q in questions.items():
+
+                if target_qkey and target_qkey in questions:
+                    # Single sequential question turn
+                    q_targets = {target_qkey: questions[target_qkey]}
+                    answers = {target_qkey: resp_text}
+                else:
+                    # Multi-question turn (All-in-one format)
+                    q_targets = questions
+                    answers = _split_answers(resp_text)
+
+                for qkey, q in q_targets.items():
                     a = answers.get(qkey, "")
-                    tier = q.get("tier")
+                    tier = q.get("tier", 1)
                     if tier == 1:
                         s, note, _ = _score_tier1(q, a)
                         rows.append({
@@ -221,7 +249,14 @@ def grade(export: dict, expected: dict) -> dict:
                             "tier": 1,
                             "question": q.get("question"),
                             "type": q.get("type"),
-                            "expected": q.get("expected_answer"),
+                            "expected": q.get("expected_answer") or q.get("expected"),
+                            "actual": a,
+                            "score": round(s, 3),
+                            "notes": note,
+                            "tokens_in": stats.get("tokens_in"),
+                            "tokens_kept": stats.get("tokens_kept"),
+                            "tok_per_sec": stats.get("tok_per_sec"),
+                        })
                             "actual": a,
                             "score": round(s, 3),
                             "notes": note,
