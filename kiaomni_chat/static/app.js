@@ -1128,6 +1128,7 @@ function compareRecord() {
     policies: POLICIES,
     budget: state.budget,
     max_new_tokens: state.maxNew,
+    context_size: state.contextSize || "4k",
     turn_count: compareState.turns.length,
     turns: compareState.turns.map((t) => ({
       ts: t.ts,
