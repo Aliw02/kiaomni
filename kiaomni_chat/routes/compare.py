@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import time
 
+import torch
 from fastapi import APIRouter, HTTPException
 
 from ..engine import EngineNotReady, EngineOOM, get_engine
