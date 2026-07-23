@@ -92,6 +92,8 @@ def compare_turn(req: CompareTurnRequest) -> dict:
     overall_oom = False
     turn_results: list[dict] = []
     for policy in req.policies:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         oom = False
         t0 = time.perf_counter()
         try:

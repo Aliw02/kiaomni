@@ -48,13 +48,7 @@ image = (
     )
     .add_local_dir("./kiaomni", "/root/kiaomni", copy=True)
     .add_local_dir("./kiaomni_chat", "/root/kiaomni_chat", copy=True)
-    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "KIAOMNI_BUILD": "v19", "PYTHONPATH": "/root:/root/kiaomni:/root/kiaomni_chat"})
-
-
-
-
-
-
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True", "KIAOMNI_BUILD": "v20", "PYTHONPATH": "/root:/root/kiaomni:/root/kiaomni_chat"})
 )
 
 # ── Modal ASGI deployment ───────────────────────────────────────────────
@@ -74,6 +68,7 @@ def serve() -> object:
     os.environ.setdefault("KIAOMNI_MODEL_ID", "Qwen/Qwen2.5-7B-Instruct")
     os.environ.setdefault("KIAOMNI_ATTN", "sdpa")
     os.environ.setdefault("KIAOMNI_QUANTIZE_4BIT", "1")
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
     from kiaomni_chat.app import app as fastapi_app
     return fastapi_app
