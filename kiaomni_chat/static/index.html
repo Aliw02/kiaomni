@@ -54,6 +54,16 @@
         <div class="muted">Model still stops at EOS — safety ceiling</div>
       </div>
       <div class="field">
+        <label for="context-size">Context Size (ALGORITHM_STORY.md)</label>
+        <select id="context-size">
+          <option value="4k" selected>4K Context (~4,000 tokens)</option>
+          <option value="8k">8K Context (~8,000 tokens)</option>
+          <option value="16k">16K Context (~16,000 tokens)</option>
+          <option value="32k">32K Context (~32,000 tokens)</option>
+        </select>
+        <div class="muted">ALGORITHM_STORY.md real research history</div>
+      </div>
+      <div class="field">
         <label for="sys-prompt-toggle" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
           <input id="sys-prompt-toggle" type="checkbox" />
           <span>KV System Prompt Hint</span>

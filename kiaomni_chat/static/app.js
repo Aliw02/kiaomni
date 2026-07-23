@@ -209,6 +209,7 @@ const state = {
   budget: 512,
   maxNew: 2048,
   useSystemPrompt: false,
+  contextSize: "4k",
   sessionId: null,
   messages: [],  // {role, content, meta?}
   abortCtrl: null,
@@ -233,6 +234,9 @@ $$(".tab").forEach((btn) => {
 $("#policy")?.addEventListener("change", (e) => {
   state.policy = e.target.value;
   if ($("#budget")) $("#budget").disabled = state.policy === "fullcontext";
+});
+$("#context-size")?.addEventListener("change", (e) => {
+  state.contextSize = e.target.value;
 });
 $("#budget")?.addEventListener("input", (e) => {
   state.budget = Number(e.target.value);
@@ -873,19 +877,39 @@ async function runSequentialArticleQA() {
 
   if (runSeqBtn) runSeqBtn.disabled = true;
 
-  // 1. Fetch article
+  const ctxSize = state.contextSize || "4k";
+
+  // 1. Fetch story context file
   let article = "";
   try {
-    const r = await fetch("/static/sample_data/article.txt");
+    const r = await fetch(`/static/sample_data/story_${ctxSize}.txt`);
     if (r.ok) article = (await r.text()).trim();
   } catch (_) { /* ignore */ }
+  if (!article) {
+    try {
+      const r = await fetch("/static/sample_data/article.txt");
+      if (r.ok) article = (await r.text()).trim();
+    } catch (_) {}
+  }
   if (!article) article = ARTICLE_FALLBACK.trim();
 
-  // 2. Reset existing turns
+  // 2. Fetch story questions JSON
+  let questions = TEST_QUESTIONS;
+  try {
+    const r = await fetch("/static/sample_data/story_expected.json");
+    if (r.ok) {
+      const qData = await r.json();
+      if (qData[ctxSize] && qData[ctxSize].length) {
+        questions = qData[ctxSize].map((q) => ({ id: q.id, q: q.question, gold: q.expected }));
+      }
+    }
+  } catch (_) { /* fallback */ }
+
+  // 3. Reset existing turns
   compareState.turns = [];
   for (const p of POLICIES) {
     const msgs = document.querySelector(`[data-messages-for="${p}"]`);
-    if (msgs) msgs.innerHTML = `<div class="compare-msg-empty">starting turn-by-turn Q&A…</div>`;
+    if (msgs) msgs.innerHTML = `<div class="compare-msg-empty">starting turn-by-turn Q&A (${ctxSize.toUpperCase()} Context)…</div>`;
     const statsEl = document.querySelector(`[data-stats-for="${p}"]`);
     if (statsEl) statsEl.textContent = "—";
   }
@@ -928,19 +952,19 @@ async function runSequentialArticleQA() {
 
   try {
     // Turn 1: Send the Article text
-    const turn1Text = `Here is the reference research document:\n\n${article}\n\nI will ask you several questions about this document sequentially. Please retain this context for subsequent questions.`;
-    await sendTurn(turn1Text, "Turn 1/10: Sending Article Context…");
+    const turn1Text = `Here is the reference research document (${ctxSize.toUpperCase()} Context):\n\n${article}\n\nI will ask you several questions about this document sequentially. Please retain this context for subsequent questions.`;
+    await sendTurn(turn1Text, `Turn 1/${questions.length + 1}: Sending ${ctxSize.toUpperCase()} Context…`);
 
-    // Turn 2 through 10: Send each question sequentially
-    for (let i = 0; i < TEST_QUESTIONS.length; i++) {
-      const qObj = TEST_QUESTIONS[i];
-      const qText = `(Q${i + 1}) ${qObj.q}`;
-      await sendTurn(qText, `Turn ${i + 2}/10: Running Question ${i + 1} (${qObj.type})…`);
+    // Turn 2 through N: Send each question sequentially
+    for (let i = 0; i < questions.length; i++) {
+      const qObj = questions[i];
+      const qText = `(${qObj.id}) ${qObj.q}`;
+      await sendTurn(qText, `Turn ${i + 2}/${questions.length + 1}: Running Question ${qObj.id} (${ctxSize.toUpperCase()})…`);
       await new Promise((res) => setTimeout(res, 300));
     }
 
-    if (status) status.textContent = "✅ Turn-by-Turn Sequential Q&A completed!";
-    showToast("✅ Sequential Q&A run completed! All 9 questions answered turn-by-turn.", false);
+    if (status) status.textContent = `✅ Turn-by-Turn Sequential Q&A (${ctxSize.toUpperCase()}) completed!`;
+    showToast(`✅ Sequential Q&A run completed for ${ctxSize.toUpperCase()} Context! All ${questions.length} questions answered.`, false);
   } catch (err) {
     if (status) status.innerHTML = `<span class="tag tag-fail">${escapeHTML(String(err))}</span>`;
     showToast(`Sequential Run Error: ${err.message}`, true);

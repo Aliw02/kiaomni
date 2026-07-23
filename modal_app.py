@@ -321,6 +321,7 @@ def test_q1_q9_acceptance(policy: str = "kiaomni_gaussian", budget: int = 512) -
     }
 
 
+
 def _plateau_index(values: list[float], window: int = 10, tol_pct: float = 2.0) -> int:
     """Return the first index after which ``values`` stays within ``tol_pct``
     of the running mean for ``window`` consecutive samples, or -1 if never."""
