@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use KiaOmni, please cite the archived preprint."
+title: "KiaOmni: Neighborhood-Smoothed Attention Saliency for Budgeted KV-Cache Compression"
+type: article
+authors:
+  - family-names: Abood
+    given-names: Aliwey
+version: "v1.3"
+date-released: 2026-09-14
+doi: 10.5281/zenodo.22754537
+url: "https://zenodo.org/records/22754537"
+repository-code: "https://github.com/Aliw02/kiaomni"
+license: MIT
