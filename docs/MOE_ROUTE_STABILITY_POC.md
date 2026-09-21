@@ -32,25 +32,23 @@ Use:
 
 ## Install cell
 
-Run this before importing Transformers in the notebook:
+Run this before importing Transformers in the notebook. AutoAWQ currently
+installs an older Transformers release, so the order is intentional:
 
 ```bash
-pip install -q -U "transformers>=5.10,<6" accelerate autoawq
+pip install -q -U accelerate autoawq
+pip install -q -U "transformers>=5.10,<6"
 ```
 
-AutoAWQ may install or request a different Transformers version on some environments. Verify the final version:
+Verify that the final environment is using Transformers 5.x:
 
 ```bash
 python - <<'PY'
 import transformers
 print("transformers", transformers.__version__)
+major, minor = map(int, transformers.__version__.split(".")[:2])
+assert (major, minor) >= (5, 10)
 PY
-```
-
-If it is below 5.10, reinstall Transformers once:
-
-```bash
-pip install -q -U "transformers>=5.10,<6"
 ```
 
 Then clone and install this branch:
