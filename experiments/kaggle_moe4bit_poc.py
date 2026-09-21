@@ -356,20 +356,16 @@ def main() -> None:
     # checkpoint directly in FP16 on one T4. This deliberately removes
     # AWQ/GPTQ/bitsandbytes from the POC so quantization/runtime adapters
     # cannot confound the routing experiment.
-    # MobileMoE remote code performs scalar RoPE calculations during
-    # __init__. Passing device_map on Transformers 5 enables the meta-device
-    # loading path, where Tensor.item()/scalar comparisons are invalid.
-    # Instantiate and load on CPU first, then move the completed FP16 model
-    # to GPU0. The 2.8B checkpoint comfortably fits Kaggle system RAM.
+    # Follow Meta's documented MobileMoE loading path on Transformers 4.57.x.
+    # Transformers 5.x introduced meta-device construction that breaks this
+    # custom architecture because its RoPE init performs scalar tensor logic.
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         trust_remote_code=True,
         token=os.environ.get("HF_TOKEN"),
-        dtype=torch.float16,
-        low_cpu_mem_usage=False,
-        device_map=None,
+        torch_dtype=torch.float16,
+        device_map="auto",
     )
-    model = model.to("cuda:0")
     model.eval()
 
     load_allocated_by_gpu = {
