@@ -53,6 +53,7 @@ the venv and do not mutate the notebook kernel's base environment.
 Verify the isolated runtime with a separate process:
 
 ```bash
+%%bash
 /kaggle/working/kia-awq-venv/bin/python - <<'PY'
 import torch, transformers, numpy, scipy, gptqmodel
 print("torch", torch.__version__)
