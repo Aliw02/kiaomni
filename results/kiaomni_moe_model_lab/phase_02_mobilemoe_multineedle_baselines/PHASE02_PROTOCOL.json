@@ -1,0 +1,94 @@
+{
+  "protocol": "KIAOMNI_MOE_MODEL_LAB_PHASE02_PROTOCOL_V1",
+  "date": "2026-09-22",
+  "repository": "Aliw02/kiaomni",
+  "branch": "exp/kiaomni-moe-model-lab",
+  "model": "facebook/MobileMoE-M-SFT",
+  "model_precision": "FP16",
+  "execution_target": "single Kaggle T4",
+  "context": {
+    "target_final_prompt_tokens": 3900,
+    "hard_max_final_prompt_tokens": 4096,
+    "prompt_length_measured_after_chat_template": true
+  },
+  "budgets": [
+    512,
+    256,
+    128,
+    98
+  ],
+  "seed": 42,
+  "tasks": {
+    "single": "single planted fact at varying depth",
+    "multi": "three independent facts distributed across context",
+    "hard_multi": "three target facts with structurally matched distractor records",
+    "reason": "four-hop variable tracking with distractor chain"
+  },
+  "methods": {
+    "full_context": {
+      "classification": "upper_bound",
+      "compression": false
+    },
+    "kiaomni_s8": {
+      "classification": "our_method",
+      "implementation": "kiaomni apply_kiaomni(policy=kiaomni_s8)",
+      "exact_retained_token_budget": true
+    },
+    "blocksal": {
+      "classification": "our_internal_method",
+      "ownership": "KiaOmni project",
+      "implementation": "historical whole-block mean-saliency selector",
+      "block_size": 16,
+      "n_sink": 16,
+      "recency": 32,
+      "exact_retained_token_budget": false,
+      "fairness_disclosure": "actual retained tokens and budget_delta must be recorded; do not silently alter whole-block behavior"
+    },
+    "snapkv": {
+      "classification": "external_baseline",
+      "source_repository": "NVIDIA/kvpress",
+      "source_ref": "7331c23da9e6f1510d89ea651d0dea77a57b3252",
+      "package_version": "0.5.5",
+      "implementation": "SnapKVPress",
+      "window_size": 64,
+      "kernel_size": 5,
+      "exact_retained_token_budget": true
+    },
+    "streamingllm": {
+      "classification": "external_baseline",
+      "source_repository": "NVIDIA/kvpress",
+      "source_ref": "7331c23da9e6f1510d89ea651d0dea77a57b3252",
+      "package_version": "0.5.5",
+      "implementation": "KeyRerotationPress(StreamingLLMPress)",
+      "n_sink": 4,
+      "key_rerotation": true,
+      "exact_retained_token_budget": true
+    }
+  },
+  "excluded_or_deferred": {
+    "AdaSnapKV": "excluded by project decision",
+    "H2O": "deferred until independent implementation/parity validation",
+    "adaptive_moe_route_alpha_sweep": "deferred until context-compression baselines are validated"
+  },
+  "runtime_contract": {
+    "transformers": "4.57.6",
+    "accelerate": "1.13.0",
+    "kvpress": "0.5.5 from pinned source ref",
+    "decoding": "greedy",
+    "same_model_weights_across_methods": true,
+    "same_prompt_and_chat_template_across_methods": true
+  },
+  "validation_gate": {
+    "external_press_executes_without_exception": true,
+    "measurable_prefill_cache_required": true,
+    "measured_cache_length_must_equal_requested_budget": true,
+    "generation_must_advance": true,
+    "failure_policy": "VALIDATION_FAIL and exclude method from benchmark scores"
+  },
+  "analysis_policy": {
+    "validation_only_first": true,
+    "engineering_smoke_samples_per_task": 1,
+    "first_comparison_samples_per_task": 10,
+    "do_not_treat_smoke_as_scientific_comparison": true
+  }
+}
