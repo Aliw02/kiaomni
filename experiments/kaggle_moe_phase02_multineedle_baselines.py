@@ -284,7 +284,19 @@ def score_answer(case: Case, text: str) -> dict[str, Any]:
 
 
 def clean_model(model) -> None:
-    remove_kiaomni(model)
+    if getattr(model, "_phase02_kia_patch_active", False):
+        remove_kiaomni(model)
+        try:
+            delattr(model, "_phase02_kia_patch_active")
+        except AttributeError:
+            pass
+    elif hasattr(model, "_kia_arch_info"):
+        # ArchitectureProbe also caches _kia_arch_info. Clearing that cache
+        # must not delete/replace model.generate on an otherwise unpatched model.
+        try:
+            delattr(model, "_kia_arch_info")
+        except AttributeError:
+            pass
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -437,6 +449,7 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
 def generate_kiaomni(model, tokenizer, input_ids: torch.Tensor, budget: int, max_new_tokens: int) -> dict[str, Any]:
     clean_model(model)
     apply_kiaomni(model, policy="kiaomni_s8", budget=budget, verbose=False)
+    model._phase02_kia_patch_active = True
     try:
         model._kia_last_compression = None
         result = generate_full(model, tokenizer, input_ids, max_new_tokens)
@@ -444,6 +457,10 @@ def generate_kiaomni(model, tokenizer, input_ids: torch.Tensor, budget: int, max
         return result
     finally:
         remove_kiaomni(model)
+        try:
+            delattr(model, "_phase02_kia_patch_active")
+        except AttributeError:
+            pass
 
 
 def ratio_for_budget(prompt_len: int, budget: int) -> float:
@@ -523,23 +540,44 @@ def generate_kvpress(
     }
 
 
-def cache_seq_len(past_key_values) -> int | None:
+def cache_layer_lengths(past_key_values) -> list[int]:
     if past_key_values is None:
-        return None
-    get_len = getattr(past_key_values, "get_seq_length", None)
-    if callable(get_len):
-        try:
-            return int(get_len())
-        except Exception:
-            pass
+        return []
+
+    layers = getattr(past_key_values, "layers", None)
+    if layers is not None:
+        out: list[int] = []
+        for layer in layers:
+            keys = getattr(layer, "keys", None)
+            if torch.is_tensor(keys) and keys.ndim >= 3:
+                out.append(int(keys.shape[-2]))
+        if out:
+            return out
+
+    lengths: list[int] = []
     try:
-        first = past_key_values[0]
-        key = first[0] if isinstance(first, (tuple, list)) else first
-        if torch.is_tensor(key):
-            return int(key.shape[-2])
+        for item in past_key_values:
+            key = item[0] if isinstance(item, (tuple, list)) else item
+            if torch.is_tensor(key) and key.ndim >= 3:
+                lengths.append(int(key.shape[-2]))
     except Exception:
-        return None
-    return None
+        pass
+    return lengths
+
+
+def attention_modules(model) -> list[Any]:
+    base = getattr(model, "model", None)
+    if base is None:
+        return []
+    language_model = getattr(base, "language_model", base)
+    layers = getattr(language_model, "layers", None)
+    if layers is None:
+        return []
+    return [layer.self_attn for layer in layers if hasattr(layer, "self_attn")]
+
+
+def forward_hook_count(model) -> int:
+    return sum(len(module._forward_hooks) for module in attention_modules(model))
 
 
 def validation_prompt(tokenizer, target_len: int = 768) -> torch.Tensor:
@@ -552,99 +590,178 @@ def validation_prompt(tokenizer, target_len: int = 768) -> torch.Tensor:
 
 
 @torch.inference_mode()
-def validate_external_press(method: str, model, tokenizer, budget: int = 256) -> ValidationResult:
+def validate_external_press(
+    method: str,
+    model,
+    tokenizer,
+    budgets: list[int],
+) -> ValidationResult:
+    details: dict[str, Any] = {
+        "budgets": {},
+        "all_budgets_exact": False,
+        "hooks_restored": False,
+    }
     try:
         clean_model(model)
         ids = validation_prompt(tokenizer).to(input_device(model))
-        press = make_press(method, ids.shape[1], budget)
-        with press(model):
-            out = model(ids, use_cache=True)
-        actual = cache_seq_len(getattr(out, "past_key_values", None))
-        if actual is None:
-            return ValidationResult(method, False, "VALIDATION_FAIL", {
-                "reason": "could_not_measure_compressed_cache_length",
-                "prompt_tokens": int(ids.shape[1]),
-                "requested_budget": budget,
-            })
-        if actual != budget:
-            return ValidationResult(method, False, "VALIDATION_FAIL", {
-                "reason": "cache_budget_mismatch",
-                "prompt_tokens": int(ids.shape[1]),
-                "requested_budget": budget,
-                "actual_cache_tokens": actual,
-            })
+        prompt_tokens = int(ids.shape[1])
+        hooks_before = forward_hook_count(model)
+        all_exact = True
 
-        with press(model):
-            gen = model.generate(
-                ids,
-                max_new_tokens=1,
-                do_sample=False,
-                use_cache=True,
-                pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=tokenizer.eos_token_id,
-            )
-        if gen.shape[1] <= ids.shape[1]:
-            return ValidationResult(method, False, "VALIDATION_FAIL", {
-                "reason": "generation_did_not_advance",
-                "actual_cache_tokens": actual,
-            })
-        return ValidationResult(method, True, "VALIDATED", {
-            "prompt_tokens": int(ids.shape[1]),
-            "requested_budget": budget,
-            "actual_cache_tokens": actual,
-            "compression_ratio": float(press.compression_ratio),
-        })
+        for budget in budgets:
+            press = make_press(method, prompt_tokens, budget)
+            entry: dict[str, Any] = {
+                "prompt_tokens": prompt_tokens,
+                "requested_budget": budget,
+                "compression_ratio": float(press.compression_ratio),
+            }
+            try:
+                with press(model):
+                    out = model(ids, use_cache=True)
+                lengths = cache_layer_lengths(getattr(out, "past_key_values", None))
+                entry["layer_cache_lengths"] = lengths
+                entry["observed_layers"] = len(lengths)
+                entry["exact_budget"] = bool(lengths) and all(
+                    length == budget for length in lengths
+                )
+                if not entry["exact_budget"]:
+                    all_exact = False
+
+                with press(model):
+                    gen = model.generate(
+                        ids,
+                        max_new_tokens=1,
+                        do_sample=False,
+                        use_cache=True,
+                        pad_token_id=tokenizer.pad_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
+                    )
+                entry["generation_advanced"] = bool(gen.shape[1] > ids.shape[1])
+                if not entry["generation_advanced"]:
+                    all_exact = False
+            except Exception as exc:
+                entry["exact_budget"] = False
+                entry["generation_advanced"] = False
+                entry["error_type"] = type(exc).__name__
+                entry["error"] = str(exc)
+                all_exact = False
+            finally:
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+            details["budgets"][str(budget)] = entry
+
+        hooks_after = forward_hook_count(model)
+        details["forward_hooks_before"] = hooks_before
+        details["forward_hooks_after"] = hooks_after
+        details["hooks_restored"] = hooks_before == hooks_after
+        details["all_budgets_exact"] = all_exact
+        valid = all_exact and details["hooks_restored"]
+        return ValidationResult(
+            method,
+            valid,
+            "VALIDATED" if valid else "VALIDATION_FAIL",
+            details,
+        )
     except Exception as exc:
-        return ValidationResult(method, False, "VALIDATION_FAIL", {
-            "reason": type(exc).__name__,
-            "error": str(exc),
-        })
+        details["reason"] = type(exc).__name__
+        details["error"] = str(exc)
+        return ValidationResult(method, False, "VALIDATION_FAIL", details)
     finally:
         clean_model(model)
 
 
 @torch.inference_mode()
-def validate_kiaomni(model, tokenizer, budget: int = 256) -> ValidationResult:
+def validate_kiaomni(
+    model,
+    tokenizer,
+    budgets: list[int],
+) -> ValidationResult:
+    details: dict[str, Any] = {"budgets": {}}
+    all_exact = True
     try:
         ids = validation_prompt(tokenizer).to(input_device(model))
-        result = generate_kiaomni(model, tokenizer, ids, budget, 1)
-        comp = result.get("compression") or {}
-        kept = comp.get("kept_tokens")
-        valid = kept == budget
-        return ValidationResult("kiaomni_s8", valid, "VALIDATED" if valid else "VALIDATION_FAIL", {
-            "prompt_tokens": int(ids.shape[1]),
-            "requested_budget": budget,
-            "actual_kept_tokens": kept,
-            "compression": comp,
-        })
+        for budget in budgets:
+            try:
+                result = generate_kiaomni(model, tokenizer, ids, budget, 1)
+                comp = result.get("compression") or {}
+                kept = comp.get("kept_tokens")
+                exact = kept == budget
+                details["budgets"][str(budget)] = {
+                    "prompt_tokens": int(ids.shape[1]),
+                    "requested_budget": budget,
+                    "actual_kept_tokens": kept,
+                    "exact_budget": exact,
+                    "compression": comp,
+                }
+                if not exact:
+                    all_exact = False
+            except Exception as exc:
+                details["budgets"][str(budget)] = {
+                    "requested_budget": budget,
+                    "exact_budget": False,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+                all_exact = False
+        details["all_budgets_exact"] = all_exact
+        return ValidationResult(
+            "kiaomni_s8",
+            all_exact,
+            "VALIDATED" if all_exact else "VALIDATION_FAIL",
+            details,
+        )
     except Exception as exc:
-        return ValidationResult("kiaomni_s8", False, "VALIDATION_FAIL", {
-            "reason": type(exc).__name__, "error": str(exc)
-        })
+        details["reason"] = type(exc).__name__
+        details["error"] = str(exc)
+        return ValidationResult("kiaomni_s8", False, "VALIDATION_FAIL", details)
     finally:
         clean_model(model)
 
 
-def validate_blocksal(budget: int = 256, seq_len: int = 768) -> ValidationResult:
+def validate_blocksal(
+    budgets: list[int],
+    seq_len: int = 768,
+) -> ValidationResult:
+    details: dict[str, Any] = {
+        "block_size": BLOCK_SIZE,
+        "selector": "historical_whole_block_mean_saliency",
+        "exact_budget": False,
+        "budgets": {},
+    }
+    all_valid = True
     try:
         rng = np.random.RandomState(123)
         sal = rng.rand(seq_len).astype(np.float32)
-        keep = blocksal_keep(sal, budget, seq_len)
         protected = set(range(N_SINK)) | set(range(seq_len - RECENCY, seq_len))
-        kept_set = set(keep.tolist())
-        valid = protected.issubset(kept_set) and budget - (BLOCK_SIZE - 1) <= len(keep) <= budget
-        return ValidationResult("blocksal", valid, "VALIDATED" if valid else "VALIDATION_FAIL", {
-            "requested_budget": budget,
-            "actual_kept_tokens": len(keep),
-            "budget_delta": len(keep) - budget,
-            "block_size": BLOCK_SIZE,
-            "protected_tokens_present": protected.issubset(kept_set),
-            "selector": "historical_whole_block_mean_saliency",
-        })
+
+        for budget in budgets:
+            keep = blocksal_keep(sal, budget, seq_len)
+            kept_set = set(keep.tolist())
+            protected_ok = protected.issubset(kept_set)
+            budget_ok = budget - (BLOCK_SIZE - 1) <= len(keep) <= budget
+            entry = {
+                "requested_budget": budget,
+                "actual_kept_tokens": len(keep),
+                "budget_delta": len(keep) - budget,
+                "protected_tokens_present": protected_ok,
+                "historical_whole_block_budget_ok": budget_ok,
+            }
+            details["budgets"][str(budget)] = entry
+            if not (protected_ok and budget_ok):
+                all_valid = False
+
+        return ValidationResult(
+            "blocksal",
+            all_valid,
+            "VALIDATED" if all_valid else "VALIDATION_FAIL",
+            details,
+        )
     except Exception as exc:
-        return ValidationResult("blocksal", False, "VALIDATION_FAIL", {
-            "reason": type(exc).__name__, "error": str(exc)
-        })
+        details["reason"] = type(exc).__name__
+        details["error"] = str(exc)
+        return ValidationResult("blocksal", False, "VALIDATION_FAIL", details)
 
 
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -721,8 +838,8 @@ def main() -> None:
 
     validations: dict[str, dict[str, Any]] = {
         "full_context": ValidationResult("full_context", True, "VALIDATED", {"compression": False}).__dict__,
-        "kiaomni_s8": validate_kiaomni(model, tokenizer).__dict__,
-        "blocksal": validate_blocksal().__dict__,
+        "kiaomni_s8": validate_kiaomni(model, tokenizer, budgets).__dict__,
+        "blocksal": validate_blocksal(budgets).__dict__,
     }
     if args.skip_external:
         validations["snapkv"] = ValidationResult("snapkv", False, "SKIPPED", {"reason": "--skip-external"}).__dict__
@@ -750,8 +867,12 @@ def main() -> None:
                 "streamingllm", False, "VALIDATION_FAIL", details
             ).__dict__
         else:
-            validations["snapkv"] = validate_external_press("snapkv", model, tokenizer).__dict__
-            validations["streamingllm"] = validate_external_press("streamingllm", model, tokenizer).__dict__
+            validations["snapkv"] = validate_external_press(
+                "snapkv", model, tokenizer, budgets
+            ).__dict__
+            validations["streamingllm"] = validate_external_press(
+                "streamingllm", model, tokenizer, budgets
+            ).__dict__
 
     print("\nValidation gate:")
     for name, v in validations.items():
@@ -773,6 +894,32 @@ def main() -> None:
         out_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
         print(f"Validation artifact saved: {out_path}")
         return
+
+    if not args.skip_external:
+        invalid_external = [
+            name for name in ("snapkv", "streamingllm")
+            if not validations[name]["valid"]
+        ]
+        if invalid_external:
+            artifact = {
+                "experiment": "KIAOMNI_MOE_MODEL_LAB_PHASE02_VALIDATION_FAIL_V1",
+                "model": args.model,
+                "mode": "validation_fail",
+                "budgets": budgets,
+                "max_context_tokens": args.max_context,
+                "target_final_prompt_tokens": args.target_tokens,
+                "environment": environment,
+                "validation_gate": validations,
+                "invalid_external_methods": invalid_external,
+            }
+            out_path = Path(args.output)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+            raise RuntimeError(
+                "External baseline validation failed for "
+                + ", ".join(invalid_external)
+                + ". Refusing to produce comparison scores."
+            )
 
     cases = build_cases(tokenizer, args.samples_per_task, args.seed, args.target_tokens, args.max_context)
     for case in cases:
@@ -853,6 +1000,7 @@ def main() -> None:
                 "n_sink": N_SINK,
                 "recency": RECENCY,
                 "selector": "historical_whole_block_mean_saliency",
+                "provenance": "paper Section 2.2 / full-comparison BLOCK_SIZE=16",
                 "exact_budget": False,
             },
             "snapkv": {
