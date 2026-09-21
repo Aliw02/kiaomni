@@ -89,14 +89,18 @@ Do not print the token value.
 
 ```bash
 /kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
-  --budget 512 \
+  --budgets 512,256,128,98 \
   --alpha-max 0.10 \
-  --long-tokens 1200 \
+  --long-tokens 3200 \
   --output /kaggle/working/moe_route_stability_smoke.json
 ```
 
 The script filename is retained for continuity; this version of the POC is
 **not a 4-bit experiment**.
+
+The smoke run now performs a compression stress sweep. Baseline and route-only
+run once, while KiaOmni and KiaOmni+route are repeated at budgets
+**512 / 256 / 128 / 98** against ~3.2k-token needle contexts.
 
 The runner prints the actual CUDA residency after load and fails if GPU0 exceeds
 12.5 GiB before the benchmark begins.
