@@ -9,18 +9,17 @@ The model weights remain frozen. No expert weights, router weights, or task data
 
 ## Default model
 
-`LiquidAI/LFM2.5-8B-A1B`
+`cyankiwi/LFM2.5-8B-A1B-AWQ-INT4`
 
 Why this target:
 
-- Official modern LFM2.5 MoE checkpoint from LiquidAI
-- 8.3B total / 1.5B active parameters
+- Modern LFM2.5 MoE family, 8.3B total / 1.5B active parameters
 - 32 experts, Top-4 active
 - Hybrid 18 convolution + 6 GQA attention layers
-- Quantized **on load** to bitsandbytes NF4 4-bit with double quantization
-- No AutoAWQ or GPTQModel runtime dependency
-- T4-compatible FP16 compute while weights remain 4-bit
-- Small enough to leave meaningful headroom on a 16 GB card for KV cache, saliency hooks, and measurement
+- **Pre-quantized AWQ INT4** checkpoint, about 5.37 GB on disk
+- Expert weights are already quantized before loading, avoiding the FP16-on-load peak
+- Router gates remain directly observable for the routing POC
+- On Kaggle T4 x2, the quantized model is balanced across both GPUs with GPU 0 kept lighter for generation headroom
 
 The runner also checks actual CUDA allocation immediately after load and fails closed if it is already above 14.5 GB.
 
@@ -33,42 +32,57 @@ Use:
 
 ## Install cell
 
-After a fresh Kaggle **Factory Reset**, install only the runtime pieces required
-for this POC. Do not install AutoAWQ or GPTQModel:
+Use a fresh Kaggle session. Keep the notebook's base environment untouched and
+create an isolated virtual environment for the AWQ runtime:
 
 ```bash
-pip install -q -U "transformers>=5.9,<6" accelerate bitsandbytes
+python -m venv --system-site-packages /kaggle/working/kia-awq-venv
+
+/kaggle/working/kia-awq-venv/bin/pip install -q -U pip setuptools wheel
+/kaggle/working/kia-awq-venv/bin/pip install -q -U \
+  "numpy==2.2.6" "scipy==1.15.3" \
+  "transformers>=5.10,<6" "accelerate>=1.13" optimum ninja \
+  "gptqmodel==7.5.0" --no-build-isolation
 ```
 
-Then clone and install this branch:
+Because this is a venv created with `--system-site-packages`, Kaggle's CUDA/PyTorch
+installation remains available without downloading another multi-gigabyte Torch
+stack. Any NumPy/Protobuf versions required by GPTQModel are shadowed only inside
+the venv and do not mutate the notebook kernel's base environment.
+
+Verify the isolated runtime with a separate process:
 
 ```bash
-git clone -b exp/moe-route-stability-v1 https://github.com/Aliw02/kiaomni.git
-cd kiaomni
-pip install -q -e . --no-deps
-```
-
-Verify the clean environment in a fresh Python process:
-
-```bash
-python - <<'PY'
-import torch, transformers, bitsandbytes as bnb
+/kaggle/working/kia-awq-venv/bin/python - <<'PY'
+import torch, transformers, numpy, scipy, gptqmodel
 print("torch", torch.__version__)
 print("transformers", transformers.__version__)
-print("bitsandbytes", bnb.__version__)
-print("gpu", torch.cuda.get_device_name(0))
-print("vram_gb", torch.cuda.get_device_properties(0).total_memory / 1024**3)
+print("numpy", numpy.__version__)
+print("scipy", scipy.__version__)
+print("gptqmodel", getattr(gptqmodel, "__version__", "installed"))
+print("gpu_count", torch.cuda.device_count())
+for i in range(torch.cuda.device_count()):
+    p = torch.cuda.get_device_properties(i)
+    print(i, p.name, p.total_memory / 1024**3)
 PY
 ```
 
-No NumPy/SciPy pins are required.
+Then clone and install this branch into the same venv:
+
+```bash
+git clone -b exp/moe-route-stability-v1 https://github.com/Aliw02/kiaomni.git
+/kaggle/working/kia-awq-venv/bin/pip install -q -e /kaggle/working/kiaomni --no-deps
+```
+
+Do not install AutoAWQ and do not run the experiment with the notebook kernel's
+`python`; use the venv interpreter shown below.
 
 ## Fast smoke run
 
 Start with a smaller long-context case to prove that model loading, KiaOmni probing, hybrid-layer saliency, and MoE gate hooks all work:
 
 ```bash
-python experiments/kaggle_moe4bit_poc.py \
+/kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
   --budget 512 \
   --alpha-max 0.10 \
   --long-tokens 1200 \
@@ -80,7 +94,7 @@ python experiments/kaggle_moe4bit_poc.py \
 After the smoke passes:
 
 ```bash
-python experiments/kaggle_moe4bit_poc.py \
+/kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
   --budget 768 \
   --alpha-max 0.10 \
   --long-tokens 1800 \
@@ -152,7 +166,7 @@ If routing stability improves but quality falls materially, do **not** increase 
 To prove that the route wrapper itself is not perturbing the model, run:
 
 ```bash
-python experiments/kaggle_moe4bit_poc.py \
+/kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
   --alpha-max 0.0 \
   --budget 768 \
   --long-tokens 1200 \
