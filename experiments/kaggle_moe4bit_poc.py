@@ -253,7 +253,11 @@ def configure_arm(
     alpha_max: float,
     verbose: bool,
 ):
-    remove_kiaomni(model)
+    # Do not call remove_kiaomni on a never-patched model: quantized models
+    # may carry an Accelerate-installed instance-level generate wrapper that
+    # must remain intact for the true baseline.
+    if hasattr(model, "_kia_arch_info"):
+        remove_kiaomni(model)
     remove_moe_route_stability(model)
 
     controller = None
@@ -395,7 +399,8 @@ def main() -> None:
                 "cases": rows,
             }
     finally:
-        remove_kiaomni(model)
+        if hasattr(model, "_kia_arch_info"):
+            remove_kiaomni(model)
         remove_moe_route_stability(model)
 
     out_path = Path(args.output)
