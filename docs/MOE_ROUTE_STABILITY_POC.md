@@ -36,16 +36,16 @@ Use a fresh Kaggle session. Keep the notebook's base environment untouched and
 create an isolated virtual environment for the AWQ runtime:
 
 ```bash
-python -m venv --system-site-packages /kaggle/working/kia-awq-venv
+python -m pip install -q -U virtualenv
+python -m virtualenv --system-site-packages /kaggle/working/kia-awq-venv
 
 /kaggle/working/kia-awq-venv/bin/pip install -q -U pip setuptools wheel
-/kaggle/working/kia-awq-venv/bin/pip install -q -U \
-  "numpy==2.2.6" "scipy==1.15.3" \
-  "transformers>=5.10,<6" "accelerate>=1.13" optimum ninja \
-  "gptqmodel==7.5.0" --no-build-isolation
+/kaggle/working/kia-awq-venv/bin/pip install -q -U accelerate optimum ninja "transformers>=5.10,<6"
+/kaggle/working/kia-awq-venv/bin/pip install -q -U "gptqmodel==7.5.0" --no-build-isolation
+/kaggle/working/kia-awq-venv/bin/pip install -q -U "numpy==2.2.6" "scipy==1.15.3"
 ```
 
-Because this is a venv created with `--system-site-packages`, Kaggle's CUDA/PyTorch
+Because this is a virtualenv created with `--system-site-packages`, Kaggle's CUDA/PyTorch
 installation remains available without downloading another multi-gigabyte Torch
 stack. Any NumPy/Protobuf versions required by GPTQModel are shadowed only inside
 the venv and do not mutate the notebook kernel's base environment.
