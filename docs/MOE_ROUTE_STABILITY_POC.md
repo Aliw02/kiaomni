@@ -34,17 +34,21 @@ Use:
 - Hugging Face: accept access for `facebook/MobileMoE-M-SFT`
 
 The model card requires only PyTorch, Transformers, safetensors, and Accelerate.
-The existing experiment branch already uses a compatible Transformers release.
+Use **Transformers 4.57.6**, not Transformers 5.x. Meta's model card requires
+Transformers >=4.57 and demonstrates direct loading with
+`AutoModelForCausalLM.from_pretrained(..., trust_remote_code=True, device_map="auto")`.
+Transformers 5.x changed model construction to use the meta device more
+aggressively; MobileMoE's custom RoPE initialization performs scalar tensor
+logic during `__init__`, which crashes on meta tensors.
 
-### MobileMoE / Transformers 5 loader note
+Install the known-compatible runtime:
 
-Do not pass `device_map` while constructing MobileMoE. Transformers 5 enables a
-meta-device loading path when `device_map` is supplied, but MobileMoE's remote
-RoPE initialization performs scalar tensor comparisons during `__init__`.
-The POC therefore loads the FP16 checkpoint on CPU first with
-`low_cpu_mem_usage=False, device_map=None`, then moves the completed model to
-`cuda:0`. This avoids the meta-tensor initialization crash while keeping the
-actual benchmark on a single T4.
+```bash
+pip install -q -U "transformers==4.57.6" "accelerate==1.13.0" safetensors
+```
+
+After changing Transformers major versions in a notebook, restart the Kaggle
+kernel once before importing Transformers again.
 
 If the current notebook already has the experiment virtualenv created during
 earlier attempts, it can be reused; GPTQModel is no longer imported or used.
