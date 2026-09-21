@@ -1,0 +1,67 @@
+from __future__ import annotations
+
+import numpy as np
+
+from experiments.kaggle_moe_phase02_multineedle_baselines import (
+    BLOCK_SIZE,
+    N_SINK,
+    RECENCY,
+    Case,
+    blocksal_keep,
+    ratio_for_budget,
+    score_answer,
+)
+
+
+def test_ratio_for_budget_is_exact_for_phase02_grid():
+    prompt_len = 3900
+    for budget in (98, 128, 256, 512):
+        ratio = ratio_for_budget(prompt_len, budget)
+        assert int(prompt_len * (1.0 - ratio)) == budget
+
+
+def test_blocksal_preserves_protected_tokens_and_historical_budget_semantics():
+    seq_len = 3900
+    budget = 98
+    saliency = np.random.RandomState(7).rand(seq_len).astype(np.float32)
+
+    keep = blocksal_keep(saliency, budget, seq_len)
+    kept = set(keep.tolist())
+
+    protected = set(range(N_SINK)) | set(range(seq_len - RECENCY, seq_len))
+    assert protected.issubset(kept)
+    assert budget - (BLOCK_SIZE - 1) <= len(keep) <= budget
+
+
+def test_blocksal_does_not_silently_become_exact_budget_selector():
+    seq_len = 3911
+    budget = 128
+    saliency = np.linspace(0.0, 1.0, seq_len, dtype=np.float32)
+
+    keep = blocksal_keep(saliency, budget, seq_len)
+
+    # Whole-block eviction is the frozen historical behavior. Exact budget is
+    # allowed by coincidence, but the selector must never exceed the budget.
+    assert len(keep) <= budget
+    assert len(keep) >= budget - (BLOCK_SIZE - 1)
+
+
+def test_hard_multi_rejects_distractor_even_when_all_gold_values_are_present():
+    case = Case(
+        task="hard_multi",
+        sample_id=0,
+        context="",
+        question="",
+        gold=["123456", "321", "ONYX"],
+        distractors=["654321", "777", "NOVA"],
+        info="test",
+    )
+
+    clean = score_answer(case, "123456 321 ONYX")
+    contaminated = score_answer(case, "123456 321 ONYX and NOVA")
+
+    assert clean["exact"] is True
+    assert clean["recall"] == 1.0
+    assert contaminated["recall"] == 1.0
+    assert contaminated["exact"] is False
+    assert contaminated["distractor_hits"] == ["NOVA"]
