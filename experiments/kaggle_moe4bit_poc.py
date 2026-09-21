@@ -96,6 +96,15 @@ def parse_args() -> argparse.Namespace:
         default="sigmoid",
         help="Router score semantics. MobileMoE uses normalized sigmoid Top-K routing.",
     )
+    parser.add_argument(
+        "--routing-mode",
+        choices=("active", "shadow_counterfactual"),
+        default="shadow_counterfactual",
+        help=(
+            "Use shadow_counterfactual for MobileMoE custom routing until its "
+            "internal dispatch path is patched directly."
+        ),
+    )
     parser.add_argument("--long-tokens", type=int, default=3200)
     parser.add_argument("--output", default=DEFAULT_OUT)
     parser.add_argument(
@@ -319,6 +328,7 @@ def configure_arm(
     budget: int,
     alpha_max: float,
     score_func: str,
+    routing_mode: str,
     verbose: bool,
 ):
     # Do not call remove_kiaomni on a never-patched model: some model runtimes
@@ -334,6 +344,7 @@ def configure_arm(
             model,
             alpha_max=alpha_max,
             score_func=score_func,
+            routing_mode=routing_mode,
             verbose=verbose,
         )
         controller.reset_metrics()
@@ -350,12 +361,18 @@ def configure_arm(
 
 
 @torch.inference_mode()
-def validate_router_instrumentation(model, tokenizer, score_func: str) -> dict[str, Any]:
+def validate_router_instrumentation(
+    model,
+    tokenizer,
+    score_func: str,
+    routing_mode: str,
+) -> dict[str, Any]:
     """Fail fast unless real MobileMoE router tokens reach the controller."""
     controller = apply_moe_route_stability(
         model,
         alpha_max=0.0,
         score_func=score_func,
+        routing_mode=routing_mode,
         verbose=False,
     )
     try:
@@ -382,7 +399,9 @@ def validate_router_instrumentation(model, tokenizer, score_func: str) -> dict[s
         f"functional={snapshot['functional_router_calls']} "
         f"structured={snapshot['structured_outputs']} "
         f"shape_fixups={snapshot['shape_reconciliations']} "
-        f"score_func={snapshot['score_func']}"
+        f"score_func={snapshot['score_func']} "
+        f"routing_mode={snapshot['routing_mode']} "
+        f"shadow={snapshot['shadow_router_calls']}"
     )
     if snapshot["tokens_observed"] <= 0:
         raise RuntimeError(
@@ -446,7 +465,8 @@ def main() -> None:
 
     print(
         f"Budgets: {budgets} | alpha_max: {args.alpha_max} "
-        f"| router_score_func: {args.router_score_func}"
+        f"| router_score_func: {args.router_score_func} "
+        f"| routing_mode: {args.routing_mode}"
     )
     print(f"Long-context target: {args.long_tokens}+ tokens")
     print("=" * 88)
@@ -499,6 +519,7 @@ def main() -> None:
         model,
         tokenizer,
         args.router_score_func,
+        args.routing_mode,
     )
     if args.router_preflight_only:
         print(json.dumps(router_preflight, indent=2))
@@ -529,6 +550,7 @@ def main() -> None:
         "long_tokens_target": args.long_tokens,
         "alpha_max": args.alpha_max,
         "router_score_func": args.router_score_func,
+        "routing_mode": args.routing_mode,
         "router_preflight": router_preflight,
         "environment": {
             **gpu_metadata(),
@@ -555,6 +577,7 @@ def main() -> None:
                 budget=budget if budget is not None else budgets[0],
                 alpha_max=args.alpha_max,
                 score_func=args.router_score_func,
+                routing_mode=args.routing_mode,
                 verbose=args.verbose,
             )
             rows = []
