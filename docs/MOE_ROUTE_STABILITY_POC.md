@@ -78,6 +78,19 @@ git clone -b exp/moe-route-stability-v1 https://github.com/Aliw02/kiaomni.git
 Do not install AutoAWQ and do not run the experiment with the notebook kernel's
 `python`; use the venv interpreter shown below.
 
+## Loader compatibility note
+
+The published AWQ checkpoint stores LFM2-MoE expert qweights in the per-expert
+`w1/w3/w2` layout. Current Transformers 5 builds LFM2-MoE experts in the newer
+packed `gate_up_proj/down_proj` layout. Loading this checkpoint directly with
+`AutoModelForCausalLM.from_pretrained()` can therefore report the real AWQ
+weights as `UNEXPECTED`, create missing packed expert tensors in floating point,
+and consume nearly a full T4 despite the checkpoint being only ~5.37 GB.
+
+The POC must load the checkpoint with `GPTQModel.load()`. GPTQModel has explicit
+`lfm2_moe` lifecycle support for the `w1/w3/w2` expert layout. The runner also
+fails closed unless actual quantized linear modules are present after loading.
+
 ## Fast smoke run
 
 Start with a smaller long-context case to prove that model loading, KiaOmni probing, hybrid-layer saliency, and MoE gate hooks all work:
