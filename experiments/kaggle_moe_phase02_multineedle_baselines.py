@@ -459,7 +459,7 @@ def ratio_for_budget(prompt_len: int, budget: int) -> float:
 
 
 def make_press(method: str, prompt_len: int, budget: int):
-    from kvpress import SnapKVPress, StreamingLLMPress
+    from kvpress import KeyRerotationPress, SnapKVPress, StreamingLLMPress
 
     ratio = ratio_for_budget(prompt_len, budget)
     if method == "snapkv":
@@ -469,7 +469,12 @@ def make_press(method: str, prompt_len: int, budget: int):
             kernel_size=SNAPKV_KERNEL,
         )
     if method == "streamingllm":
-        return StreamingLLMPress(compression_ratio=ratio, n_sink=4)
+        # NVIDIA notes that full StreamingLLM paper parity requires key
+        # rerotation after pruning so retained keys occupy continuous RoPE
+        # positions. Keep the official wrapper instead of the scorer alone.
+        return KeyRerotationPress(
+            press=StreamingLLMPress(compression_ratio=ratio, n_sink=4)
+        )
     raise KeyError(method)
 
 
@@ -863,6 +868,8 @@ def main() -> None:
                 "source": "NVIDIA/kvpress",
                 "pinned_ref": KVPRESS_REF,
                 "n_sink": 4,
+                "key_rerotation": True,
+                "implementation": "KeyRerotationPress(StreamingLLMPress)",
                 "exact_budget_ratio": True,
             },
         },
