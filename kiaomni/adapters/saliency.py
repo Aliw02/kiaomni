@@ -126,6 +126,8 @@ class SaliencyAdapter:
         hooks: list = []
 
         for l_idx, layer in enumerate(layers):
+            if not hasattr(layer, self.probe.attn_module_name):
+                continue
             attn = self._get_attn(layer)
             hooks.extend(self._register_layer_hooks(attn, l_idx, per_layer, B, L, hd))
 
@@ -136,9 +138,13 @@ class SaliencyAdapter:
             for h in hooks:
                 h.remove()
 
-        fallback = np.zeros((B, L), dtype=np.float32)
-        stacked = np.stack([(x if x is not None else fallback) for x in per_layer])
-        return stacked.mean(0).astype(np.float32)  # (B, L)
+        valid = [x for x in per_layer if x is not None]
+        if not valid:
+            raise RuntimeError(
+                "No attention-layer saliency was captured. "
+                "The probed hybrid model exposes no usable Q/K projections."
+            )
+        return np.stack(valid).mean(0).astype(np.float32)  # (B, L)
 
     def _register_layer_hooks(
         self,
@@ -236,9 +242,13 @@ class SaliencyAdapter:
         per_layer: list = []
         w = min(32, L)
         for a in attns:
+            if a is None:
+                continue
             win_rows = a[:, :, -w:, :].to(torch.float32)         # (B, nh, w, L)
             max_win = win_rows.max(dim=2).values                 # (B, nh, L)
             per_layer.append(max_win.mean(1).cpu().numpy())      # (B, L)
+        if not per_layer:
+            raise RuntimeError("Model returned no usable attention tensors.")
         return np.stack(per_layer).mean(0).astype(np.float32)
 
 
