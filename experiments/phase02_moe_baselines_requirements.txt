@@ -1,4 +1,4 @@
+git+https://github.com/NVIDIA/kvpress.git@7331c23da9e6f1510d89ea651d0dea77a57b3252
 transformers==4.57.6
 accelerate==1.13.0
-kvpress==0.5.5
 scipy>=1.13.1,<2
