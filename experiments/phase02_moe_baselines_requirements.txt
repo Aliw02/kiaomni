@@ -1,0 +1,4 @@
+transformers==4.57.6
+accelerate==1.13.0
+kvpress==0.5.5
+scipy>=1.13.1,<2
