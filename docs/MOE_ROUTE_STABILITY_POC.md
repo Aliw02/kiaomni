@@ -36,6 +36,16 @@ Use:
 The model card requires only PyTorch, Transformers, safetensors, and Accelerate.
 The existing experiment branch already uses a compatible Transformers release.
 
+### MobileMoE / Transformers 5 loader note
+
+Do not pass `device_map` while constructing MobileMoE. Transformers 5 enables a
+meta-device loading path when `device_map` is supplied, but MobileMoE's remote
+RoPE initialization performs scalar tensor comparisons during `__init__`.
+The POC therefore loads the FP16 checkpoint on CPU first with
+`low_cpu_mem_usage=False, device_map=None`, then moves the completed model to
+`cuda:0`. This avoids the meta-tensor initialization crash while keeping the
+actual benchmark on a single T4.
+
 If the current notebook already has the experiment virtualenv created during
 earlier attempts, it can be reused; GPTQModel is no longer imported or used.
 
