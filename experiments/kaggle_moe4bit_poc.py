@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer
 
 from kiaomni import (
     apply_kiaomni,
@@ -348,24 +348,41 @@ def main() -> None:
     if gpu_count < 1:
         raise RuntimeError("No CUDA GPU detected.")
 
-    # The checkpoint is already AWQ INT4 on disk (~5.37 GB). Keep the POC
-    # on a single T4 so routing/latency measurements are not confounded by
-    # cross-GPU transfers. Fail closed after load if actual residency leaves
-    # insufficient runtime headroom.
-    model = AutoModelForCausalLM.from_pretrained(
+    # IMPORTANT: load the AWQ checkpoint through GPTQModel, not directly
+    # through Transformers. Transformers 5 uses packed MoE expert tensors
+    # (gate_up_proj/down_proj), while this AWQ checkpoint stores per-expert
+    # w1/w3/w2 qweights. GPTQModel has an explicit LFM2-MoE lifecycle that
+    # materializes the correct per-expert quantized modules.
+    from gptqmodel import GPTQModel
+    from gptqmodel.nn_modules.qlinear import BaseQuantLinear
+
+    quant_runtime = GPTQModel.load(
         args.model,
-        device_map={"": 0},
-        dtype=torch.float16,
-        low_cpu_mem_usage=True,
+        device="cuda:0",
         trust_remote_code=True,
     )
+    model = quant_runtime.model
     model.eval()
+
+    quantized_modules = [
+        name
+        for name, module in model.named_modules()
+        if isinstance(module, BaseQuantLinear)
+    ]
+    print(f"GPTQModel quantized modules: {len(quantized_modules)}")
+    print(f"Quantized module sample: {quantized_modules[:8]}")
+    if not quantized_modules:
+        raise RuntimeError(
+            "GPTQModel loaded zero quantized linear modules; refusing to run "
+            "because this would not be a valid AWQ INT4 POC."
+        )
 
     load_allocated_by_gpu = {
         str(gpu_idx): torch.cuda.memory_allocated(gpu_idx) / (1024**3)
         for gpu_idx in range(torch.cuda.device_count())
     }
     print(f"HF device map: {getattr(model, 'hf_device_map', None)}")
+    print(f"GPTQModel runtime: {type(quant_runtime).__name__}")
     print(f"Loaded model VRAM allocation by GPU: {load_allocated_by_gpu}")
     gpu0_allocated = load_allocated_by_gpu.get("0", 0.0)
     if gpu0_allocated > 12.5:
@@ -395,6 +412,9 @@ def main() -> None:
             "platform": platform.platform(),
             "model_loaded_allocated_vram_by_gpu_gb": load_allocated_by_gpu,
             "hf_device_map": getattr(model, "hf_device_map", None),
+            "gptqmodel_runtime_class": type(quant_runtime).__name__,
+            "quantized_module_count": len(quantized_modules),
+            "quantized_module_sample": quantized_modules[:16],
         },
         "arms": {},
     }
