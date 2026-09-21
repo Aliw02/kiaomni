@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from kiaomni.moe_stability import (
     apply_moe_route_stability,
@@ -159,5 +160,41 @@ def test_custom_moe_config_aliases_are_inferred():
     assert snapshot["top_k"] == 1
     assert snapshot["score_func"] == "sigmoid"
     assert snapshot["router_count"] == 1
+
+    remove_moe_route_stability(model)
+
+
+class _FunctionalSparseMLP(_SparseMLP):
+    def forward(self, x):
+        # Mimics custom MoE code that bypasses router.forward() and consumes
+        # the router weight through torch.nn.functional.linear directly.
+        return F.linear(x, self.gate.weight)
+
+
+class _FunctionalBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mlp = _FunctionalSparseMLP()
+
+
+class _FunctionalTinyMoE(_TinyMoE):
+    def __init__(self):
+        nn.Module.__init__(self)
+        self.config = _Config()
+        self.layers = nn.ModuleList([_FunctionalBlock()])
+
+
+def test_functional_linear_router_bypass_is_intercepted():
+    torch.manual_seed(11)
+    model = _FunctionalTinyMoE()
+    x = torch.randn(1, 9, 2)
+
+    controller = apply_moe_route_stability(model, alpha_max=0.2)
+    _ = model(inputs_embeds=x)
+    metrics = controller.snapshot()
+
+    assert metrics["tokens_observed"] > 0
+    assert metrics["functional_router_calls"] > 0
+    assert metrics["hook_calls"] > 0
 
     remove_moe_route_stability(model)
