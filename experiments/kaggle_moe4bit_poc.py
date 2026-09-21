@@ -258,7 +258,12 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
     }
     if attention_mask is not None:
         kwargs["attention_mask"] = attention_mask
+    if hasattr(model, "_kia_last_compression"):
+        delattr(model, "_kia_last_compression")
+
     output = model.generate(**kwargs)
+    compression = getattr(model, "_kia_last_compression", None)
+
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - started
@@ -283,6 +288,7 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
         "kind": case["kind"],
         "prompt_tokens": int(input_ids.shape[1]),
         "used_chat_template": uses_chat_template,
+        "compression": compression,
         "new_tokens": len(new_ids),
         "new_token_ids": new_ids,
         "text": text,
@@ -489,7 +495,12 @@ def main() -> None:
                     f"new={row['new_tokens']:>3} "
                     f"tok/s={row['tokens_per_s']:.2f} "
                     f"peak={row['peak_allocated_vram_gb']:.2f}GB "
-                    f"text={row['text'][:80]!r}"
+                    + (
+                        f"kept={row['compression']['kept_tokens']} "
+                        if row.get("compression") is not None
+                        else ""
+                    )
+                    + f"text={row['text'][:80]!r}"
                 )
 
             if arm == "baseline":
