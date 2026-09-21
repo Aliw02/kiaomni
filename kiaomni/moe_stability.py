@@ -361,7 +361,12 @@ def apply_moe_route_stability(
             "moe_top_k",
         ),
     )
-    resolved_score_func = _config_value(cfg, "score_func") or "softmax"
+    resolved_score_func = (
+        _config_value(cfg, "score_func")
+        or _config_value(cfg, "scoring_func")
+        or _config_value(cfg, "router_score_func")
+        or "softmax"
+    )
 
     # Discover router modules even when a custom architecture uses different
     # config field names. If every candidate router has the same output width,
