@@ -31,6 +31,8 @@ BLOCK_SIZE = 16
 SNAPKV_WINDOW = 64
 SNAPKV_KERNEL = 5
 KVPRESS_REF = "7331c23da9e6f1510d89ea651d0dea77a57b3252"
+KVPRESS_REQUIRED = "0.5.5"
+TRANSFORMERS_REQUIRED = "4.57.6"
 OUTPUT_DEFAULT = (
     "results/kiaomni_moe_model_lab/phase_02_mobilemoe_multineedle_baselines/"
     "phase02_results.json"
@@ -91,6 +93,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=SEED_DEFAULT)
     p.add_argument("--output", default=OUTPUT_DEFAULT)
     p.add_argument("--skip-external", action="store_true")
+    p.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="Run method compatibility/budget validation and exit before benchmark generation.",
+    )
     return p.parse_args()
 
 
@@ -670,6 +677,13 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA GPU required")
 
+    transformers_version = package_version("transformers")
+    if transformers_version != TRANSFORMERS_REQUIRED:
+        raise RuntimeError(
+            f"Phase-02 requires transformers=={TRANSFORMERS_REQUIRED}; "
+            f"found {transformers_version!r}."
+        )
+
     tokenizer = AutoTokenizer.from_pretrained(
         args.model,
         trust_remote_code=True,
@@ -689,7 +703,7 @@ def main() -> None:
 
     environment = {
         "torch": torch.__version__,
-        "transformers": package_version("transformers"),
+        "transformers": transformers_version,
         "accelerate": package_version("accelerate"),
         "kvpress": package_version("kvpress"),
         "kvpress_pinned_ref": KVPRESS_REF,
@@ -709,9 +723,27 @@ def main() -> None:
         validations["snapkv"] = ValidationResult("snapkv", False, "SKIPPED", {"reason": "--skip-external"}).__dict__
         validations["streamingllm"] = ValidationResult("streamingllm", False, "SKIPPED", {"reason": "--skip-external"}).__dict__
     else:
-        if package_version("kvpress") is None:
-            validations["snapkv"] = ValidationResult("snapkv", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}).__dict__
-            validations["streamingllm"] = ValidationResult("streamingllm", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}).__dict__
+        kvpress_version = package_version("kvpress")
+        if kvpress_version is None:
+            validations["snapkv"] = ValidationResult(
+                "snapkv", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}
+            ).__dict__
+            validations["streamingllm"] = ValidationResult(
+                "streamingllm", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}
+            ).__dict__
+        elif kvpress_version != KVPRESS_REQUIRED:
+            details = {
+                "reason": "kvpress_version_mismatch",
+                "required_version": KVPRESS_REQUIRED,
+                "found_version": kvpress_version,
+                "pinned_ref": KVPRESS_REF,
+            }
+            validations["snapkv"] = ValidationResult(
+                "snapkv", False, "VALIDATION_FAIL", details
+            ).__dict__
+            validations["streamingllm"] = ValidationResult(
+                "streamingllm", False, "VALIDATION_FAIL", details
+            ).__dict__
         else:
             validations["snapkv"] = validate_external_press("snapkv", model, tokenizer).__dict__
             validations["streamingllm"] = validate_external_press("streamingllm", model, tokenizer).__dict__
@@ -719,6 +751,23 @@ def main() -> None:
     print("\nValidation gate:")
     for name, v in validations.items():
         print(f"  {name:<14} {v['status']:<16} {v['details']}")
+
+    if args.validation_only:
+        artifact = {
+            "experiment": "KIAOMNI_MOE_MODEL_LAB_PHASE02_VALIDATION_ONLY_V1",
+            "model": args.model,
+            "mode": "validation_only",
+            "budgets": budgets,
+            "max_context_tokens": args.max_context,
+            "target_final_prompt_tokens": args.target_tokens,
+            "environment": environment,
+            "validation_gate": validations,
+        }
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+        print(f"Validation artifact saved: {out_path}")
+        return
 
     cases = build_cases(tokenizer, args.samples_per_task, args.seed, args.target_tokens, args.max_context)
     for case in cases:
