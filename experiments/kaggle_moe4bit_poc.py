@@ -323,6 +323,14 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("This POC is intended for a CUDA GPU (Kaggle T4/P100 class).")
 
+    try:
+        import gptqmodel  # noqa: F401
+    except ImportError as exc:
+        raise RuntimeError(
+            "Transformers 5.x requires GPTQModel to load this AWQ checkpoint. "
+            "Install it with: pip install -U 'gptqmodel>=7.5.0' --no-build-isolation"
+        ) from exc
+
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
