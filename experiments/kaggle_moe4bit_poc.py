@@ -90,6 +90,12 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated KiaOmni budget sweep.",
     )
     parser.add_argument("--alpha-max", type=float, default=0.10)
+    parser.add_argument(
+        "--router-score-func",
+        choices=("sigmoid", "softmax"),
+        default="sigmoid",
+        help="Router score semantics. MobileMoE uses normalized sigmoid Top-K routing.",
+    )
     parser.add_argument("--long-tokens", type=int, default=3200)
     parser.add_argument("--output", default=DEFAULT_OUT)
     parser.add_argument("--verbose", action="store_true")
@@ -307,6 +313,7 @@ def configure_arm(
     arm: str,
     budget: int,
     alpha_max: float,
+    score_func: str,
     verbose: bool,
 ):
     # Do not call remove_kiaomni on a never-patched model: some model runtimes
@@ -321,6 +328,7 @@ def configure_arm(
         controller = apply_moe_route_stability(
             model,
             alpha_max=alpha_max,
+            score_func=score_func,
             verbose=verbose,
         )
         controller.reset_metrics()
@@ -334,6 +342,49 @@ def configure_arm(
         )
 
     return controller
+
+
+@torch.inference_mode()
+def validate_router_instrumentation(model, tokenizer, score_func: str) -> dict[str, Any]:
+    """Fail fast unless real MobileMoE router tokens reach the controller."""
+    controller = apply_moe_route_stability(
+        model,
+        alpha_max=0.0,
+        score_func=score_func,
+        verbose=False,
+    )
+    try:
+        rendered, uses_chat_template = render_prompt(
+            tokenizer,
+            "Reply with one word: ready",
+        )
+        encoded = tokenizer(
+            rendered,
+            return_tensors="pt",
+            add_special_tokens=not uses_chat_template,
+        )
+        device = input_device(model)
+        encoded = {k: v.to(device) for k, v in encoded.items()}
+        _ = model(**encoded, use_cache=False)
+        snapshot = controller.snapshot()
+    finally:
+        remove_moe_route_stability(model)
+
+    print(
+        "Router preflight: "
+        f"tokens={snapshot['tokens_observed']} "
+        f"hooks={snapshot['hook_calls']} "
+        f"functional={snapshot['functional_router_calls']} "
+        f"structured={snapshot['structured_outputs']} "
+        f"shape_fixups={snapshot['shape_reconciliations']} "
+        f"score_func={snapshot['score_func']}"
+    )
+    if snapshot["tokens_observed"] <= 0:
+        raise RuntimeError(
+            "Router instrumentation preflight failed: discovered routers but "
+            "observed zero routed tokens. Refusing to run jitter benchmark."
+        )
+    return snapshot
 
 
 def aggregate_arm(
@@ -388,7 +439,10 @@ def main() -> None:
     if not budgets:
         raise ValueError("At least one KiaOmni budget is required.")
 
-    print(f"Budgets: {budgets} | alpha_max: {args.alpha_max}")
+    print(
+        f"Budgets: {budgets} | alpha_max: {args.alpha_max} "
+        f"| router_score_func: {args.router_score_func}"
+    )
     print(f"Long-context target: {args.long_tokens}+ tokens")
     print("=" * 88)
 
@@ -436,6 +490,12 @@ def main() -> None:
             f"on a 15 GB T4. GPU0 allocated after load: {gpu0_allocated:.2f} GB"
         )
 
+    router_preflight = validate_router_instrumentation(
+        model,
+        tokenizer,
+        args.router_score_func,
+    )
+
     cases = build_cases(tokenizer, args.long_tokens)
 
     # Baseline and route-only do not depend on the KiaOmni budget, so run them
@@ -460,6 +520,8 @@ def main() -> None:
         "budgets": budgets,
         "long_tokens_target": args.long_tokens,
         "alpha_max": args.alpha_max,
+        "router_score_func": args.router_score_func,
+        "router_preflight": router_preflight,
         "environment": {
             **gpu_metadata(),
             "python": platform.python_version(),
@@ -484,6 +546,7 @@ def main() -> None:
                 arm=arm,
                 budget=budget if budget is not None else budgets[0],
                 alpha_max=args.alpha_max,
+                score_func=args.router_score_func,
                 verbose=args.verbose,
             )
             rows = []
