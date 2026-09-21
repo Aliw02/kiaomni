@@ -98,6 +98,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--long-tokens", type=int, default=3200)
     parser.add_argument("--output", default=DEFAULT_OUT)
+    parser.add_argument(
+        "--router-preflight-only",
+        action="store_true",
+        help="Validate router instrumentation and exit before the benchmark.",
+    )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
 
@@ -495,6 +500,9 @@ def main() -> None:
         tokenizer,
         args.router_score_func,
     )
+    if args.router_preflight_only:
+        print(json.dumps(router_preflight, indent=2))
+        return
 
     cases = build_cases(tokenizer, args.long_tokens)
 
