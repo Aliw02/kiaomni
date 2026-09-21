@@ -119,6 +119,18 @@ def input_device(model) -> torch.device:
     return next(model.parameters()).device
 
 
+def render_prompt(tokenizer, prompt: str) -> tuple[str, bool]:
+    """Render an instruction-tuned chat prompt when a chat template is available."""
+    if getattr(tokenizer, "chat_template", None):
+        rendered = tokenizer.apply_chat_template(
+            [{"role": "user", "content": prompt}],
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        return rendered, True
+    return prompt, False
+
+
 def build_needle_case(
     tokenizer,
     *,
@@ -145,9 +157,16 @@ def build_needle_case(
 
     # Grow until the requested scale is reached. Exact equality is unnecessary;
     # the measured prompt token count is recorded in the artifact.
-    while len(tokenizer(prompt, add_special_tokens=False).input_ids) < target_tokens:
+    rendered_prompt, uses_chat_template = render_prompt(tokenizer, prompt)
+    while len(
+        tokenizer(
+            rendered_prompt,
+            add_special_tokens=not uses_chat_template,
+        ).input_ids
+    ) < target_tokens:
         parts.append(filler)
         prompt = "".join(parts) + question
+        rendered_prompt, uses_chat_template = render_prompt(tokenizer, prompt)
 
     return {
         "name": name,
@@ -202,10 +221,11 @@ def longest_common_prefix_ratio(a: list[int], b: list[int]) -> float:
 @torch.inference_mode()
 def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
     device = input_device(model)
+    rendered_prompt, uses_chat_template = render_prompt(tokenizer, case["prompt"])
     encoded = tokenizer(
-        case["prompt"],
+        rendered_prompt,
         return_tensors="pt",
-        add_special_tokens=True,
+        add_special_tokens=not uses_chat_template,
     )
     input_ids = encoded["input_ids"].to(device)
     attention_mask = encoded.get("attention_mask")
@@ -252,6 +272,7 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
         "name": case["name"],
         "kind": case["kind"],
         "prompt_tokens": int(input_ids.shape[1]),
+        "used_chat_template": uses_chat_template,
         "new_tokens": len(new_ids),
         "new_token_ids": new_ids,
         "text": text,
@@ -356,15 +377,16 @@ def main() -> None:
     # checkpoint directly in FP16 on one T4. This deliberately removes
     # AWQ/GPTQ/bitsandbytes from the POC so quantization/runtime adapters
     # cannot confound the routing experiment.
-    # Follow Meta's documented MobileMoE loading path on Transformers 4.57.x.
-    # Transformers 5.x introduced meta-device construction that breaks this
-    # custom architecture because its RoPE init performs scalar tensor logic.
+    # Follow Meta's documented MobileMoE runtime on Transformers 4.57.x.
+    # Keep the 2.8B FP16 checkpoint on GPU0 only so latency/routing metrics are
+    # not contaminated by cross-GPU transfers. Transformers 5.x is avoided
+    # because its meta-device construction breaks this custom RoPE init.
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         trust_remote_code=True,
         token=os.environ.get("HF_TOKEN"),
-        torch_dtype=torch.float16,
-        device_map="auto",
+        dtype=torch.float16,
+        device_map={"": 0},
     )
     model.eval()
 
