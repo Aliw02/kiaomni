@@ -42,7 +42,8 @@
       "n_sink": 16,
       "recency": 32,
       "exact_retained_token_budget": false,
-      "fairness_disclosure": "actual retained tokens and budget_delta must be recorded; do not silently alter whole-block behavior"
+      "fairness_disclosure": "actual retained tokens and budget_delta must be recorded; do not silently alter whole-block behavior",
+      "provenance": "our design; paper Section 2.2 / full-comparison lineage uses mean saliency over 16-token blocks"
     },
     "snapkv": {
       "classification": "external_baseline",
@@ -79,16 +80,26 @@
     "same_prompt_and_chat_template_across_methods": true
   },
   "validation_gate": {
-    "external_press_executes_without_exception": true,
-    "measurable_prefill_cache_required": true,
-    "measured_cache_length_must_equal_requested_budget": true,
-    "generation_must_advance": true,
-    "failure_policy": "VALIDATION_FAIL and exclude method from benchmark scores"
+    "installed_kvpress_must_match_pinned_ref_and_version": true,
+    "budgets": [
+      512,
+      256,
+      128,
+      98
+    ],
+    "validate_every_requested_budget": true,
+    "every_observed_layer_cache_length_must_equal_requested_budget": true,
+    "one_token_generation_must_advance_at_every_budget": true,
+    "forward_hooks_must_be_restored": true,
+    "failure_policy": "fail_closed: write validation-failure artifact and refuse comparison scores unless --skip-external is explicitly used for internal engineering only"
   },
   "analysis_policy": {
     "validation_only_first": true,
     "engineering_smoke_samples_per_task": 1,
     "first_comparison_samples_per_task": 10,
     "do_not_treat_smoke_as_scientific_comparison": true
-  }
+  },
+  "runner": "experiments/kaggle_moe_phase02_multineedle_baselines.py",
+  "requirements": "experiments/phase02_moe_baselines_requirements.txt",
+  "tests": "tests/test_moe_phase02_benchmark.py"
 }
