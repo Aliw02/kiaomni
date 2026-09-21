@@ -49,7 +49,9 @@ KiaOmni demo:
 - `kernel_size=5`
 - exact per-prompt retained-token ratio
 
-StreamingLLM uses the NVIDIA kvpress implementation with `n_sink=4`.
+StreamingLLM uses NVIDIA's `StreamingLLMPress(n_sink=4)` wrapped by
+`KeyRerotationPress`, because kvpress explicitly requires key rerotation for
+full paper-parity RoPE handling after pruning.
 
 ## Validation gate
 
