@@ -32,20 +32,25 @@ Use:
 
 ## Install cell
 
-Run this before importing Transformers in the notebook. AutoAWQ currently
-installs an older Transformers release, so the order is intentional:
+Run this before importing Transformers in the notebook. Transformers 5.x
+uses GPTQModel as the maintained quantization backend for AWQ/GPTQ loading,
+so do not install AutoAWQ for this POC:
 
 ```bash
-pip install -q -U accelerate autoawq
+pip uninstall -y autoawq autoawq-kernels >/dev/null 2>&1 || true
+pip install -q -U accelerate optimum ninja
+pip install -q -U "gptqmodel>=7.5.0" --no-build-isolation
 pip install -q -U "transformers>=5.10,<6"
 ```
 
-Verify that the final environment is using Transformers 5.x:
+Verify that the final environment is using Transformers 5.x and GPTQModel:
 
 ```bash
 python - <<'PY'
 import transformers
+import gptqmodel
 print("transformers", transformers.__version__)
+print("gptqmodel", getattr(gptqmodel, "__version__", "installed"))
 major, minor = map(int, transformers.__version__.split(".")[:2])
 assert (major, minor) >= (5, 10)
 PY
