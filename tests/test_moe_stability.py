@@ -136,3 +136,28 @@ def test_sigmoid_router_semantics_are_detected():
     assert 0.0 <= metrics["mean_uncertainty"] <= 1.0
 
     remove_moe_route_stability(model)
+
+
+class _AliasConfig:
+    num_routed_experts = 3
+    num_experts_per_token = 1
+    scoring_func = "sigmoid"
+
+
+class _AliasTinyMoE(_TinyMoE):
+    def __init__(self):
+        super().__init__()
+        self.config = _AliasConfig()
+
+
+def test_custom_moe_config_aliases_are_inferred():
+    model = _AliasTinyMoE()
+    controller = apply_moe_route_stability(model, alpha_max=0.10)
+
+    snapshot = controller.snapshot()
+    assert snapshot["num_experts"] == 3
+    assert snapshot["top_k"] == 1
+    assert snapshot["score_func"] == "sigmoid"
+    assert snapshot["router_count"] == 1
+
+    remove_moe_route_stability(model)
