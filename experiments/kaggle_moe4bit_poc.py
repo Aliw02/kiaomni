@@ -356,14 +356,20 @@ def main() -> None:
     # checkpoint directly in FP16 on one T4. This deliberately removes
     # AWQ/GPTQ/bitsandbytes from the POC so quantization/runtime adapters
     # cannot confound the routing experiment.
+    # MobileMoE remote code performs scalar RoPE calculations during
+    # __init__. Passing device_map on Transformers 5 enables the meta-device
+    # loading path, where Tensor.item()/scalar comparisons are invalid.
+    # Instantiate and load on CPU first, then move the completed FP16 model
+    # to GPU0. The 2.8B checkpoint comfortably fits Kaggle system RAM.
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         trust_remote_code=True,
         token=os.environ.get("HF_TOKEN"),
         dtype=torch.float16,
-        low_cpu_mem_usage=True,
-        device_map={"": 0},
+        low_cpu_mem_usage=False,
+        device_map=None,
     )
+    model = model.to("cuda:0")
     model.eval()
 
     load_allocated_by_gpu = {
@@ -371,6 +377,7 @@ def main() -> None:
         for gpu_idx in range(torch.cuda.device_count())
     }
     print(f"HF device map: {getattr(model, 'hf_device_map', None)}")
+    print(f"Model parameter device: {next(model.parameters()).device}")
     print(f"Loaded model VRAM allocation by GPU: {load_allocated_by_gpu}")
     gpu0_allocated = load_allocated_by_gpu.get("0", 0.0)
     if gpu0_allocated > 12.5:
