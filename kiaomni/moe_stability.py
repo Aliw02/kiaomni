@@ -56,6 +56,7 @@ class RouteMetrics:
     structured_outputs: int = 0
     shape_reconciliations: int = 0
     functional_router_calls: int = 0
+    shadow_router_calls: int = 0
 
     def snapshot(self) -> dict:
         pairs = max(self.transition_pairs, 1)
@@ -75,6 +76,7 @@ class RouteMetrics:
             "structured_outputs": self.structured_outputs,
             "shape_reconciliations": self.shape_reconciliations,
             "functional_router_calls": self.functional_router_calls,
+            "shadow_router_calls": self.shadow_router_calls,
         }
 
 
@@ -134,6 +136,7 @@ class AdaptiveMoERouteController:
         top_k: int,
         alpha_max: float = 0.10,
         score_func: str = "softmax",
+        routing_mode: str = "active",
     ) -> None:
         if num_experts < 2:
             raise ValueError("num_experts must be >= 2")
@@ -146,6 +149,9 @@ class AdaptiveMoERouteController:
         self.top_k = int(top_k)
         self.alpha_max = float(alpha_max)
         self.score_func = str(score_func or "softmax").lower()
+        self.routing_mode = str(routing_mode or "active").lower()
+        if self.routing_mode not in {"active", "shadow_counterfactual"}:
+            raise ValueError("routing_mode must be 'active' or 'shadow_counterfactual'")
         self.states: Dict[str, _RouteState] = {}
         self.metrics = RouteMetrics()
         self.router_names: list[str] = []
@@ -168,6 +174,8 @@ class AdaptiveMoERouteController:
                 "top_k": self.top_k,
                 "alpha_max": self.alpha_max,
                 "score_func": self.score_func,
+                "routing_mode": self.routing_mode,
+                "active_intervention": self.routing_mode == "active",
                 "router_count": len(self.router_names),
                 "router_names": list(self.router_names),
             }
@@ -404,6 +412,7 @@ def apply_moe_route_stability(
     num_experts: Optional[int] = None,
     top_k: Optional[int] = None,
     score_func: Optional[str] = None,
+    routing_mode: str = "active",
     verbose: bool = False,
 ) -> AdaptiveMoERouteController:
     """Install adaptive causal smoothing on discovered MoE router gates."""
@@ -506,77 +515,122 @@ def apply_moe_route_stability(
         top_k=resolved_top_k,
         alpha_max=alpha_max,
         score_func=resolved_score_func,
+        routing_mode=routing_mode,
     )
 
-    # Some custom MoE implementations call F.linear(hidden, router.weight)
-    # directly instead of router(hidden), bypassing nn.Module forward hooks.
-    # Intercept only calls whose weight object belongs to a discovered router.
-    for _name, _module, _parent in discovered:
-        weight = getattr(_module, "weight", None)
-        if torch.is_tensor(weight):
-            controller._router_weight_map[id(weight)] = (
-                _name,
-                getattr(_parent, "expert_bias", None),
-            )
+    if controller.routing_mode == "active":
+        # Some custom MoE implementations call F.linear(hidden, router.weight)
+        # directly instead of router(hidden), bypassing nn.Module forward hooks.
+        # Intercept only calls whose weight object belongs to a discovered router.
+        for _name, _module, _parent in discovered:
+            weight = getattr(_module, "weight", None)
+            if torch.is_tensor(weight):
+                controller._router_weight_map[id(weight)] = (
+                    _name,
+                    getattr(_parent, "expert_bias", None),
+                )
 
-    if controller._router_weight_map:
-        controller._functional_linear_original = F.linear
-        _orig_linear = controller._functional_linear_original
+        if controller._router_weight_map:
+            controller._functional_linear_original = F.linear
+            _orig_linear = controller._functional_linear_original
 
-        def _linear_with_router_stability(input, weight, bias=None):
-            output = _orig_linear(input, weight, bias)
-            route_info = controller._router_weight_map.get(id(weight))
-            if route_info is None:
-                return output
+            def _linear_with_router_stability(input, weight, bias=None):
+                output = _orig_linear(input, weight, bias)
+                route_info = controller._router_weight_map.get(id(weight))
+                if route_info is None:
+                    return output
 
-            _name, _bias = route_info
-            controller.metrics.hook_calls += 1
-            controller.metrics.functional_router_calls += 1
-            stable = controller.transform(
-                _name,
-                input,
-                output,
-                expert_bias=_bias,
-            )
-            controller._already_transformed_output_ids.add(id(stable))
-            return stable
-
-        F.linear = _linear_with_router_stability
-
-    for name, module, parent in discovered:
-        controller.router_names.append(name)
-        expert_bias = getattr(parent, "expert_bias", None)
-
-        def _hook(_module, inputs, output, *, _name=name, _bias=expert_bias):
-            if not inputs:
-                return output
-
-            router_tensor = _find_router_tensor(output, controller.num_experts)
-            if router_tensor is None:
+                _name, _bias = route_info
                 controller.metrics.hook_calls += 1
-                return output
+                controller.metrics.functional_router_calls += 1
+                stable = controller.transform(
+                    _name,
+                    input,
+                    output,
+                    expert_bias=_bias,
+                )
+                controller._already_transformed_output_ids.add(id(stable))
+                return stable
 
-            # F.linear fallback may already have transformed this exact router
-            # result. In that case the module hook is observation-only.
-            if id(router_tensor) in controller._already_transformed_output_ids:
-                controller._already_transformed_output_ids.discard(id(router_tensor))
-                return output
+            F.linear = _linear_with_router_stability
 
-            controller.metrics.hook_calls += 1
-            if router_tensor is not output:
-                controller.metrics.structured_outputs += 1
+        for name, module, parent in discovered:
+            controller.router_names.append(name)
+            expert_bias = getattr(parent, "expert_bias", None)
 
-            stable = controller.transform(
-                _name,
-                inputs[0],
-                router_tensor,
-                expert_bias=_bias,
-            )
-            if stable is router_tensor:
-                return output
-            return _replace_router_tensor(output, router_tensor, stable)
+            def _hook(_module, inputs, output, *, _name=name, _bias=expert_bias):
+                if not inputs:
+                    return output
 
-        controller._handles.append(module.register_forward_hook(_hook))
+                router_tensor = _find_router_tensor(output, controller.num_experts)
+                if router_tensor is None:
+                    controller.metrics.hook_calls += 1
+                    return output
+
+                # F.linear fallback may already have transformed this exact router
+                # result. In that case the module hook is observation-only.
+                if id(router_tensor) in controller._already_transformed_output_ids:
+                    controller._already_transformed_output_ids.discard(id(router_tensor))
+                    return output
+
+                controller.metrics.hook_calls += 1
+                if router_tensor is not output:
+                    controller.metrics.structured_outputs += 1
+
+                stable = controller.transform(
+                    _name,
+                    inputs[0],
+                    router_tensor,
+                    expert_bias=_bias,
+                )
+                if stable is router_tensor:
+                    return output
+                return _replace_router_tensor(output, router_tensor, stable)
+
+            controller._handles.append(module.register_forward_hook(_hook))
+
+
+    else:
+        # Shadow/counterfactual mode: observe the exact router projection from
+        # each MoE parent input without mutating the model's execution path.
+        # This is useful for custom architectures that bypass router.forward().
+        for name, module, parent in discovered:
+            controller.router_names.append(name)
+            weight = getattr(module, "weight", None)
+            bias = getattr(module, "bias", None)
+            expert_bias = getattr(parent, "expert_bias", None)
+            if not torch.is_tensor(weight):
+                continue
+
+            def _shadow_pre_hook(
+                _parent,
+                inputs,
+                *,
+                _name=name,
+                _weight=weight,
+                _bias=bias,
+                _expert_bias=expert_bias,
+            ):
+                if not inputs or not torch.is_tensor(inputs[0]):
+                    return
+                hidden = inputs[0]
+                # Router weights are stored/routed in FP32 in MobileMoE.
+                logits = torch.matmul(
+                    hidden.float(),
+                    _weight.detach().float().transpose(-1, -2),
+                )
+                if torch.is_tensor(_bias):
+                    logits = logits + _bias.detach().float()
+                controller.metrics.hook_calls += 1
+                controller.metrics.shadow_router_calls += 1
+                controller.transform(
+                    _name,
+                    hidden,
+                    logits,
+                    expert_bias=_expert_bias,
+                )
+
+            controller._handles.append(parent.register_forward_pre_hook(_shadow_pre_hook))
 
     def _prefill_hook(_model, args, kwargs):
         if _is_fresh_prefill(kwargs):
@@ -591,7 +645,7 @@ def apply_moe_route_stability(
         print(
             f"[KiaOmni-MoE] installed adaptive route stability on "
             f"{len(discovered)} router gates; alpha_max={alpha_max}; "
-            f"score_func={resolved_score_func}"
+            f"score_func={resolved_score_func}; routing_mode={routing_mode}"
         )
 
     return controller
