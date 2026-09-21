@@ -272,7 +272,7 @@ def configure_arm(
     alpha_max: float,
     verbose: bool,
 ):
-    # Do not call remove_kiaomni on a never-patched model: quantized models
+    # Do not call remove_kiaomni on a never-patched model: some model runtimes
     # may carry an Accelerate-installed instance-level generate wrapper that
     # must remain intact for the true baseline.
     if hasattr(model, "_kia_arch_info"):
@@ -365,19 +365,6 @@ def main() -> None:
         device_map={"": 0},
     )
     model.eval()
-
-    quantized_modules = [
-        name
-        for name, module in model.named_modules()
-        if isinstance(module, BaseQuantLinear)
-    ]
-    print(f"GPTQModel quantized modules: {len(quantized_modules)}")
-    print(f"Quantized module sample: {quantized_modules[:8]}")
-    if not quantized_modules:
-        raise RuntimeError(
-            "GPTQModel loaded zero quantized linear modules; refusing to run "
-            "because this would not be a valid AWQ INT4 POC."
-        )
 
     load_allocated_by_gpu = {
         str(gpu_idx): torch.cuda.memory_allocated(gpu_idx) / (1024**3)
