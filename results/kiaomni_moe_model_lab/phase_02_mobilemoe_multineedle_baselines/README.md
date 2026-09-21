@@ -27,8 +27,10 @@ implementation is independently parity-validated.
 
 BlockSal is **not** an external SnapKV baseline. It is an internal design that
 groups evictable prompt positions into blocks and applies our saliency-driven
-whole-block selection logic. The implementation preserves the historical
-whole-block behavior rather than silently forcing exact token budgets.
+whole-block selection logic. The canonical Phase-02 implementation uses
+`BLOCK_SIZE=16`, matching the full-comparison/paper Section 2.2 lineage. It
+preserves the historical whole-block behavior rather than silently forcing
+exact token budgets.
 
 Because whole blocks are evicted, actual retained tokens may be up to
 `block_size - 1` below the requested budget. Every result records
@@ -55,18 +57,23 @@ full paper-parity RoPE handling after pruning.
 
 ## Validation gate
 
-External methods do not enter benchmark tables unless they first pass:
+External methods do not enter benchmark tables unless they first pass **every
+budget in the requested grid** (512, 256, 128, 98 by default):
 
 1. The press installs and executes on MobileMoE without exception.
-2. A prefill at requested budget 256 produces a measurable KV cache.
-3. The measured cache length is exactly 256.
-4. One-token greedy generation advances successfully.
+2. Every observed transformer layer has exactly the requested KV length after
+   prefill compression.
+3. One-token greedy generation advances at that budget.
+4. The kvpress context manager restores its forward hooks after the check.
 
-A failed method is recorded as `VALIDATION_FAIL` and is skipped instead of
-producing a misleading score.
+The full comparison is fail-closed: if SnapKV or StreamingLLM fails validation
+at any budget, the script writes a validation-failure artifact and refuses to
+produce comparison scores. `--skip-external` exists only for internal
+engineering checks and must not be used for the external-baseline comparison.
 
-KiaOmni must also report exactly 256 retained prompt tokens in its validation
-case. BlockSal has a separate frozen historical-semantics gate.
+KiaOmni is also validated at every requested budget. BlockSal has a separate
+grid validation that preserves its historical whole-block semantics and records
+the actual kept-token count and budget delta.
 
 ## Benchmark
 
@@ -94,14 +101,10 @@ tokens/second, peak allocated VRAM, and compression telemetry.
 Use one T4 for the model. The Phase-02 experiment requires
 `transformers==4.57.6`.
 
-```python
-%pip install -q \
-  "git+https://github.com/NVIDIA/kvpress.git@7331c23da9e6f1510d89ea651d0dea77a57b3252"
-
-%pip install -q \
-  "transformers==4.57.6" \
-  "accelerate==1.13.0" \
-  scipy
+```bash
+%cd /kaggle/working/kiaomni
+%pip install -q -r experiments/phase02_moe_baselines_requirements.txt
+%pip install -q -e /kaggle/working/kiaomni --no-deps
 ```
 
 Then update KiaOmni:
