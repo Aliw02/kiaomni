@@ -198,3 +198,39 @@ def test_functional_linear_router_bypass_is_intercepted():
     assert metrics["hook_calls"] > 0
 
     remove_moe_route_stability(model)
+
+
+def test_shadow_counterfactual_observes_jitter_without_mutating_model():
+    model = _TinyMoE()
+    with torch.no_grad():
+        model.layers[0].mlp.gate.weight.copy_(
+            torch.tensor(
+                [
+                    [1.0, 0.0],
+                    [-1.0, 0.0],
+                    [0.0, 0.0],
+                ]
+            )
+        )
+
+    first = torch.tensor([0.01, -0.01, 0.01, -0.01, 0.01, -0.01])
+    x = torch.stack([first, torch.ones_like(first)], dim=-1).unsqueeze(0)
+    expected = model(inputs_embeds=x).detach()
+
+    controller = apply_moe_route_stability(
+        model,
+        alpha_max=0.80,
+        routing_mode="shadow_counterfactual",
+    )
+    actual = model(inputs_embeds=x).detach()
+    metrics = controller.snapshot()
+
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+    assert metrics["routing_mode"] == "shadow_counterfactual"
+    assert metrics["active_intervention"] is False
+    assert metrics["shadow_router_calls"] > 0
+    assert metrics["tokens_observed"] > 0
+    assert metrics["raw_top1_transition_rate"] > 0.9
+    assert metrics["stable_top1_transition_rate"] < metrics["raw_top1_transition_rate"]
+
+    remove_moe_route_stability(model)
