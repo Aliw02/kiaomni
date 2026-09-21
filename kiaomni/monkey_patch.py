@@ -128,6 +128,13 @@ def apply_kiaomni(
 
         # No eviction needed — prompt fits in budget.
         if L <= budget:
+            model._kia_last_compression = {
+                "original_tokens": int(L),
+                "kept_tokens": int(L),
+                "budget": int(budget),
+                "compression_ratio": 1.0,
+                "evicted_tokens": 0,
+            }
             return _orig(input_ids, **kwargs)
 
         # 1. Extract per-token saliency over the full prompt: (B, L)
@@ -145,8 +152,20 @@ def apply_kiaomni(
             for b in range(B)
         ]
 
+        kept = [len(k) for k in keep_per_row]
+        model._kia_last_compression = {
+            "original_tokens": int(L),
+            "kept_tokens": int(kept[0]) if B == 1 else kept,
+            "budget": int(budget),
+            "compression_ratio": (
+                float(kept[0] / L) if B == 1 else [float(k / L) for k in kept]
+            ),
+            "evicted_tokens": (
+                int(L - kept[0]) if B == 1 else [int(L - k) for k in kept]
+            ),
+        }
+
         if verbose:
-            kept = [len(k) for k in keep_per_row]
             print(f"[KiaOmni] {policy} budget={budget} kept={kept}/{L}")
 
         # 3. Slice input_ids by kept positions and run generate fresh.

@@ -1,0 +1,65 @@
+{
+  "freeze_version": "KIAOMNI_MOE_MODEL_LAB_PHASE01_FREEZE_V1",
+  "frozen_at_date": "2026-09-22",
+  "repository": "Aliw02/kiaomni",
+  "source_branch": "exp/moe-route-stability-v1",
+  "source_head_before_archive": "280548bebc67918db66e0f64272d324235a1eadd",
+  "provenance": {
+    "result_run_commit_session_derived": "9a5d4734bd6968eaad884258418a8a0b6c90921e",
+    "result_run_commit_embedded_in_artifact": false,
+    "note": "The result was run before the later vectorized shadow-probe optimization. The exact run SHA was not embedded in the JSON artifact; this SHA is reconstructed from the session history.",
+    "post_run_shadow_probe_optimization_commit": "280548bebc67918db66e0f64272d324235a1eadd"
+  },
+  "result_artifact": {
+    "path": "results/kiaomni_moe_model_lab/phase_01_mobilemoe_route_stability/moe_route_budget_sweep_3200.json",
+    "sha256": "c4a0c6a60f5fd5e67d77823f68312910fce6bb64a736ef07cfd5ca14fa897a9a",
+    "model": "facebook/MobileMoE-M-SFT",
+    "precision": "FP16",
+    "device_target": "single Tesla T4",
+    "weights_frozen": true,
+    "budgets": [
+      512,
+      256,
+      128,
+      98
+    ],
+    "requested_long_tokens": 3200,
+    "measured_needle_prompt_tokens": 4294,
+    "alpha_max": 0.1,
+    "router_score_func": "sigmoid",
+    "routing_mode": "shadow_counterfactual",
+    "active_intervention": false
+  },
+  "frozen_key_results": {
+    "baseline": {
+      "needle_pass_rate": 1,
+      "mean_baseline_token_lcp_ratio": 1,
+      "peak_allocated_vram_gb": 8.016302108764648
+    },
+    "kiaomni_budget_98": {
+      "retained_tokens": 98,
+      "original_tokens": 4294,
+      "compression_factor": 43.816326530612244,
+      "needle_pass_rate": 1,
+      "mean_baseline_token_lcp_ratio": 1,
+      "peak_allocated_vram_gb": 6.292166233062744
+    },
+    "route_only_shadow_counterfactual": {
+      "tokens_observed": 339586,
+      "raw_top1_transition_rate": 0.8408916807108933,
+      "stable_top1_transition_rate": 0.8074212442988297,
+      "absolute_top1_transition_reduction": 0.0334704364120636,
+      "relative_top1_transition_reduction": 0.03980350523121783,
+      "raw_topk_jaccard": 0.21776431254741635,
+      "stable_topk_jaccard": 0.24749354194075748,
+      "intervention_rate": 0.4192987932364703,
+      "mean_alpha": 0.07527420586983587
+    }
+  },
+  "freeze_policy": {
+    "overwrite_phase_01_results": false,
+    "future_work_location": "new phase/run directories under results/kiaomni_moe_model_lab/",
+    "future_development_branch": "exp/kiaomni-moe-model-lab",
+    "archival_snapshot_branch": "freeze/kiaomni-moe-mobilemoe-phase01-2026-09-22"
+  }
+}

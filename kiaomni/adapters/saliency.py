@@ -126,6 +126,8 @@ class SaliencyAdapter:
         hooks: list = []
 
         for l_idx, layer in enumerate(layers):
+            if not hasattr(layer, self.probe.attn_module_name):
+                continue
             attn = self._get_attn(layer)
             hooks.extend(self._register_layer_hooks(attn, l_idx, per_layer, B, L, hd))
 
@@ -136,9 +138,13 @@ class SaliencyAdapter:
             for h in hooks:
                 h.remove()
 
-        fallback = np.zeros((B, L), dtype=np.float32)
-        stacked = np.stack([(x if x is not None else fallback) for x in per_layer])
-        return stacked.mean(0).astype(np.float32)  # (B, L)
+        valid = [x for x in per_layer if x is not None]
+        if not valid:
+            raise RuntimeError(
+                "No attention-layer saliency was captured. "
+                "The probed hybrid model exposes no usable Q/K projections."
+            )
+        return np.stack(valid).mean(0).astype(np.float32)  # (B, L)
 
     def _register_layer_hooks(
         self,
@@ -152,6 +158,14 @@ class SaliencyAdapter:
         store: Dict[str, torch.Tensor] = {}
 
         def _commit(q_flat: torch.Tensor, k_flat: torch.Tensor) -> None:
+            # Modern attention families such as LFM2-MoE and Qwen3 apply
+            # Q/K normalization after the linear projections. Hooks on those
+            # norm modules observe [B,L,H,D] tensors rather than flattened
+            # [B,L,H*D], so normalize both layouts here.
+            if q_flat.ndim == 4:
+                q_flat = q_flat.reshape(B, L, -1)
+            if k_flat.ndim == 4:
+                k_flat = k_flat.reshape(B, L, -1)
             q, k = self._reshape_qk(q_flat, k_flat, B, L)
             sal_h = self._last_query_softmax(q, k, hd)         # (B, nh, L)
             per_layer[l_idx] = sal_h.mean(1).cpu().numpy().astype(np.float32)
@@ -160,6 +174,20 @@ class SaliencyAdapter:
         if self._strategy == "hook-separate":
             q_mod = getattr(attn, self.probe.q_module_name)    # type: ignore[arg-type]
             k_mod = getattr(attn, self.probe.k_module_name)    # type: ignore[arg-type]
+
+            # Prefer post-projection Q/K normalization outputs when present.
+            # This keeps saliency aligned with the tensors that actually enter
+            # RoPE/attention while remaining generic across naming conventions.
+            q_norm = next(
+                (getattr(attn, n) for n in ("q_layernorm", "q_norm") if hasattr(attn, n)),
+                None,
+            )
+            k_norm = next(
+                (getattr(attn, n) for n in ("k_layernorm", "k_norm") if hasattr(attn, n)),
+                None,
+            )
+            q_source = q_norm if q_norm is not None else q_mod
+            k_source = k_norm if k_norm is not None else k_mod
 
             def _q_hook(_m, _i, out):
                 # Pull to CPU + float32 immediately. Under 4-bit NF4 with
@@ -184,8 +212,8 @@ class SaliencyAdapter:
                 del store["q"]   # precise cleanup (no leak on partial state)
 
             return [
-                q_mod.register_forward_hook(_q_hook),
-                k_mod.register_forward_hook(_k_hook),
+                q_source.register_forward_hook(_q_hook),
+                k_source.register_forward_hook(_k_hook),
             ]
 
         # Fused patterns share a single projection.
@@ -236,9 +264,13 @@ class SaliencyAdapter:
         per_layer: list = []
         w = min(32, L)
         for a in attns:
+            if a is None:
+                continue
             win_rows = a[:, :, -w:, :].to(torch.float32)         # (B, nh, w, L)
             max_win = win_rows.max(dim=2).values                 # (B, nh, L)
             per_layer.append(max_win.mean(1).cpu().numpy())      # (B, L)
+        if not per_layer:
+            raise RuntimeError("Model returned no usable attention tensors.")
         return np.stack(per_layer).mean(0).astype(np.float32)
 
 

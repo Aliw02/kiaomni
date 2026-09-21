@@ -1,0 +1,1000 @@
+{
+  "experiment": "KIAOMNI_MOE_ROUTE_STABILITY_POC_V1",
+  "model": "facebook/MobileMoE-M-SFT",
+  "precision_target": "FP16 on single T4 (no quantization runtime)",
+  "weights_frozen": true,
+  "budgets": [
+    512,
+    256,
+    128,
+    98
+  ],
+  "long_tokens_target": 3200,
+  "alpha_max": 0.1,
+  "router_score_func": "sigmoid",
+  "routing_mode": "shadow_counterfactual",
+  "router_preflight": {
+    "tokens_observed": 416,
+    "raw_top1_transition_rate": 0.8051282051282052,
+    "stable_top1_transition_rate": 0.8051282051282052,
+    "raw_topk_jaccard": 0.20141636782731764,
+    "stable_topk_jaccard": 0.20141636782731764,
+    "intervention_rate": 0.0,
+    "mean_alpha": 0.0,
+    "max_alpha_seen": 0.0,
+    "mean_uncertainty": 0.848852850496769,
+    "mean_hidden_similarity": 0.6625542818353727,
+    "hook_calls": 26,
+    "structured_outputs": 0,
+    "shape_reconciliations": 0,
+    "functional_router_calls": 0,
+    "shadow_router_calls": 26,
+    "num_experts": 60,
+    "top_k": 4,
+    "alpha_max": 0.0,
+    "score_func": "sigmoid",
+    "routing_mode": "shadow_counterfactual",
+    "active_intervention": false,
+    "router_count": 26,
+    "router_names": [
+      "model.layers.0.feed_forward.router",
+      "model.layers.1.feed_forward.router",
+      "model.layers.2.feed_forward.router",
+      "model.layers.3.feed_forward.router",
+      "model.layers.4.feed_forward.router",
+      "model.layers.5.feed_forward.router",
+      "model.layers.6.feed_forward.router",
+      "model.layers.7.feed_forward.router",
+      "model.layers.8.feed_forward.router",
+      "model.layers.9.feed_forward.router",
+      "model.layers.10.feed_forward.router",
+      "model.layers.11.feed_forward.router",
+      "model.layers.12.feed_forward.router",
+      "model.layers.13.feed_forward.router",
+      "model.layers.14.feed_forward.router",
+      "model.layers.15.feed_forward.router",
+      "model.layers.16.feed_forward.router",
+      "model.layers.17.feed_forward.router",
+      "model.layers.18.feed_forward.router",
+      "model.layers.19.feed_forward.router",
+      "model.layers.20.feed_forward.router",
+      "model.layers.21.feed_forward.router",
+      "model.layers.22.feed_forward.router",
+      "model.layers.23.feed_forward.router",
+      "model.layers.24.feed_forward.router",
+      "model.layers.25.feed_forward.router"
+    ]
+  },
+  "environment": {
+    "cuda_available": true,
+    "device_count": 2,
+    "devices": [
+      {
+        "index": 0,
+        "name": "Tesla T4",
+        "total_vram_gb": 14.56219482421875
+      },
+      {
+        "index": 1,
+        "name": "Tesla T4",
+        "total_vram_gb": 14.56219482421875
+      }
+    ],
+    "torch_version": "2.10.0+cu128",
+    "cuda_version": "12.8",
+    "python": "3.12.13",
+    "platform": "Linux-6.12.90+-x86_64-with-glibc2.35",
+    "model_loaded_allocated_vram_by_gpu_gb": {
+      "0": 5.250159740447998,
+      "1": 0.0
+    },
+    "hf_device_map": {
+      "": 0
+    }
+  },
+  "arms": {
+    "baseline": {
+      "arm": "baseline",
+      "budget": null,
+      "aggregate": {
+        "mean_baseline_token_lcp_ratio": 1.0,
+        "needle_pass_rate": 1.0,
+        "mean_tokens_per_s": 3.17576499460248,
+        "max_peak_allocated_vram_gb": 8.016302108764648,
+        "router": null
+      },
+      "cases": [
+        {
+          "name": "math",
+          "kind": "short",
+          "prompt_tokens": 24,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 2,
+          "new_token_ids": [
+            19355,
+            128008
+          ],
+          "text": "864",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 0.8779312330000266,
+          "tokens_per_s": 2.2780827527523893,
+          "peak_allocated_vram_gb": 5.259915828704834,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.259915828704834,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "science",
+          "kind": "short",
+          "prompt_tokens": 30,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 28,
+          "new_token_ids": [
+            69369,
+            38268,
+            1606,
+            279,
+            6962,
+            35715,
+            8895,
+            71423,
+            4907,
+            323,
+            67190,
+            810,
+            14134,
+            449,
+            279,
+            5593,
+            14620,
+            11,
+            7859,
+            279,
+            5457,
+            43844,
+            291,
+            824,
+            5089,
+            3158,
+            13,
+            128008
+          ],
+          "text": "Pressure rises because the gas molecules gain kinetic energy and collide more frequently with the container walls, increasing the force exerted per unit area.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 4.979670040000087,
+          "tokens_per_s": 5.622862513998921,
+          "peak_allocated_vram_gb": 5.260772228240967,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.260772228240967,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "logic",
+          "kind": "short",
+          "prompt_tokens": 42,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 8,
+          "new_token_ids": [
+            3947,
+            527,
+            220,
+            972,
+            20953,
+            9861,
+            13,
+            128008
+          ],
+          "text": "There are 18 balls remaining.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.7135802200000398,
+          "tokens_per_s": 4.668587969578579,
+          "peak_allocated_vram_gb": 5.260596752166748,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.260596752166748,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "code",
+          "kind": "short",
+          "prompt_tokens": 26,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 8,
+          "new_token_ids": [
+            74694,
+            12958,
+            198,
+            2880,
+            20706,
+            340,
+            74694,
+            128008
+          ],
+          "text": "```python\nmax(values)\n```",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.6329637750000074,
+          "tokens_per_s": 4.89906764771923,
+          "peak_allocated_vram_gb": 5.2601141929626465,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.2601141929626465,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_early",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            15828,
+            23,
+            128008
+          ],
+          "text": "KIA-2718",
+          "expected": "KIA-2718",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.8061914350000734,
+          "tokens_per_s": 1.576378934813058,
+          "peak_allocated_vram_gb": 8.016302108764648,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.016302108764648,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_middle",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            16104,
+            16,
+            128008
+          ],
+          "text": "KIA-3141",
+          "expected": "KIA-3141",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.7738407919999872,
+          "tokens_per_s": 1.5898921896014155,
+          "peak_allocated_vram_gb": 8.016302108764648,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.016302108764648,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_late",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            10718,
+            23,
+            128008
+          ],
+          "text": "KIA-1618",
+          "expected": "KIA-1618",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.7606167999999798,
+          "tokens_per_s": 1.5954829537537651,
+          "peak_allocated_vram_gb": 8.016302108764648,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.016302108764648,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        }
+      ]
+    },
+    "route_only": {
+      "arm": "route_only",
+      "budget": null,
+      "aggregate": {
+        "mean_baseline_token_lcp_ratio": 1.0,
+        "needle_pass_rate": 1.0,
+        "mean_tokens_per_s": 1.6245858353619795,
+        "max_peak_allocated_vram_gb": 8.425854206085205,
+        "router": {
+          "tokens_observed": 339586,
+          "raw_top1_transition_rate": 0.8408916807108933,
+          "stable_top1_transition_rate": 0.8074212442988297,
+          "raw_topk_jaccard": 0.21776431254741635,
+          "stable_topk_jaccard": 0.24749354194075748,
+          "intervention_rate": 0.4192987932364703,
+          "mean_alpha": 0.07527420586983587,
+          "max_alpha_seen": 0.0977296307682991,
+          "mean_uncertainty": 0.9360755751031204,
+          "mean_hidden_similarity": 0.8026225019223764,
+          "hook_calls": 1664,
+          "structured_outputs": 0,
+          "shape_reconciliations": 0,
+          "functional_router_calls": 0,
+          "shadow_router_calls": 1664,
+          "num_experts": 60,
+          "top_k": 4,
+          "alpha_max": 0.1,
+          "score_func": "sigmoid",
+          "routing_mode": "shadow_counterfactual",
+          "active_intervention": false,
+          "router_count": 26,
+          "router_names": [
+            "model.layers.0.feed_forward.router",
+            "model.layers.1.feed_forward.router",
+            "model.layers.2.feed_forward.router",
+            "model.layers.3.feed_forward.router",
+            "model.layers.4.feed_forward.router",
+            "model.layers.5.feed_forward.router",
+            "model.layers.6.feed_forward.router",
+            "model.layers.7.feed_forward.router",
+            "model.layers.8.feed_forward.router",
+            "model.layers.9.feed_forward.router",
+            "model.layers.10.feed_forward.router",
+            "model.layers.11.feed_forward.router",
+            "model.layers.12.feed_forward.router",
+            "model.layers.13.feed_forward.router",
+            "model.layers.14.feed_forward.router",
+            "model.layers.15.feed_forward.router",
+            "model.layers.16.feed_forward.router",
+            "model.layers.17.feed_forward.router",
+            "model.layers.18.feed_forward.router",
+            "model.layers.19.feed_forward.router",
+            "model.layers.20.feed_forward.router",
+            "model.layers.21.feed_forward.router",
+            "model.layers.22.feed_forward.router",
+            "model.layers.23.feed_forward.router",
+            "model.layers.24.feed_forward.router",
+            "model.layers.25.feed_forward.router"
+          ]
+        }
+      },
+      "cases": [
+        {
+          "name": "math",
+          "kind": "short",
+          "prompt_tokens": 24,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 2,
+          "new_token_ids": [
+            19355,
+            128008
+          ],
+          "text": "864",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.3717926739999484,
+          "tokens_per_s": 1.4579462610543692,
+          "peak_allocated_vram_gb": 5.261941432952881,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.261941432952881,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "science",
+          "kind": "short",
+          "prompt_tokens": 30,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 28,
+          "new_token_ids": [
+            69369,
+            38268,
+            1606,
+            279,
+            6962,
+            35715,
+            8895,
+            71423,
+            4907,
+            323,
+            67190,
+            810,
+            14134,
+            449,
+            279,
+            5593,
+            14620,
+            11,
+            7859,
+            279,
+            5457,
+            43844,
+            291,
+            824,
+            5089,
+            3158,
+            13,
+            128008
+          ],
+          "text": "Pressure rises because the gas molecules gain kinetic energy and collide more frequently with the container walls, increasing the force exerted per unit area.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 6.607664106000016,
+          "tokens_per_s": 4.237503533900114,
+          "peak_allocated_vram_gb": 5.262765407562256,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.262765407562256,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "logic",
+          "kind": "short",
+          "prompt_tokens": 42,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 8,
+          "new_token_ids": [
+            3947,
+            527,
+            220,
+            972,
+            20953,
+            9861,
+            13,
+            128008
+          ],
+          "text": "There are 18 balls remaining.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 3.1841886240000576,
+          "tokens_per_s": 2.5124139756363424,
+          "peak_allocated_vram_gb": 5.2646379470825195,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.2646379470825195,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "code",
+          "kind": "short",
+          "prompt_tokens": 26,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 8,
+          "new_token_ids": [
+            74694,
+            12958,
+            198,
+            2880,
+            20706,
+            340,
+            74694,
+            128008
+          ],
+          "text": "```python\nmax(values)\n```",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 2.6502266570000756,
+          "tokens_per_s": 3.0186097399894094,
+          "peak_allocated_vram_gb": 5.262216091156006,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.262216091156006,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_early",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            15828,
+            23,
+            128008
+          ],
+          "text": "KIA-2718",
+          "expected": "KIA-2718",
+          "exact_contains_expected": true,
+          "elapsed_s": 123.83318369100004,
+          "tokens_per_s": 0.04845227927735228,
+          "peak_allocated_vram_gb": 8.425854206085205,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.425854206085205,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_middle",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            16104,
+            16,
+            128008
+          ],
+          "text": "KIA-3141",
+          "expected": "KIA-3141",
+          "exact_contains_expected": true,
+          "elapsed_s": 123.72997210900007,
+          "tokens_per_s": 0.04849269661771436,
+          "peak_allocated_vram_gb": 8.425854206085205,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.425854206085205,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_late",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": null,
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            10718,
+            23,
+            128008
+          ],
+          "text": "KIA-1618",
+          "expected": "KIA-1618",
+          "exact_contains_expected": true,
+          "elapsed_s": 123.24792531699995,
+          "tokens_per_s": 0.04868236105855489,
+          "peak_allocated_vram_gb": 8.425854206085205,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 8.425854206085205,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        }
+      ]
+    },
+    "kiaomni_only_b512": {
+      "arm": "kiaomni_only",
+      "budget": 512,
+      "aggregate": {
+        "mean_baseline_token_lcp_ratio": 1.0,
+        "needle_pass_rate": 1.0,
+        "mean_tokens_per_s": 3.473029309823846,
+        "max_peak_allocated_vram_gb": 6.292166233062744,
+        "router": null
+      },
+      "cases": [
+        {
+          "name": "math",
+          "kind": "short",
+          "prompt_tokens": 24,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 24,
+            "kept_tokens": 24,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 2,
+          "new_token_ids": [
+            19355,
+            128008
+          ],
+          "text": "864",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 0.6578605409999909,
+          "tokens_per_s": 3.040158020360774,
+          "peak_allocated_vram_gb": 5.259915828704834,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.259915828704834,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "science",
+          "kind": "short",
+          "prompt_tokens": 30,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 30,
+            "kept_tokens": 30,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 28,
+          "new_token_ids": [
+            69369,
+            38268,
+            1606,
+            279,
+            6962,
+            35715,
+            8895,
+            71423,
+            4907,
+            323,
+            67190,
+            810,
+            14134,
+            449,
+            279,
+            5593,
+            14620,
+            11,
+            7859,
+            279,
+            5457,
+            43844,
+            291,
+            824,
+            5089,
+            3158,
+            13,
+            128008
+          ],
+          "text": "Pressure rises because the gas molecules gain kinetic energy and collide more frequently with the container walls, increasing the force exerted per unit area.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 4.854263125999978,
+          "tokens_per_s": 5.768125722322067,
+          "peak_allocated_vram_gb": 5.260772228240967,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.260772228240967,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "logic",
+          "kind": "short",
+          "prompt_tokens": 42,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 42,
+            "kept_tokens": 42,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 8,
+          "new_token_ids": [
+            3947,
+            527,
+            220,
+            972,
+            20953,
+            9861,
+            13,
+            128008
+          ],
+          "text": "There are 18 balls remaining.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.6628324989999328,
+          "tokens_per_s": 4.811067864509138,
+          "peak_allocated_vram_gb": 5.260596752166748,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.260596752166748,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "code",
+          "kind": "short",
+          "prompt_tokens": 26,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 26,
+            "kept_tokens": 26,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 8,
+          "new_token_ids": [
+            74694,
+            12958,
+            198,
+            2880,
+            20706,
+            340,
+            74694,
+            128008
+          ],
+          "text": "```python\nmax(values)\n```",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.607625508999945,
+          "tokens_per_s": 4.976283316738709,
+          "peak_allocated_vram_gb": 5.2601141929626465,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.2601141929626465,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_early",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 4294,
+            "kept_tokens": 512,
+            "budget": 512,
+            "compression_ratio": 0.1192361434559851,
+            "evicted_tokens": 3782
+          },
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            15828,
+            23,
+            128008
+          ],
+          "text": "KIA-2718",
+          "expected": "KIA-2718",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.303218392999952,
+          "tokens_per_s": 1.8164103265817846,
+          "peak_allocated_vram_gb": 6.292166233062744,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 6.292166233062744,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_middle",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 4294,
+            "kept_tokens": 512,
+            "budget": 512,
+            "compression_ratio": 0.1192361434559851,
+            "evicted_tokens": 3782
+          },
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            16104,
+            16,
+            128008
+          ],
+          "text": "KIA-3141",
+          "expected": "KIA-3141",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.099307488000022,
+          "tokens_per_s": 1.9359163371917607,
+          "peak_allocated_vram_gb": 6.292166233062744,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 6.292166233062744,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "needle_late",
+          "kind": "needle",
+          "prompt_tokens": 4294,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 4294,
+            "kept_tokens": 512,
+            "budget": 512,
+            "compression_ratio": 0.1192361434559851,
+            "evicted_tokens": 3782
+          },
+          "new_tokens": 6,
+          "new_token_ids": [
+            42,
+            5987,
+            12,
+            10718,
+            23,
+            128008
+          ],
+          "text": "KIA-1618",
+          "expected": "KIA-1618",
+          "exact_contains_expected": true,
+          "elapsed_s": 3.056166874999917,
+          "tokens_per_s": 1.9632435810626874,
+          "peak_allocated_vram_gb": 6.292166233062744,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 6.292166233062744,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        }
+      ]
+    },
+    "kiaomni_plus_route_b512": {
+      "arm": "kiaomni_plus_route",
+      "budget": 512,
+      "aggregate": {
+        "mean_baseline_token_lcp_ratio": 1.0,
+        "needle_pass_rate": 1.0,
+        "mean_tokens_per_s": 1.6217853572735177,
+        "max_peak_allocated_vram_gb": 6.7180914878845215,
+        "router": {
+          "tokens_observed": 379522,
+          "raw_top1_transition_rate": 0.8404111142165575,
+          "stable_top1_transition_rate": 0.8082433779287141,
+          "raw_topk_jaccard": 0.21808909833071033,
+          "stable_topk_jaccard": 0.24747818097375615,
+          "intervention_rate": 0.4162182956455752,
+          "mean_alpha": 0.07477680811538387,
+          "max_alpha_seen": 0.09773140400648117,
+          "mean_uncertainty": 0.9333708952651829,
+          "mean_hidden_similarity": 0.799530043282031,
+          "hook_calls": 1742,
+          "structured_outputs": 0,
+          "shape_reconciliations": 0,
+          "functional_router_calls": 0,
+          "shadow_router_calls": 1742,
+          "num_experts": 60,
+          "top_k": 4,
+          "alpha_max": 0.1,
+          "score_func": "sigmoid",
+          "routing_mode": "shadow_counterfactual",
+          "active_intervention": false,
+          "router_count": 26,
+          "router_names": [
+            "model.layers.0.feed_forward.router",
+            "model.layers.1.feed_forward.router",
+            "model.layers.2.feed_forward.router",
+            "model.layers.3.feed_forward.router",
+            "model.layers.4.feed_forward.router",
+            "model.layers.5.feed_forward.router",
+            "model.layers.6.feed_forward.router",
+            "model.layers.7.feed_forward.router",
+            "model.layers.8.feed_forward.router",
+            "model.layers.9.feed_forward.router",
+            "model.layers.10.feed_forward.router",
+            "model.layers.11.feed_forward.router",
+            "model.layers.12.feed_forward.router",
+            "model.layers.13.feed_forward.router",
+            "model.layers.14.feed_forward.router",
+            "model.layers.15.feed_forward.router",
+            "model.layers.16.feed_forward.router",
+            "model.layers.17.feed_forward.router",
+            "model.layers.18.feed_forward.router",
+            "model.layers.19.feed_forward.router",
+            "model.layers.20.feed_forward.router",
+            "model.layers.21.feed_forward.router",
+            "model.layers.22.feed_forward.router",
+            "model.layers.23.feed_forward.router",
+            "model.layers.24.feed_forward.router",
+            "model.layers.25.feed_forward.router"
+          ]
+        }
+      },
+      "cases": [
+        {
+          "name": "math",
+          "kind": "short",
+          "prompt_tokens": 24,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 24,
+            "kept_tokens": 24,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 2,
+          "new_token_ids": [
+            19355,
+            128008
+          ],
+          "text": "864",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 1.3017015840000568,
+          "tokens_per_s": 1.5364504619054937,
+          "peak_allocated_vram_gb": 5.261941432952881,
+          "peak_allocated_vram_by_gpu_gb": {
+            "0": 5.261941432952881,
+            "1": 0.0
+          },
+          "baseline_token_lcp_ratio": 1.0
+        },
+        {
+          "name": "science",
+          "kind": "short",
+          "prompt_tokens": 30,
+          "used_chat_template": true,
+          "compression": {
+            "original_tokens": 30,
+            "kept_tokens": 30,
+            "budget": 512,
+            "compression_ratio": 1.0,
+            "evicted_tokens": 0
+          },
+          "new_tokens": 28,
+          "new_token_ids": [
+            69369,
+            38268,
+            1606,
+            279,
+            6962,
+            35715,
+            8895,
+            71423,
+            4907,
+            323,
+            67190,
+            810,
+            14134,
+            449,
+            279,
+            5593,
+            14620,
+            11,
+            7859,
+            279,
+            5457,
+            43844,
+            291,
+            824,
+            5089,
+            3158,
+            13,
+            128008
+          ],
+          "text": "Pressure rises because the gas molecules gain kinetic energy and collide more frequently with the container walls, increasing the force exerted per unit area.",
+          "expected": null,
+          "exact_contains_expected": null,
+          "elapsed_s": 6.710959824000156,
+          "tokens_per_s": 4.172279485248093,
+          "peak_allocated_vram_gb": 5.262765407562256,

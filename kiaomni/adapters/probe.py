@@ -127,8 +127,19 @@ class ArchitectureProbe:
         notes: List[str] = []
 
         layer_container_path, layers, layer_conf = cls._find_layer_container(model, notes)
-        attn_name, attn_conf = cls._find_attn_module_name(layers[0], notes)
-        attn_module = getattr(layers[0], attn_name)
+        representative_idx = next(
+            i for i, layer in enumerate(layers)
+            if any(
+                _ATTN_NAME_RE.match(child_name) is not None
+                or "attn" in child_name.lower()
+                or "attention" in child_name.lower()
+                for child_name, _ in layer.named_children()
+            )
+        )
+        notes.append(f"representative attention layer index={representative_idx}")
+        representative_layer = layers[representative_idx]
+        attn_name, attn_conf = cls._find_attn_module_name(representative_layer, notes)
+        attn_module = getattr(representative_layer, attn_name)
 
         (
             qkv_pattern,
@@ -223,14 +234,22 @@ class ArchitectureProbe:
         for path, module in model.named_modules():
             if not isinstance(module, nn.ModuleList) or len(module) == 0:
                 continue
-            first = module[0]
-            if not isinstance(first, nn.Module):
-                continue
-            # Heuristic: blocks must themselves contain an attention submodule.
-            has_attn = any(
-                _ATTN_NAME_RE.match(child_name) is not None
-                for child_name, _ in first.named_children()
-            )
+            # Hybrid backbones (for example conv/SSM + attention) may start
+            # with a non-attention block. Accept the container when *any*
+            # decoder block exposes an attention child, then use the first
+            # such block as the representative attention layer.
+            has_attn = False
+            for block in module:
+                if not isinstance(block, nn.Module):
+                    continue
+                if any(
+                    _ATTN_NAME_RE.match(child_name) is not None
+                    or "attn" in child_name.lower()
+                    or "attention" in child_name.lower()
+                    for child_name, _ in block.named_children()
+                ):
+                    has_attn = True
+                    break
             if not has_attn:
                 continue
             if best is None or len(module) > best[2]:
