@@ -323,7 +323,7 @@ def main() -> None:
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         device_map={"": 0},
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
     )
