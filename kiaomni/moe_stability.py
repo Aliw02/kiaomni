@@ -79,6 +79,7 @@ class AdaptiveMoERouteController:
         num_experts: int,
         top_k: int,
         alpha_max: float = 0.10,
+        score_func: str = "softmax",
     ) -> None:
         if num_experts < 2:
             raise ValueError("num_experts must be >= 2")
@@ -90,6 +91,7 @@ class AdaptiveMoERouteController:
         self.num_experts = int(num_experts)
         self.top_k = int(top_k)
         self.alpha_max = float(alpha_max)
+        self.score_func = str(score_func or "softmax").lower()
         self.states: Dict[str, _RouteState] = {}
         self.metrics = RouteMetrics()
         self.router_names: list[str] = []
@@ -108,6 +110,7 @@ class AdaptiveMoERouteController:
                 "num_experts": self.num_experts,
                 "top_k": self.top_k,
                 "alpha_max": self.alpha_max,
+                "score_func": self.score_func,
                 "router_count": len(self.router_names),
                 "router_names": list(self.router_names),
             }
@@ -179,7 +182,11 @@ class AdaptiveMoERouteController:
             raw_t = z[:, t, :]
             h_t = h[:, t, :]
 
-            probs = torch.softmax(raw_t, dim=-1)
+            if self.score_func == "sigmoid":
+                probs = torch.sigmoid(raw_t)
+                probs = probs / probs.sum(dim=-1, keepdim=True).clamp_min(1e-12)
+            else:
+                probs = torch.softmax(raw_t, dim=-1)
             entropy = -(probs * probs.clamp_min(1e-12).log()).sum(dim=-1)
             entropy = entropy / math.log(self.num_experts)
             uncertainty = entropy.clamp(0.0, 1.0)
@@ -306,6 +313,7 @@ def apply_moe_route_stability(
 
     resolved_experts = num_experts or _config_value(cfg, "num_experts")
     resolved_top_k = top_k or _config_value(cfg, "num_experts_per_tok")
+    resolved_score_func = _config_value(cfg, "score_func") or "softmax"
     if not isinstance(resolved_experts, int) or resolved_experts < 2:
         raise ValueError("Could not resolve config.num_experts")
     if not isinstance(resolved_top_k, int) or resolved_top_k < 1:
@@ -315,6 +323,7 @@ def apply_moe_route_stability(
         num_experts=resolved_experts,
         top_k=resolved_top_k,
         alpha_max=alpha_max,
+        score_func=resolved_score_func,
     )
 
     discovered = _discover_router_gates(model, resolved_experts)
@@ -352,7 +361,8 @@ def apply_moe_route_stability(
     if verbose:
         print(
             f"[KiaOmni-MoE] installed adaptive route stability on "
-            f"{len(discovered)} router gates; alpha_max={alpha_max}"
+            f"{len(discovered)} router gates; alpha_max={alpha_max}; "
+            f"score_func={resolved_score_func}"
         )
 
     return controller
