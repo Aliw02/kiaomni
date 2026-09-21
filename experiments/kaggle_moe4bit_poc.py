@@ -348,21 +348,13 @@ def main() -> None:
     if gpu_count < 1:
         raise RuntimeError("No CUDA GPU detected.")
 
-    # This checkpoint is already AWQ INT4 on disk. Do not quantize the
-    # original FP16 model at load time. On Kaggle T4 x2 we deliberately
-    # distribute the quantized model across both GPUs and keep GPU 0 lighter
-    # because generate() returns outputs to the input device.
-    if gpu_count >= 2:
-        device_map = "balanced_low_0"
-        max_memory = {0: "10GiB", 1: "13GiB", "cpu": "24GiB"}
-    else:
-        device_map = "auto"
-        max_memory = {0: "13GiB", "cpu": "24GiB"}
-
+    # The checkpoint is already AWQ INT4 on disk (~5.37 GB). Keep the POC
+    # on a single T4 so routing/latency measurements are not confounded by
+    # cross-GPU transfers. Fail closed after load if actual residency leaves
+    # insufficient runtime headroom.
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        device_map=device_map,
-        max_memory=max_memory,
+        device_map={"": 0},
         dtype=torch.float16,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
@@ -375,10 +367,11 @@ def main() -> None:
     }
     print(f"HF device map: {getattr(model, 'hf_device_map', None)}")
     print(f"Loaded model VRAM allocation by GPU: {load_allocated_by_gpu}")
-    if any(v > 13.5 for v in load_allocated_by_gpu.values()):
+    gpu0_allocated = load_allocated_by_gpu.get("0", 0.0)
+    if gpu0_allocated > 12.5:
         raise RuntimeError(
-            "Model left too little runtime headroom on at least one GPU. "
-            f"Allocated after load: {load_allocated_by_gpu}"
+            "The supposedly 4-bit checkpoint left too little runtime headroom "
+            f"on a 15 GB T4. GPU0 allocated after load: {gpu0_allocated:.2f} GB"
         )
 
     cases = build_cases(tokenizer, args.long_tokens)
