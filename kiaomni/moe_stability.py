@@ -52,6 +52,9 @@ class RouteMetrics:
     alpha_max_seen: float = 0.0
     uncertainty_sum: float = 0.0
     similarity_sum: float = 0.0
+    hook_calls: int = 0
+    structured_outputs: int = 0
+    shape_reconciliations: int = 0
 
     def snapshot(self) -> dict:
         pairs = max(self.transition_pairs, 1)
@@ -67,7 +70,56 @@ class RouteMetrics:
             "max_alpha_seen": self.alpha_max_seen,
             "mean_uncertainty": self.uncertainty_sum / tokens,
             "mean_hidden_similarity": self.similarity_sum / tokens,
+            "hook_calls": self.hook_calls,
+            "structured_outputs": self.structured_outputs,
+            "shape_reconciliations": self.shape_reconciliations,
         }
+
+
+def _find_router_tensor(output, num_experts: int):
+    """Find a tensor carrying per-expert router scores in structured outputs."""
+    if torch.is_tensor(output):
+        if output.ndim >= 1 and output.shape[-1] == num_experts:
+            return output
+        return None
+    if isinstance(output, tuple):
+        for item in output:
+            found = _find_router_tensor(item, num_experts)
+            if found is not None:
+                return found
+        return None
+    if isinstance(output, list):
+        for item in output:
+            found = _find_router_tensor(item, num_experts)
+            if found is not None:
+                return found
+        return None
+    if isinstance(output, dict):
+        for item in output.values():
+            found = _find_router_tensor(item, num_experts)
+            if found is not None:
+                return found
+        return None
+    return None
+
+
+def _replace_router_tensor(output, target: torch.Tensor, replacement: torch.Tensor):
+    """Replace one tensor inside a nested router output while preserving structure."""
+    if torch.is_tensor(output):
+        return replacement if output is target else output
+    if isinstance(output, tuple):
+        values = tuple(_replace_router_tensor(x, target, replacement) for x in output)
+        if hasattr(output, "_fields"):
+            return type(output)(*values)
+        return values
+    if isinstance(output, list):
+        return [_replace_router_tensor(x, target, replacement) for x in output]
+    if isinstance(output, dict):
+        return type(output)(
+            (k, _replace_router_tensor(v, target, replacement))
+            for k, v in output.items()
+        )
+    return output
 
 
 class AdaptiveMoERouteController:
@@ -173,7 +225,17 @@ class AdaptiveMoERouteController:
         h, _ = self._to_btd(hidden.float(), hidden.shape[-1])
 
         if z.shape[:2] != h.shape[:2]:
-            return logits
+            # Some custom MoE implementations flatten tokens before routing
+            # while passing unflattened hidden states to surrounding modules.
+            # Reconcile when both tensors represent the same token count.
+            z_tokens = z.numel() // self.num_experts
+            h_tokens = h.numel() // h.shape[-1]
+            if z_tokens != h_tokens:
+                return logits
+            z = z.reshape(1, z_tokens, self.num_experts)
+            h = h.reshape(1, h_tokens, h.shape[-1])
+            squeezed = logits.ndim <= 2
+            self.metrics.shape_reconciliations += 1
 
         state = self.states.setdefault(name, _RouteState())
         out_tokens: list[torch.Tensor] = []
@@ -437,14 +499,26 @@ def apply_moe_route_stability(
         expert_bias = getattr(parent, "expert_bias", None)
 
         def _hook(_module, inputs, output, *, _name=name, _bias=expert_bias):
+            controller.metrics.hook_calls += 1
             if not inputs:
                 return output
-            return controller.transform(
+
+            router_tensor = _find_router_tensor(output, controller.num_experts)
+            if router_tensor is None:
+                return output
+
+            if router_tensor is not output:
+                controller.metrics.structured_outputs += 1
+
+            stable = controller.transform(
                 _name,
                 inputs[0],
-                output,
+                router_tensor,
                 expert_bias=_bias,
             )
+            if stable is router_tensor:
+                return output
+            return _replace_router_tensor(output, router_tensor, stable)
 
         controller._handles.append(module.register_forward_hook(_hook))
 
