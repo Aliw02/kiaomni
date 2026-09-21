@@ -1,11 +1,11 @@
 """
-Kaggle 16GB POC: KiaOmni + adaptive low-jitter MoE routing.
+Kaggle single-T4 POC: KiaOmni + adaptive low-jitter MoE routing.
 
 Default target:
-    cyankiwi/LFM2.5-8B-A1B-AWQ-INT4
+    facebook/MobileMoE-M-SFT
 
-The checkpoint is a modern 4-bit AWQ MoE small enough to leave substantial
-headroom on a single 16GB GPU. The experiment keeps model weights frozen and
+The checkpoint is a 2026 instruction-tuned 2.8B-total MoE that fits directly
+in FP16 on a single 16GB-class T4, avoiding quantization-loader confounds. The experiment keeps model weights frozen and
 runs four controlled arms:
 
 A. vanilla model
@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from kiaomni import (
     apply_kiaomni,
@@ -38,7 +38,7 @@ from kiaomni import (
 )
 
 
-DEFAULT_MODEL = "cyankiwi/LFM2.5-8B-A1B-AWQ-INT4"
+DEFAULT_MODEL = "facebook/MobileMoE-M-SFT"
 DEFAULT_OUT = "results/moe_route_stability_poc.json"
 
 
@@ -342,26 +342,28 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("This POC is intended for a CUDA GPU (Kaggle T4/P100 class).")
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model,
+        trust_remote_code=True,
+        token=os.environ.get("HF_TOKEN"),
+    )
 
     gpu_count = torch.cuda.device_count()
     if gpu_count < 1:
         raise RuntimeError("No CUDA GPU detected.")
 
-    # IMPORTANT: load the AWQ checkpoint through GPTQModel, not directly
-    # through Transformers. Transformers 5 uses packed MoE expert tensors
-    # (gate_up_proj/down_proj), while this AWQ checkpoint stores per-expert
-    # w1/w3/w2 qweights. GPTQModel has an explicit LFM2-MoE lifecycle that
-    # materializes the correct per-expert quantized modules.
-    from gptqmodel import GPTQModel
-    from gptqmodel.nn_modules.qlinear import BaseQuantLinear
-
-    quant_runtime = GPTQModel.load(
+    # MobileMoE-M-SFT is only 2.8B total parameters. Load the official SFT
+    # checkpoint directly in FP16 on one T4. This deliberately removes
+    # AWQ/GPTQ/bitsandbytes from the POC so quantization/runtime adapters
+    # cannot confound the routing experiment.
+    model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        device="cuda:0",
         trust_remote_code=True,
+        token=os.environ.get("HF_TOKEN"),
+        dtype=torch.float16,
+        low_cpu_mem_usage=True,
+        device_map={"": 0},
     )
-    model = quant_runtime.model
     model.eval()
 
     quantized_modules = [
@@ -382,12 +384,11 @@ def main() -> None:
         for gpu_idx in range(torch.cuda.device_count())
     }
     print(f"HF device map: {getattr(model, 'hf_device_map', None)}")
-    print(f"GPTQModel runtime: {type(quant_runtime).__name__}")
     print(f"Loaded model VRAM allocation by GPU: {load_allocated_by_gpu}")
     gpu0_allocated = load_allocated_by_gpu.get("0", 0.0)
     if gpu0_allocated > 12.5:
         raise RuntimeError(
-            "The supposedly 4-bit checkpoint left too little runtime headroom "
+            "The FP16 MobileMoE checkpoint left too little runtime headroom "
             f"on a 15 GB T4. GPU0 allocated after load: {gpu0_allocated:.2f} GB"
         )
 
@@ -402,7 +403,7 @@ def main() -> None:
     artifact: dict[str, Any] = {
         "experiment": "KIAOMNI_MOE_ROUTE_STABILITY_POC_V1",
         "model": args.model,
-        "quantization_target": "pre-quantized AWQ INT4 checkpoint",
+        "precision_target": "FP16 on single T4 (no quantization runtime)",
         "weights_frozen": True,
         "budget": args.budget,
         "alpha_max": args.alpha_max,
@@ -412,10 +413,7 @@ def main() -> None:
             "platform": platform.platform(),
             "model_loaded_allocated_vram_by_gpu_gb": load_allocated_by_gpu,
             "hf_device_map": getattr(model, "hf_device_map", None),
-            "gptqmodel_runtime_class": type(quant_runtime).__name__,
-            "quantized_module_count": len(quantized_modules),
-            "quantized_module_sample": quantized_modules[:16],
-        },
+                    },
         "arms": {},
     }
 
