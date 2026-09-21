@@ -9,16 +9,17 @@ The model weights remain frozen. No expert weights, router weights, or task data
 
 ## Default model
 
-`cyankiwi/LFM2.5-8B-A1B-AWQ-INT4`
+`LiquidAI/LFM2.5-8B-A1B`
 
 Why this target:
 
-- Modern LFM2.5 MoE family
+- Official modern LFM2.5 MoE checkpoint from LiquidAI
 - 8.3B total / 1.5B active parameters
 - 32 experts, Top-4 active
 - Hybrid 18 convolution + 6 GQA attention layers
-- AWQ INT4 checkpoint, approximately 5.37 GB on disk
-- Router `feed_forward.gate` modules are intentionally left outside the INT4 conversion, which lets the POC alter routing logits without dequantizing expert weights
+- Quantized **on load** to bitsandbytes NF4 4-bit with double quantization
+- No AutoAWQ or GPTQModel runtime dependency
+- T4-compatible FP16 compute while weights remain 4-bit
 - Small enough to leave meaningful headroom on a 16 GB card for KV cache, saliency hooks, and measurement
 
 The runner also checks actual CUDA allocation immediately after load and fails closed if it is already above 14.5 GB.
@@ -32,31 +33,11 @@ Use:
 
 ## Install cell
 
-Run this before importing Transformers in the notebook. Transformers 5.x
-uses GPTQModel as the maintained quantization backend for AWQ/GPTQ loading,
-so do not install AutoAWQ for this POC:
+After a fresh Kaggle **Factory Reset**, install only the runtime pieces required
+for this POC. Do not install AutoAWQ or GPTQModel:
 
 ```bash
-pip uninstall -y autoawq autoawq-kernels >/dev/null 2>&1 || true
-pip install -q -U accelerate optimum ninja
-pip install -q -U "gptqmodel>=7.5.0" --no-build-isolation
-pip install -q -U "transformers>=5.10,<6"
-# Kaggle can retain a SciPy binary built against a different NumPy after the
-# quantization stack updates NumPy. Reinstall this known-compatible pair last.
-pip install -q --force-reinstall --no-cache-dir "numpy==2.2.6" "scipy==1.15.3"
-```
-
-Verify that the final environment is using Transformers 5.x and GPTQModel:
-
-```bash
-python - <<'PY'
-import transformers
-import gptqmodel
-print("transformers", transformers.__version__)
-print("gptqmodel", getattr(gptqmodel, "__version__", "installed"))
-major, minor = map(int, transformers.__version__.split(".")[:2])
-assert (major, minor) >= (5, 10)
-PY
+pip install -q -U "transformers>=5.9,<6" accelerate bitsandbytes
 ```
 
 Then clone and install this branch:
@@ -66,6 +47,21 @@ git clone -b exp/moe-route-stability-v1 https://github.com/Aliw02/kiaomni.git
 cd kiaomni
 pip install -q -e . --no-deps
 ```
+
+Verify the clean environment in a fresh Python process:
+
+```bash
+python - <<'PY'
+import torch, transformers, bitsandbytes as bnb
+print("torch", torch.__version__)
+print("transformers", transformers.__version__)
+print("bitsandbytes", bnb.__version__)
+print("gpu", torch.cuda.get_device_name(0))
+print("vram_gb", torch.cuda.get_device_properties(0).total_memory / 1024**3)
+PY
+```
+
+No NumPy/SciPy pins are required.
 
 ## Fast smoke run
 
