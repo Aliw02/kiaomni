@@ -24,6 +24,8 @@ can measure whether lower switching comes with quality regressions.
 from __future__ import annotations
 
 import math
+
+import numpy as np
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional
 
@@ -224,6 +226,182 @@ class AdaptiveMoERouteController:
             bias = expert_bias.detach().to(device=logits.device, dtype=torch.float32)
             scores = torch.sigmoid(logits) + bias.view(1, -1)
         return torch.topk(scores, k=self.top_k, dim=-1).indices
+
+    def observe_shadow(
+        self,
+        name: str,
+        hidden: torch.Tensor,
+        logits: torch.Tensor,
+        *,
+        expert_bias: Optional[torch.Tensor] = None,
+    ) -> None:
+        """Record exact shadow routing metrics without token-wise GPU launches.
+
+        Uncertainty and hidden-state similarity are computed vectorized on the
+        model device. The causal EMA recurrence is tiny (E experts) and runs on
+        CPU/NumPy, avoiding one CUDA launch and synchronization per token.
+        """
+        if not torch.is_tensor(logits) or logits.shape[-1] != self.num_experts:
+            return
+        if not torch.is_tensor(hidden):
+            return
+
+        z, _ = self._to_btd(logits.detach().float(), self.num_experts)
+        h, _ = self._to_btd(hidden.detach().float(), hidden.shape[-1])
+        if z.shape[:2] != h.shape[:2]:
+            z_tokens = z.numel() // self.num_experts
+            h_tokens = h.numel() // h.shape[-1]
+            if z_tokens != h_tokens:
+                return
+            z = z.reshape(1, z_tokens, self.num_experts)
+            h = h.reshape(1, h_tokens, h.shape[-1])
+            self.metrics.shape_reconciliations += 1
+
+        state = self.states.setdefault(name, _RouteState())
+        batch, steps, _ = z.shape
+
+        if self.score_func == "sigmoid":
+            probs = torch.sigmoid(z)
+            probs = probs / probs.sum(dim=-1, keepdim=True).clamp_min(1e-12)
+        else:
+            probs = torch.softmax(z, dim=-1)
+        uncertainty = -(probs * probs.clamp_min(1e-12).log()).sum(dim=-1)
+        uncertainty = (uncertainty / math.log(self.num_experts)).clamp(0.0, 1.0)
+
+        similarity = torch.zeros(
+            (batch, steps),
+            device=h.device,
+            dtype=torch.float32,
+        )
+        if steps > 1:
+            similarity[:, 1:] = (
+                F.cosine_similarity(h[:, 1:, :], h[:, :-1, :], dim=-1) + 1.0
+            ) * 0.5
+        if state.hidden is not None and state.hidden.shape[0] == batch:
+            prev_hidden = state.hidden.to(device=h.device, dtype=torch.float32)
+            similarity[:, 0] = (
+                F.cosine_similarity(h[:, 0, :], prev_hidden, dim=-1) + 1.0
+            ) * 0.5
+        similarity.clamp_(0.0, 1.0)
+
+        alpha = self.alpha_max * uncertainty * similarity
+        if state.smoothed_logits is None:
+            alpha[:, 0] = 0.0
+
+        raw_np = z.cpu().numpy()
+        alpha_np = alpha.cpu().numpy()
+        stable_np = np.empty_like(raw_np)
+
+        prev_stable = None
+        if state.smoothed_logits is not None:
+            prev_stable = state.smoothed_logits.detach().float().cpu().numpy()
+
+        for b in range(batch):
+            if prev_stable is None or prev_stable.shape[0] != batch:
+                stable_np[b, 0] = raw_np[b, 0]
+                prev = stable_np[b, 0]
+                start = 1
+            else:
+                prev = prev_stable[b]
+                start = 0
+            for t in range(start, steps):
+                a = float(alpha_np[b, t])
+                prev = a * prev + (1.0 - a) * raw_np[b, t]
+                stable_np[b, t] = prev
+
+        if expert_bias is not None:
+            bias_np = (
+                expert_bias.detach()
+                .float()
+                .cpu()
+                .numpy()
+                .reshape(1, 1, -1)
+            )
+            raw_scores = 1.0 / (1.0 + np.exp(-raw_np)) + bias_np
+            stable_scores = 1.0 / (1.0 + np.exp(-stable_np)) + bias_np
+        else:
+            # sigmoid/softmax are monotonic, so logits preserve Top-K ranking.
+            raw_scores = raw_np
+            stable_scores = stable_np
+
+        def _ordered_topk(scores: np.ndarray) -> np.ndarray:
+            idx = np.argpartition(
+                -scores,
+                kth=self.top_k - 1,
+                axis=-1,
+            )[..., : self.top_k]
+            picked = np.take_along_axis(scores, idx, axis=-1)
+            order = np.argsort(-picked, axis=-1)
+            return np.take_along_axis(idx, order, axis=-1)
+
+        raw_topk = _ordered_topk(raw_scores)
+        stable_topk = _ordered_topk(stable_scores)
+
+        prev_raw = (
+            state.raw_topk.detach().cpu().numpy()
+            if state.raw_topk is not None
+            else None
+        )
+        prev_stable_topk = (
+            state.stable_topk.detach().cpu().numpy()
+            if state.stable_topk is not None
+            else None
+        )
+
+        if prev_raw is not None and prev_stable_topk is not None:
+            raw_prev = np.concatenate([prev_raw[:, None, :], raw_topk[:, :-1, :]], axis=1)
+            stable_prev = np.concatenate(
+                [prev_stable_topk[:, None, :], stable_topk[:, :-1, :]],
+                axis=1,
+            )
+            raw_curr = raw_topk
+            stable_curr = stable_topk
+        elif steps > 1:
+            raw_prev = raw_topk[:, :-1, :]
+            stable_prev = stable_topk[:, :-1, :]
+            raw_curr = raw_topk[:, 1:, :]
+            stable_curr = stable_topk[:, 1:, :]
+        else:
+            raw_prev = stable_prev = raw_curr = stable_curr = None
+
+        if raw_curr is not None:
+            pair_count = int(raw_curr.shape[0] * raw_curr.shape[1])
+            self.metrics.transition_pairs += pair_count
+            self.metrics.raw_top1_switches += int(
+                np.not_equal(raw_curr[..., 0], raw_prev[..., 0]).sum()
+            )
+            self.metrics.stable_top1_switches += int(
+                np.not_equal(stable_curr[..., 0], stable_prev[..., 0]).sum()
+            )
+
+            raw_matches = raw_curr[..., :, None] == raw_prev[..., None, :]
+            stable_matches = stable_curr[..., :, None] == stable_prev[..., None, :]
+            raw_inter = raw_matches.any(axis=-1).sum(axis=-1)
+            stable_inter = stable_matches.any(axis=-1).sum(axis=-1)
+            raw_union = np.maximum(2 * self.top_k - raw_inter, 1)
+            stable_union = np.maximum(2 * self.top_k - stable_inter, 1)
+            self.metrics.raw_jaccard_sum += float((raw_inter / raw_union).sum())
+            self.metrics.stable_jaccard_sum += float(
+                (stable_inter / stable_union).sum()
+            )
+
+        self.metrics.tokens += int(batch * steps)
+        self.metrics.intervention_tokens += int(
+            np.not_equal(stable_topk, raw_topk).any(axis=-1).sum()
+        )
+        self.metrics.alpha_sum += float(alpha_np.sum())
+        self.metrics.alpha_max_seen = max(
+            self.metrics.alpha_max_seen,
+            float(alpha_np.max()) if alpha_np.size else 0.0,
+        )
+        self.metrics.uncertainty_sum += float(uncertainty.sum().item())
+        self.metrics.similarity_sum += float(similarity.sum().item())
+
+        state.smoothed_logits = torch.from_numpy(stable_np[:, -1, :].copy())
+        state.hidden = h[:, -1, :].detach()
+        state.raw_topk = torch.from_numpy(raw_topk[:, -1, :].copy())
+        state.stable_topk = torch.from_numpy(stable_topk[:, -1, :].copy())
+
 
     def transform(
         self,
@@ -623,7 +801,7 @@ def apply_moe_route_stability(
                     logits = logits + _bias.detach().float()
                 controller.metrics.hook_calls += 1
                 controller.metrics.shadow_router_calls += 1
-                controller.transform(
+                controller.observe_shadow(
                     _name,
                     hidden,
                     logits,
