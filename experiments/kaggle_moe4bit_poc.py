@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from kiaomni import (
     apply_kiaomni,
@@ -38,7 +38,7 @@ from kiaomni import (
 )
 
 
-DEFAULT_MODEL = "cyankiwi/LFM2.5-8B-A1B-AWQ-INT4"
+DEFAULT_MODEL = "LiquidAI/LFM2.5-8B-A1B"
 DEFAULT_OUT = "results/moe_route_stability_poc.json"
 
 
@@ -323,19 +323,22 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("This POC is intended for a CUDA GPU (Kaggle T4/P100 class).")
 
-    try:
-        import gptqmodel  # noqa: F401
-    except ImportError as exc:
-        raise RuntimeError(
-            "Transformers 5.x requires GPTQModel to load this AWQ checkpoint. "
-            "Install it with: pip install -U 'gptqmodel>=7.5.0' --no-build-isolation"
-        ) from exc
-
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+
+    # Quantize the official pretrained checkpoint on load. This keeps the POC
+    # fully 4-bit without relying on AWQ/GPTQModel wheels or community-specific
+    # expert quant-state restoration. T4 uses fp16 compute; NF4 storage remains 4-bit.
+    quant_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=torch.float16,
+    )
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         device_map={"": 0},
         dtype=torch.float16,
+        quantization_config=quant_config,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
     )
@@ -360,7 +363,7 @@ def main() -> None:
     artifact: dict[str, Any] = {
         "experiment": "KIAOMNI_MOE_ROUTE_STABILITY_POC_V1",
         "model": args.model,
-        "quantization_target": "4-bit AWQ",
+        "quantization_target": "bitsandbytes NF4 4-bit (double quantization, fp16 compute)",
         "weights_frozen": True,
         "budget": args.budget,
         "alpha_max": args.alpha_max,
