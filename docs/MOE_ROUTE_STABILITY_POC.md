@@ -1,6 +1,6 @@
 # Kaggle POC — KiaOmni + Adaptive MoE Route Stability
 
-This experiment validates two inference-time ideas on a **single 16 GB Kaggle GPU** using a **4-bit quantized MoE**:
+This experiment validates two inference-time ideas on a **single Kaggle T4**:
 
 1. **KiaOmni prompt/context reduction**
 2. **Adaptive low-jitter MoE routing**, derived from the earlier EG-MoT causal-inertia work
@@ -9,91 +9,69 @@ The model weights remain frozen. No expert weights, router weights, or task data
 
 ## Default model
 
-`cyankiwi/LFM2.5-8B-A1B-AWQ-INT4`
+`facebook/MobileMoE-M-SFT`
 
 Why this target:
 
-- Modern LFM2.5 MoE family, 8.3B total / 1.5B active parameters
-- 32 experts, Top-4 active
-- Hybrid 18 convolution + 6 GQA attention layers
-- **Pre-quantized AWQ INT4** checkpoint, about 5.37 GB on disk
-- Expert weights are already quantized before loading, avoiding the FP16-on-load peak
-- Router gates remain directly observable for the routing POC
-- On Kaggle T4 x2, the quantized model is balanced across both GPUs with GPU 0 kept lighter for generation headroom
+- Released by Meta in **August 2026**
+- Instruction-tuned / chat-ready
+- **2.8B total parameters / 528M active**
+- **60 routed experts, Top-4 active, plus one shared expert**
+- 26 layers, QK-Norm, 8,192-token context
+- Official BF16 checkpoint; the POC loads it directly as **FP16 on one T4**
+- No AWQ, GPTQModel, bitsandbytes, GGUF, or custom quantization loader
+- The routing experiment is therefore not confounded by a quantization runtime
 
-The runner also checks actual CUDA allocation immediately after load and fails closed if it is already above 14.5 GB.
+The model is gated on Hugging Face under the FAIR Noncommercial Research License.
+Accept the model terms once and provide an `HF_TOKEN` with read access.
 
-## Kaggle settings
+## Kaggle setup
 
 Use:
 
-- Accelerator: **GPU T4 x1** (or another single CUDA GPU with at least 16 GB)
-- Internet: **On** for the first model download
+- Accelerator: **GPU T4 x1** (T4 x2 is fine; the POC intentionally uses GPU0 only)
+- Internet: **On**
+- Hugging Face: accept access for `facebook/MobileMoE-M-SFT`
 
-## Install cell
+The model card requires only PyTorch, Transformers, safetensors, and Accelerate.
+The existing experiment branch already uses a compatible Transformers release.
 
-Use a fresh Kaggle session. Keep the notebook's base environment untouched and
-create an isolated virtual environment for the AWQ runtime:
+If the current notebook already has the experiment virtualenv created during
+earlier attempts, it can be reused; GPTQModel is no longer imported or used.
+
+Update the branch:
 
 ```bash
-python -m pip install -q -U virtualenv
-python -m virtualenv --system-site-packages /kaggle/working/kia-awq-venv
-
-/kaggle/working/kia-awq-venv/bin/pip install -q -U pip setuptools wheel
-/kaggle/working/kia-awq-venv/bin/pip install -q -U accelerate optimum ninja "transformers>=5.10,<6"
-/kaggle/working/kia-awq-venv/bin/pip install -q -U "gptqmodel==7.5.0" --no-build-isolation
-/kaggle/working/kia-awq-venv/bin/pip install -q -U "numpy==2.2.6" "scipy==1.15.3"
+cd /kaggle/working/kiaomni
+git pull
+git rev-parse HEAD
 ```
 
-Because this is a virtualenv created with `--system-site-packages`, Kaggle's CUDA/PyTorch
-installation remains available without downloading another multi-gigabyte Torch
-stack. Any NumPy/Protobuf versions required by GPTQModel are shadowed only inside
-the venv and do not mutate the notebook kernel's base environment.
-
-Verify the isolated runtime with a separate process:
+Install the branch into the interpreter you will run:
 
 ```bash
-%%bash
-/kaggle/working/kia-awq-venv/bin/python - <<'PY'
-import torch, transformers, numpy, scipy, gptqmodel
-print("torch", torch.__version__)
-print("transformers", transformers.__version__)
-print("numpy", numpy.__version__)
-print("scipy", scipy.__version__)
-print("gptqmodel", getattr(gptqmodel, "__version__", "installed"))
-print("gpu_count", torch.cuda.device_count())
-for i in range(torch.cuda.device_count()):
-    p = torch.cuda.get_device_properties(i)
-    print(i, p.name, p.total_memory / 1024**3)
-PY
-```
-
-Then clone and install this branch into the same venv:
-
-```bash
-git clone -b exp/moe-route-stability-v1 https://github.com/Aliw02/kiaomni.git
 /kaggle/working/kia-awq-venv/bin/pip install -q -e /kaggle/working/kiaomni --no-deps
 ```
 
-Do not install AutoAWQ and do not run the experiment with the notebook kernel's
-`python`; use the venv interpreter shown below.
+The directory name `kia-awq-venv` is historical only. The MobileMoE POC does
+not use AWQ/GPTQ.
 
-## Loader compatibility note
+## Hugging Face token
 
-The published AWQ checkpoint stores LFM2-MoE expert qweights in the per-expert
-`w1/w3/w2` layout. Current Transformers 5 builds LFM2-MoE experts in the newer
-packed `gate_up_proj/down_proj` layout. Loading this checkpoint directly with
-`AutoModelForCausalLM.from_pretrained()` can therefore report the real AWQ
-weights as `UNEXPECTED`, create missing packed expert tensors in floating point,
-and consume nearly a full T4 despite the checkpoint being only ~5.37 GB.
+Store a read token in Kaggle Secrets as `HF_TOKEN`, then expose it to child
+processes before running the experiment:
 
-The POC must load the checkpoint with `GPTQModel.load()`. GPTQModel has explicit
-`lfm2_moe` lifecycle support for the `w1/w3/w2` expert layout. The runner also
-fails closed unless actual quantized linear modules are present after loading.
+```python
+from kaggle_secrets import UserSecretsClient
+import os
+
+os.environ["HF_TOKEN"] = UserSecretsClient().get_secret("HF_TOKEN")
+print("HF_TOKEN available:", bool(os.environ.get("HF_TOKEN")))
+```
+
+Do not print the token value.
 
 ## Fast smoke run
-
-Start with a smaller long-context case to prove that model loading, KiaOmni probing, hybrid-layer saliency, and MoE gate hooks all work:
 
 ```bash
 /kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
@@ -102,6 +80,12 @@ Start with a smaller long-context case to prove that model loading, KiaOmni prob
   --long-tokens 1200 \
   --output /kaggle/working/moe_route_stability_smoke.json
 ```
+
+The script filename is retained for continuity; this version of the POC is
+**not a 4-bit experiment**.
+
+The runner prints the actual CUDA residency after load and fails if GPU0 exceeds
+12.5 GiB before the benchmark begins.
 
 ## Main POC
 
@@ -115,17 +99,17 @@ After the smoke passes:
   --output /kaggle/working/moe_route_stability_poc.json
 ```
 
-The value `alpha_max=0.10` is deliberately tied to the earlier EG-MoT ablation sweet spot. The new controller does **not** apply 0.10 constantly. It computes:
+The value `alpha_max=0.10` is deliberately tied to the earlier EG-MoT ablation
+sweet spot. The controller does **not** apply 0.10 constantly:
 
 ```text
 alpha_t = alpha_max * router_uncertainty_t * hidden_similarity_t
 ```
 
-so confident route changes remain nearly untouched, while near-tie routes between semantically similar adjacent tokens receive more inertia.
+For sigmoid-routing models such as MobileMoE, uncertainty is computed from
+normalized sigmoid router scores rather than softmax probabilities.
 
 ## Controlled arms
-
-The same frozen checkpoint is evaluated under four arms:
 
 | Arm | KiaOmni | Adaptive routing |
 |---|---:|---:|
@@ -141,43 +125,39 @@ No arm reloads or retrains the weights.
 Per case:
 
 - prompt token count
-- generated token count
-- generated text
-- deterministic token agreement with the baseline
-- needle-in-haystack retrieval pass/fail
-- wall-clock generation time
-- generated tokens/sec
+- generated token count and text
+- deterministic token agreement with baseline
+- needle retrieval pass/fail
+- generation time and tokens/sec
 - peak allocated CUDA VRAM
 
 For routing arms:
 
-- raw top-1 expert transition rate
-- stabilized top-1 expert transition rate
-- raw/stabilized Top-K Jaccard
+- raw vs stabilized top-1 expert transition rate
+- raw vs stabilized Top-K Jaccard
 - intervention rate
-- mean and maximum adaptive alpha
-- mean router uncertainty
-- mean adjacent hidden-state similarity
+- mean/max adaptive alpha
+- router uncertainty
+- adjacent hidden-state similarity
 - discovered router count and names
-
-The runner includes short deterministic prompts and three long needle tests with the critical record near the beginning, middle, and end.
+- router score function
 
 ## First scientific gate
 
-The POC is useful only if all of these are true:
+The POC is useful only if:
 
-1. `route_only` lowers route transition rate compared with its raw route trace.
-2. The effect is not obtained by forcing one expert: Top-K diversity and needle quality remain meaningful.
-3. `route_only` keeps deterministic output reasonably close to baseline.
-4. `kiaomni_only` demonstrates context reduction without collapsing the needle tests.
-5. `kiaomni_plus_route` does not introduce a large additional quality regression over KiaOmni alone.
-6. Actual peak VRAM remains inside the 16 GB envelope.
+1. `route_only` lowers unnecessary route transitions.
+2. Expert diversity and quality do not collapse.
+3. `route_only` remains close to baseline output quality.
+4. `kiaomni_only` preserves the needle tests under context reduction.
+5. `kiaomni_plus_route` does not add a large quality regression.
+6. Actual peak VRAM remains inside one T4.
 
-If routing stability improves but quality falls materially, do **not** increase inertia. The earlier EG-MoT ablation already showed that excessive fixed inertia produces stale routing. The next experiment should instead tune the adaptive confidence gate.
+If routing stability improves but quality falls materially, do **not** simply
+increase inertia. Earlier EG-MoT ablations already showed stale-routing failure
+at excessive inertia.
 
-## Optional identity check
-
-To prove that the route wrapper itself is not perturbing the model, run:
+## Identity check
 
 ```bash
 /kaggle/working/kia-awq-venv/bin/python /kaggle/working/kiaomni/experiments/kaggle_moe4bit_poc.py \
@@ -187,14 +167,4 @@ To prove that the route wrapper itself is not perturbing the model, run:
   --output /kaggle/working/moe_route_identity.json
 ```
 
-For the `route_only` arm, `alpha-max=0` should preserve router logits exactly.
-
-## Result file
-
-After the run, download or keep:
-
-```text
-/kaggle/working/moe_route_stability_poc.json
-```
-
-That artifact is sufficient for the next analysis step; no screenshots are required.
+At `alpha_max=0`, the route wrapper must preserve raw router logits exactly.
