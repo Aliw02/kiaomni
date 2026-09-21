@@ -33,12 +33,17 @@ class _Attention(nn.Module):
         self.k_proj = nn.Linear(16, 8, bias=False)
         self.v_proj = nn.Linear(16, 8, bias=False)
         self.o_proj = nn.Linear(8, 16, bias=False)
+        self.q_layernorm = nn.LayerNorm(4)
+        self.k_layernorm = nn.LayerNorm(4)
         self.rotary_emb = nn.Identity()
 
     def forward(self, x):
-        # Fire Q/K/V projections so SaliencyAdapter can observe them.
-        _ = self.q_proj(x)
-        _ = self.k_proj(x)
+        # Mirror modern GQA layouts: Q/K projection -> per-head norm.
+        B, L, _ = x.shape
+        q = self.q_proj(x).view(B, L, 4, 4)
+        k = self.k_proj(x).view(B, L, 2, 4)
+        _ = self.q_layernorm(q)
+        _ = self.k_layernorm(k)
         v = self.v_proj(x)
         return self.o_proj(v)
 
@@ -101,4 +106,19 @@ def test_saliency_skips_non_attention_hybrid_layers():
 
     assert saliency.shape == (1, 12)
     assert saliency.dtype == np.float32
+    assert np.isfinite(saliency).all()
+
+
+def test_saliency_prefers_post_projection_qk_norm_hooks():
+    torch.manual_seed(5)
+    model = _HybridModel()
+    probe = ArchitectureProbe.probe(model, force=True)
+    adapter = SaliencyAdapter(probe)
+    ids = torch.randint(0, 128, (1, 9))
+
+    # If the adapter incorrectly hooks raw q_proj/k_proj only, replacing the
+    # norm modules with shape-preserving transforms would not be exercised.
+    saliency = adapter.extract(ids, model)
+
+    assert saliency.shape == (1, 9)
     assert np.isfinite(saliency).all()
