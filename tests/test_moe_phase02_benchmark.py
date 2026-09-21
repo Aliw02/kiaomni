@@ -10,6 +10,7 @@ from experiments.kaggle_moe_phase02_multineedle_baselines import (
     blocksal_keep,
     ratio_for_budget,
     score_answer,
+    validate_blocksal,
 )
 
 
@@ -65,3 +66,19 @@ def test_hard_multi_rejects_distractor_even_when_all_gold_values_are_present():
     assert contaminated["recall"] == 1.0
     assert contaminated["exact"] is False
     assert contaminated["distractor_hits"] == ["NOVA"]
+
+
+def test_blocksal_canonical_block_size_is_16():
+    assert BLOCK_SIZE == 16
+
+
+def test_blocksal_validation_covers_full_phase02_budget_grid():
+    budgets = [512, 256, 128, 98]
+    result = validate_blocksal(budgets)
+
+    assert result.valid is True
+    assert set(result.details["budgets"]) == {str(b) for b in budgets}
+    for budget in budgets:
+        entry = result.details["budgets"][str(budget)]
+        assert entry["protected_tokens_present"] is True
+        assert entry["historical_whole_block_budget_ok"] is True
