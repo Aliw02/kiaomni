@@ -89,17 +89,30 @@ def parse_args() -> argparse.Namespace:
 def gpu_metadata() -> dict[str, Any]:
     if not torch.cuda.is_available():
         return {"cuda_available": False}
-    props = torch.cuda.get_device_properties(0)
+    devices = []
+    for idx in range(torch.cuda.device_count()):
+        props = torch.cuda.get_device_properties(idx)
+        devices.append(
+            {
+                "index": idx,
+                "name": props.name,
+                "total_vram_gb": props.total_memory / (1024**3),
+            }
+        )
     return {
         "cuda_available": True,
-        "device_name": props.name,
-        "total_vram_gb": props.total_memory / (1024**3),
+        "device_count": torch.cuda.device_count(),
+        "devices": devices,
         "torch_version": torch.__version__,
         "cuda_version": torch.version.cuda,
     }
 
 
-def first_cuda_device(model) -> torch.device:
+def input_device(model) -> torch.device:
+    embeddings = model.get_input_embeddings()
+    weight = getattr(embeddings, "weight", None)
+    if weight is not None and weight.device.type != "meta":
+        return weight.device
     for p in model.parameters():
         if p.device.type == "cuda":
             return p.device
@@ -188,7 +201,7 @@ def longest_common_prefix_ratio(a: list[int], b: list[int]) -> float:
 
 @torch.inference_mode()
 def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
-    device = first_cuda_device(model)
+    device = input_device(model)
     encoded = tokenizer(
         case["prompt"],
         return_tensors="pt",
@@ -201,7 +214,8 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
+        for gpu_idx in range(torch.cuda.device_count()):
+            torch.cuda.reset_peak_memory_stats(gpu_idx)
         torch.cuda.synchronize()
 
     started = time.perf_counter()
@@ -221,11 +235,15 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
 
     new_ids = output[0, input_ids.shape[1] :].tolist()
     text = tokenizer.decode(new_ids, skip_special_tokens=True).strip()
-    peak_gb = (
-        torch.cuda.max_memory_allocated() / (1024**3)
+    peak_by_gpu = (
+        {
+            str(gpu_idx): torch.cuda.max_memory_allocated(gpu_idx) / (1024**3)
+            for gpu_idx in range(torch.cuda.device_count())
+        }
         if torch.cuda.is_available()
-        else 0.0
+        else {}
     )
+    peak_gb = max(peak_by_gpu.values(), default=0.0)
 
     expected = case.get("expected")
     passed = None if expected is None else expected.lower() in text.lower()
@@ -242,6 +260,7 @@ def generate_one(model, tokenizer, case: dict[str, Any]) -> dict[str, Any]:
         "elapsed_s": elapsed,
         "tokens_per_s": len(new_ids) / max(elapsed, 1e-9),
         "peak_allocated_vram_gb": peak_gb,
+        "peak_allocated_vram_by_gpu_gb": peak_by_gpu,
     }
 
 
@@ -334,9 +353,24 @@ def main() -> None:
         bnb_4bit_use_double_quant=True,
         bnb_4bit_compute_dtype=torch.float16,
     )
+    gpu_count = torch.cuda.device_count()
+    if gpu_count < 1:
+        raise RuntimeError("No CUDA GPU detected.")
+
+    # Kaggle T4 x2: balance the quantization/materialization work across both
+    # cards. GPU 0 gets less budget because generation outputs and input
+    # tensors return there. On one GPU, fall back to a conservative auto map.
+    if gpu_count >= 2:
+        device_map = "balanced_low_0"
+        max_memory = {0: "11GiB", 1: "13GiB", "cpu": "30GiB"}
+    else:
+        device_map = "auto"
+        max_memory = {0: "13GiB", "cpu": "30GiB"}
+
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        device_map={"": 0},
+        device_map=device_map,
+        max_memory=max_memory,
         dtype=torch.float16,
         quantization_config=quant_config,
         low_cpu_mem_usage=True,
@@ -344,12 +378,16 @@ def main() -> None:
     )
     model.eval()
 
-    load_allocated = torch.cuda.memory_allocated() / (1024**3)
-    print(f"Loaded model VRAM allocation: {load_allocated:.2f} GB")
-    if load_allocated > 14.5:
+    load_allocated_by_gpu = {
+        str(gpu_idx): torch.cuda.memory_allocated(gpu_idx) / (1024**3)
+        for gpu_idx in range(torch.cuda.device_count())
+    }
+    print(f"HF device map: {getattr(model, 'hf_device_map', None)}")
+    print(f"Loaded model VRAM allocation by GPU: {load_allocated_by_gpu}")
+    if any(v > 13.5 for v in load_allocated_by_gpu.values()):
         raise RuntimeError(
-            "Model left too little headroom on a 16GB card. "
-            f"Allocated immediately after load: {load_allocated:.2f} GB"
+            "Model left too little runtime headroom on at least one GPU. "
+            f"Allocated after load: {load_allocated_by_gpu}"
         )
 
     cases = build_cases(tokenizer, args.long_tokens)
@@ -371,7 +409,8 @@ def main() -> None:
             **gpu_metadata(),
             "python": platform.python_version(),
             "platform": platform.platform(),
-            "model_loaded_allocated_vram_gb": load_allocated,
+            "model_loaded_allocated_vram_by_gpu_gb": load_allocated_by_gpu,
+            "hf_device_map": getattr(model, "hf_device_map", None),
         },
         "arms": {},
     }
