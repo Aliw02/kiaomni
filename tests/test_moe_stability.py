@@ -121,3 +121,18 @@ def test_remove_restores_unmodified_forward():
 
     actual = model(inputs_embeds=x).detach()
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=0.0)
+
+
+def test_sigmoid_router_semantics_are_detected():
+    model = _TinyMoE()
+    model.config.score_func = "sigmoid"
+    controller = apply_moe_route_stability(model, alpha_max=0.10)
+
+    x = torch.tensor([[[0.1, 1.0], [0.11, 1.0], [0.12, 1.0]]])
+    _ = model(inputs_embeds=x)
+    metrics = controller.snapshot()
+
+    assert metrics["score_func"] == "sigmoid"
+    assert 0.0 <= metrics["mean_uncertainty"] <= 1.0
+
+    remove_moe_route_stability(model)
