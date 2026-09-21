@@ -258,7 +258,28 @@ def _config_value(config, name: str):
     return None
 
 
-def _discover_router_gates(model, num_experts: int) -> list[tuple[str, object, object]]:
+def _first_config_int(config, names: tuple[str, ...]) -> Optional[int]:
+    for name in names:
+        value = _config_value(config, name)
+        if isinstance(value, int) and value > 0:
+            return value
+    return None
+
+
+def _first_attr_int(obj, names: tuple[str, ...]) -> Optional[int]:
+    if obj is None:
+        return None
+    for name in names:
+        value = getattr(obj, name, None)
+        if isinstance(value, int) and value > 0:
+            return value
+    return None
+
+
+def _discover_router_gates(
+    model,
+    num_experts: Optional[int] = None,
+) -> list[tuple[str, object, object]]:
     modules = dict(model.named_modules())
     found: list[tuple[str, object, object]] = []
 
@@ -269,7 +290,16 @@ def _discover_router_gates(model, num_experts: int) -> list[tuple[str, object, o
         if tail not in {"gate", "router"}:
             continue
         out_features = getattr(module, "out_features", None)
-        if out_features is not None and int(out_features) != num_experts:
+        if out_features is not None:
+            try:
+                out_features = int(out_features)
+            except (TypeError, ValueError):
+                continue
+            if out_features < 2:
+                continue
+            if num_experts is not None and out_features != num_experts:
+                continue
+        elif num_experts is not None:
             continue
 
         parent_name = name.rsplit(".", 1)[0] if "." in name else ""
@@ -311,13 +341,84 @@ def apply_moe_route_stability(
     if cfg is None:
         raise ValueError("model.config is required for MoE router discovery")
 
-    resolved_experts = num_experts or _config_value(cfg, "num_experts")
-    resolved_top_k = top_k or _config_value(cfg, "num_experts_per_tok")
+    resolved_experts = num_experts or _first_config_int(
+        cfg,
+        (
+            "num_experts",
+            "num_local_experts",
+            "num_routed_experts",
+            "n_routed_experts",
+            "routed_experts",
+        ),
+    )
+    resolved_top_k = top_k or _first_config_int(
+        cfg,
+        (
+            "num_experts_per_tok",
+            "num_experts_per_token",
+            "top_k",
+            "topk",
+            "moe_top_k",
+        ),
+    )
     resolved_score_func = _config_value(cfg, "score_func") or "softmax"
+
+    # Discover router modules even when a custom architecture uses different
+    # config field names. If every candidate router has the same output width,
+    # that width is the expert count.
+    discovered = _discover_router_gates(model, resolved_experts)
+    if not discovered and resolved_experts is not None:
+        discovered = _discover_router_gates(model, None)
+    if not discovered:
+        raise RuntimeError(
+            "No MoE router gate was discovered under an MoE/MLP block."
+        )
+
+    if resolved_experts is None:
+        widths = {
+            int(getattr(module, "out_features"))
+            for _, module, _ in discovered
+            if getattr(module, "out_features", None) is not None
+        }
+        if len(widths) == 1:
+            resolved_experts = widths.pop()
+
+    if resolved_top_k is None:
+        parent_topks = {
+            value
+            for _, _, parent in discovered
+            for value in [
+                _first_attr_int(
+                    parent,
+                    (
+                        "num_experts_per_tok",
+                        "num_experts_per_token",
+                        "top_k",
+                        "topk",
+                        "moe_top_k",
+                    ),
+                )
+            ]
+            if value is not None
+        }
+        if len(parent_topks) == 1:
+            resolved_top_k = parent_topks.pop()
+
     if not isinstance(resolved_experts, int) or resolved_experts < 2:
-        raise ValueError("Could not resolve config.num_experts")
-    if not isinstance(resolved_top_k, int) or resolved_top_k < 1:
-        raise ValueError("Could not resolve config.num_experts_per_tok")
+        raise ValueError(
+            "Could not infer MoE expert count from config or router output width."
+        )
+    if not isinstance(resolved_top_k, int) or not (1 <= resolved_top_k <= resolved_experts):
+        raise ValueError(
+            "Could not infer MoE top-k from config or router parent attributes."
+        )
+
+    # Re-filter now that expert count is known.
+    discovered = _discover_router_gates(model, resolved_experts)
+    if not discovered:
+        raise RuntimeError(
+            f"No MoE router gate with output width {resolved_experts} was discovered."
+        )
 
     controller = AdaptiveMoERouteController(
         num_experts=resolved_experts,
@@ -325,13 +426,6 @@ def apply_moe_route_stability(
         alpha_max=alpha_max,
         score_func=resolved_score_func,
     )
-
-    discovered = _discover_router_gates(model, resolved_experts)
-    if not discovered:
-        raise RuntimeError(
-            "No MoE router gate was discovered. Expected a gate/router module "
-            f"with output width {resolved_experts} under an MoE/MLP block."
-        )
 
     for name, module, parent in discovered:
         controller.router_names.append(name)
