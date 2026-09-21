@@ -41,6 +41,9 @@ pip uninstall -y autoawq autoawq-kernels >/dev/null 2>&1 || true
 pip install -q -U accelerate optimum ninja
 pip install -q -U "gptqmodel>=7.5.0" --no-build-isolation
 pip install -q -U "transformers>=5.10,<6"
+# Kaggle can retain a SciPy binary built against a different NumPy after the
+# quantization stack updates NumPy. Reinstall this known-compatible pair last.
+pip install -q --force-reinstall --no-cache-dir "numpy==2.2.6" "scipy==1.15.3"
 ```
 
 Verify that the final environment is using Transformers 5.x and GPTQModel:
