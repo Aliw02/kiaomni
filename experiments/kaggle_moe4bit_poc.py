@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from kiaomni import (
     apply_kiaomni,
@@ -38,7 +38,7 @@ from kiaomni import (
 )
 
 
-DEFAULT_MODEL = "LiquidAI/LFM2.5-8B-A1B"
+DEFAULT_MODEL = "cyankiwi/LFM2.5-8B-A1B-AWQ-INT4"
 DEFAULT_OUT = "results/moe_route_stability_poc.json"
 
 
@@ -344,35 +344,26 @@ def main() -> None:
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
 
-    # Quantize the official pretrained checkpoint on load. This keeps the POC
-    # fully 4-bit without relying on AWQ/GPTQModel wheels or community-specific
-    # expert quant-state restoration. T4 uses fp16 compute; NF4 storage remains 4-bit.
-    quant_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.float16,
-    )
     gpu_count = torch.cuda.device_count()
     if gpu_count < 1:
         raise RuntimeError("No CUDA GPU detected.")
 
-    # Kaggle T4 x2: balance the quantization/materialization work across both
-    # cards. GPU 0 gets less budget because generation outputs and input
-    # tensors return there. On one GPU, fall back to a conservative auto map.
+    # This checkpoint is already AWQ INT4 on disk. Do not quantize the
+    # original FP16 model at load time. On Kaggle T4 x2 we deliberately
+    # distribute the quantized model across both GPUs and keep GPU 0 lighter
+    # because generate() returns outputs to the input device.
     if gpu_count >= 2:
         device_map = "balanced_low_0"
-        max_memory = {0: "11GiB", 1: "13GiB", "cpu": "30GiB"}
+        max_memory = {0: "10GiB", 1: "13GiB", "cpu": "24GiB"}
     else:
         device_map = "auto"
-        max_memory = {0: "13GiB", "cpu": "30GiB"}
+        max_memory = {0: "13GiB", "cpu": "24GiB"}
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         device_map=device_map,
         max_memory=max_memory,
         dtype=torch.float16,
-        quantization_config=quant_config,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
     )
@@ -401,7 +392,7 @@ def main() -> None:
     artifact: dict[str, Any] = {
         "experiment": "KIAOMNI_MOE_ROUTE_STABILITY_POC_V1",
         "model": args.model,
-        "quantization_target": "bitsandbytes NF4 4-bit (double quantization, fp16 compute)",
+        "quantization_target": "pre-quantized AWQ INT4 checkpoint",
         "weights_frozen": True,
         "budget": args.budget,
         "alpha_max": args.alpha_max,
