@@ -401,18 +401,26 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
     clean_model(model)
     ids = input_ids.to(input_device(model))
     seq_len = ids.shape[1]
-    if seq_len <= budget:
-        keep = np.arange(seq_len, dtype=np.int64)
-    else:
+
+    # Architecture discovery is setup, like apply_kiaomni(), and is excluded
+    # from per-sample latency. Saliency extraction/selection must be included.
+    adapter = None
+    if seq_len > budget:
         probe = ArchitectureProbe.probe(model)
-        saliency = SaliencyAdapter(probe).extract(ids, model)[0]
-        keep = blocksal_keep(saliency, budget, seq_len)
-    keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
-    pruned = ids[:, keep_t]
+        adapter = SaliencyAdapter(probe)
 
     reset_peak_memory()
     torch.cuda.synchronize()
     t0 = time.perf_counter()
+
+    if seq_len <= budget:
+        keep = np.arange(seq_len, dtype=np.int64)
+    else:
+        saliency = adapter.extract(ids, model)[0]
+        keep = blocksal_keep(saliency, budget, seq_len)
+
+    keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
+    pruned = ids[:, keep_t]
     out = model.generate(
         pruned,
         attention_mask=torch.ones_like(pruned),
