@@ -78,9 +78,19 @@ SHORT_CASES = [
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--budget", type=int, default=768)
+    parser.add_argument(
+        "--budget",
+        type=int,
+        default=None,
+        help="Optional primary KiaOmni budget; prepended to --budgets for compatibility.",
+    )
+    parser.add_argument(
+        "--budgets",
+        default="512,256,128,98",
+        help="Comma-separated KiaOmni budget sweep.",
+    )
     parser.add_argument("--alpha-max", type=float, default=0.10)
-    parser.add_argument("--long-tokens", type=int, default=1800)
+    parser.add_argument("--long-tokens", type=int, default=3200)
     parser.add_argument("--output", default=DEFAULT_OUT)
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
@@ -357,7 +367,23 @@ def main() -> None:
     print("=" * 88)
     print("KiaOmni + Adaptive MoE Route Stability POC")
     print(f"Model: {args.model}")
-    print(f"Budget: {args.budget} | alpha_max: {args.alpha_max}")
+    budgets = []
+    for raw in args.budgets.split(","):
+        raw = raw.strip()
+        if not raw:
+            continue
+        value = int(raw)
+        if value < 1:
+            raise ValueError("All KiaOmni budgets must be positive integers.")
+        if value not in budgets:
+            budgets.append(value)
+    if args.budget is not None:
+        budgets = [args.budget] + [b for b in budgets if b != args.budget]
+    if not budgets:
+        raise ValueError("At least one KiaOmni budget is required.")
+
+    print(f"Budgets: {budgets} | alpha_max: {args.alpha_max}")
+    print(f"Long-context target: {args.long_tokens}+ tokens")
     print("=" * 88)
 
     if not torch.cuda.is_available():
@@ -405,19 +431,28 @@ def main() -> None:
         )
 
     cases = build_cases(tokenizer, args.long_tokens)
-    arms = [
-        "baseline",
-        "route_only",
-        "kiaomni_only",
-        "kiaomni_plus_route",
+
+    # Baseline and route-only do not depend on the KiaOmni budget, so run them
+    # once. Sweep the compression budgets only for the KiaOmni arms.
+    run_specs: list[tuple[str, int | None]] = [
+        ("baseline", None),
+        ("route_only", None),
     ]
+    for budget in budgets:
+        run_specs.extend(
+            [
+                ("kiaomni_only", budget),
+                ("kiaomni_plus_route", budget),
+            ]
+        )
 
     artifact: dict[str, Any] = {
         "experiment": "KIAOMNI_MOE_ROUTE_STABILITY_POC_V1",
         "model": args.model,
         "precision_target": "FP16 on single T4 (no quantization runtime)",
         "weights_frozen": True,
-        "budget": args.budget,
+        "budgets": budgets,
+        "long_tokens_target": args.long_tokens,
         "alpha_max": args.alpha_max,
         "environment": {
             **gpu_metadata(),
@@ -425,19 +460,23 @@ def main() -> None:
             "platform": platform.platform(),
             "model_loaded_allocated_vram_by_gpu_gb": load_allocated_by_gpu,
             "hf_device_map": getattr(model, "hf_device_map", None),
-                    },
+        },
         "arms": {},
     }
 
     baseline_index: dict[str, dict[str, Any]] = {}
+    run_keys: list[str] = []
 
     try:
-        for arm in arms:
-            print(f"\n--- {arm} ---")
+        for arm, budget in run_specs:
+            run_key = arm if budget is None else f"{arm}_b{budget}"
+            run_keys.append(run_key)
+            budget_text = "" if budget is None else f" | budget={budget}"
+            print(f"\n--- {arm}{budget_text} ---")
             controller = configure_arm(
                 model,
                 arm=arm,
-                budget=args.budget,
+                budget=budget if budget is not None else budgets[0],
                 alpha_max=args.alpha_max,
                 verbose=args.verbose,
             )
@@ -457,8 +496,14 @@ def main() -> None:
                 baseline_index = {r["name"]: r for r in rows}
 
             route_metrics = controller.snapshot() if controller is not None else None
-            aggregate = aggregate_arm(rows, baseline_index or {r["name"]: r for r in rows}, route_metrics)
-            artifact["arms"][arm] = {
+            aggregate = aggregate_arm(
+                rows,
+                baseline_index or {r["name"]: r for r in rows},
+                route_metrics,
+            )
+            artifact["arms"][run_key] = {
+                "arm": arm,
+                "budget": budget,
                 "aggregate": aggregate,
                 "cases": rows,
             }
@@ -473,8 +518,8 @@ def main() -> None:
 
     print("\n" + "=" * 88)
     print("POC SUMMARY")
-    for arm in arms:
-        agg = artifact["arms"][arm]["aggregate"]
+    for run_key in run_keys:
+        agg = artifact["arms"][run_key]["aggregate"]
         router = agg["router"]
         route_text = ""
         if router:
@@ -485,7 +530,7 @@ def main() -> None:
                 f" mean_alpha={router['mean_alpha']:.4f}"
             )
         print(
-            f"{arm:<20} preserve={agg['mean_baseline_token_lcp_ratio']:.3f} "
+            f"{run_key:<28} preserve={agg['mean_baseline_token_lcp_ratio']:.3f} "
             f"needle={agg['needle_pass_rate']} "
             f"tok/s={agg['mean_tokens_per_s']:.2f} "
             f"peak={agg['max_peak_allocated_vram_gb']:.2f}GB"
