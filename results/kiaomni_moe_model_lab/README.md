@@ -9,8 +9,11 @@ reproducible.
 
 ## Layout
 
-- `phase_01_mobilemoe_route_stability/` — first MobileMoE-M-SFT study:
+- `phase_01_mobilemoe_route_stability/` — frozen MobileMoE-M-SFT study:
   KiaOmni budget sweep + counterfactual adaptive route-stability measurements.
+- `phase_02_mobilemoe_multineedle_baselines/` — 4K MobileMoE benchmark:
+  single/multi/hard-multi/reasoning tasks with FullContext, KiaOmni, BlockSal,
+  and validation-gated NVIDIA SnapKV / StreamingLLM baselines.
 
 Future MoE model tests should be added as new phase/model directories here
 instead of modifying frozen result artifacts.
