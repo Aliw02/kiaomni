@@ -7,6 +7,7 @@ from experiments.kaggle_moe_phase02_multineedle_baselines import (
     N_SINK,
     RECENCY,
     Case,
+    aggregate,
     blocksal_keep,
     ratio_for_budget,
     score_answer,
@@ -80,3 +81,28 @@ def test_blocksal_validation_covers_full_phase02_budget_grid():
         assert entry["protected_tokens_present"] is True
         assert entry["historical_whole_block_budget_ok"] is True
         assert budget - (BLOCK_SIZE - 1) <= entry["actual_kept_tokens"] <= budget
+
+
+def test_aggregate_reports_full_context_conditioned_quality():
+    rows = [
+        {
+            "score": {"exact": True, "recall": 1.0},
+            "tokens_per_s": 2.0,
+            "peak_vram_gb": 5.0,
+            "full_context_exact": True,
+        },
+        {
+            "score": {"exact": False, "recall": 0.0},
+            "tokens_per_s": 2.0,
+            "peak_vram_gb": 5.0,
+            "full_context_exact": False,
+        },
+    ]
+
+    metrics = aggregate(rows)
+
+    assert metrics["exact_accuracy"] == 0.5
+    assert metrics["full_context_eligible_n"] == 1
+    assert metrics["full_context_eligibility_rate"] == 0.5
+    assert metrics["conditional_exact_accuracy"] == 1.0
+    assert metrics["conditional_mean_recall"] == 1.0
