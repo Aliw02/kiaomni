@@ -19,6 +19,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from kiaomni import apply_kiaomni, remove_kiaomni
 from kiaomni.adapters import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
+from kiaomni.blocksal import BLOCK_SIZE_DEFAULT, select_blocksal_keep
 
 MODEL_DEFAULT = "facebook/MobileMoE-M-SFT"
 BUDGETS_DEFAULT = "512,256,128,98"
@@ -27,7 +28,7 @@ MAX_CONTEXT_DEFAULT = 4096
 SEED_DEFAULT = 42
 N_SINK = 16
 RECENCY = 32
-BLOCK_SIZE = 16
+BLOCK_SIZE = BLOCK_SIZE_DEFAULT
 SNAPKV_WINDOW = 64
 SNAPKV_KERNEL = 5
 KVPRESS_REF = "7331c23da9e6f1510d89ea651d0dea77a57b3252"
@@ -356,44 +357,15 @@ def blocksal_keep(
     recency: int = RECENCY,
     block_size: int = BLOCK_SIZE,
 ) -> np.ndarray:
-    """Historical BlockSal selector: mean saliency per block, whole-block eviction.
-
-    This intentionally preserves the original whole-block behavior. Therefore
-    actual retained tokens can be up to block_size-1 below the nominal budget.
-    """
-    if budget >= seq_len:
-        return np.arange(seq_len, dtype=np.int64)
-    if budget < n_sink + recency:
-        raise ValueError("BlockSal budget must cover sink + recency protection")
-    sal = np.asarray(saliency, dtype=np.float32).reshape(-1)
-    if sal.shape[0] != seq_len:
-        raise ValueError(f"saliency length {sal.shape[0]} != seq_len {seq_len}")
-
-    protected = np.zeros(seq_len, dtype=bool)
-    protected[: min(n_sink, seq_len)] = True
-    protected[max(0, seq_len - recency):] = True
-    evict_idx = np.where(~protected)[0]
-    if evict_idx.size == 0:
-        return np.arange(seq_len, dtype=np.int64)
-
-    page_ids = evict_idx // block_size
-    unique_pages = np.unique(page_ids)
-    page_scores = np.array(
-        [sal[evict_idx[page_ids == page]].mean() for page in unique_pages],
-        dtype=np.float32,
-    )
-    order = np.argsort(page_scores)
-    evicted = np.zeros(seq_len, dtype=bool)
-    target_evict = max(0, seq_len - budget)
-    tokens_evicted = 0
-    for oi in order:
-        if tokens_evicted >= target_evict:
-            break
-        mask = page_ids == unique_pages[oi]
-        idx = evict_idx[mask]
-        evicted[idx] = True
-        tokens_evicted += int(idx.size)
-    return np.where(~evicted)[0].astype(np.int64)
+    """Exact-budget adapter for our historical mean-saliency BlockSal ranking."""
+    return select_blocksal_keep(
+        np.asarray(saliency, dtype=np.float32).reshape(-1),
+        budget=budget,
+        L=seq_len,
+        block_size=block_size,
+        n_sink=n_sink,
+        recency=recency,
+    ).keep_indices
 
 
 @torch.inference_mode()
@@ -415,9 +387,28 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
 
     if seq_len <= budget:
         keep = np.arange(seq_len, dtype=np.int64)
+        partial_boundary_block = False
+        protected_tokens = min(seq_len, N_SINK + RECENCY)
     else:
         saliency = adapter.extract(ids, model)[0]
-        keep = blocksal_keep(saliency, budget, seq_len)
+        selection = select_blocksal_keep(
+            saliency,
+            budget=budget,
+            L=seq_len,
+            block_size=BLOCK_SIZE,
+            n_sink=N_SINK,
+            recency=RECENCY,
+        )
+        keep = selection.keep_indices
+        partial_boundary_block = selection.partial_boundary_block
+        protected_tokens = selection.protected_tokens
+
+    expected_kept = min(budget, seq_len)
+    if len(keep) != expected_kept:
+        raise RuntimeError(
+            f"BlockSal exact-budget invariant failed: kept={len(keep)} "
+            f"expected={expected_kept}"
+        )
 
     keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
     pruned = ids[:, keep_t]
@@ -446,9 +437,11 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
             "original_tokens": int(seq_len),
             "requested_budget": int(budget),
             "kept_tokens": int(len(keep)),
-            "budget_delta": int(len(keep) - budget),
+            "budget_delta": int(len(keep) - min(budget, seq_len)),
             "block_size": BLOCK_SIZE,
-            "selector": "historical_whole_block_mean_saliency",
+            "selector": "mean_saliency_block_ranking_exact_budget_boundary",
+            "partial_boundary_block": bool(partial_boundary_block),
+            "protected_tokens": int(protected_tokens),
         },
     }
 
@@ -734,8 +727,8 @@ def validate_blocksal(
 ) -> ValidationResult:
     details: dict[str, Any] = {
         "block_size": BLOCK_SIZE,
-        "selector": "historical_whole_block_mean_saliency",
-        "exact_budget": False,
+        "selector": "mean_saliency_block_ranking_exact_budget_boundary",
+        "exact_budget": True,
         "budgets": {},
     }
     all_valid = True
@@ -745,21 +738,31 @@ def validate_blocksal(
         protected = set(range(N_SINK)) | set(range(seq_len - RECENCY, seq_len))
 
         for budget in budgets:
-            keep = blocksal_keep(sal, budget, seq_len)
+            selection = select_blocksal_keep(
+                sal,
+                budget=budget,
+                L=seq_len,
+                block_size=BLOCK_SIZE,
+                n_sink=N_SINK,
+                recency=RECENCY,
+            )
+            keep = selection.keep_indices
             kept_set = set(keep.tolist())
             protected_ok = protected.issubset(kept_set)
-            budget_ok = budget - (BLOCK_SIZE - 1) <= len(keep) <= budget
+            exact = len(keep) == min(budget, seq_len)
             entry = {
                 "requested_budget": budget,
                 "actual_kept_tokens": len(keep),
-                "budget_delta": len(keep) - budget,
+                "budget_delta": len(keep) - min(budget, seq_len),
                 "protected_tokens_present": protected_ok,
-                "historical_whole_block_budget_ok": budget_ok,
+                "exact_budget": exact,
+                "partial_boundary_block": selection.partial_boundary_block,
             }
             details["budgets"][str(budget)] = entry
-            if not (protected_ok and budget_ok):
+            if not (protected_ok and exact):
                 all_valid = False
 
+        details["all_budgets_exact"] = all_valid
         return ValidationResult(
             "blocksal",
             all_valid,
@@ -1007,9 +1010,10 @@ def main() -> None:
                 "block_size": BLOCK_SIZE,
                 "n_sink": N_SINK,
                 "recency": RECENCY,
-                "selector": "historical_whole_block_mean_saliency",
-                "provenance": "paper Section 2.2 / full-comparison BLOCK_SIZE=16",
-                "exact_budget": False,
+                "selector": "mean_saliency_block_ranking_exact_budget_boundary",
+                "provenance": "our BlockSal design; canonical historical block ranking with exact-budget benchmark boundary adapter",
+                "exact_budget": True,
+                "ownership_note": "BlockSal is our internal method, not an external baseline.",
             },
             "snapkv": {
                 "class": "external_baseline",
