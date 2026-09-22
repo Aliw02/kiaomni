@@ -105,6 +105,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output", default=OUTPUT_DEFAULT)
     p.add_argument("--skip-external", action="store_true")
     p.add_argument(
+        "--exclude-methods",
+        default="",
+        help=(
+            "Comma-separated methods to defer from this run. "
+            "Supported: snapkv, streamingllm. Excluded methods are recorded "
+            "but do not block validated methods from benchmarking."
+        ),
+    )
+    p.add_argument(
         "--validation-only",
         action="store_true",
         help="Run method compatibility/budget validation and exit before benchmark generation.",
@@ -1030,6 +1039,18 @@ def main() -> None:
     args = parse_args()
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
     budgets = [int(x.strip()) for x in args.budgets.split(",") if x.strip()]
+    excluded_methods = {
+        x.strip().lower()
+        for x in args.exclude_methods.split(",")
+        if x.strip()
+    }
+    allowed_exclusions = {"snapkv", "streamingllm"}
+    unknown_exclusions = excluded_methods - allowed_exclusions
+    if unknown_exclusions:
+        raise ValueError(
+            "Unknown --exclude-methods values: "
+            + ", ".join(sorted(unknown_exclusions))
+        )
     if not budgets or any(b < N_SINK + RECENCY for b in budgets):
         raise ValueError(f"All budgets must be >= {N_SINK + RECENCY}")
     if args.target_tokens > args.max_context:
@@ -1039,7 +1060,14 @@ def main() -> None:
     print("KiaOmni x MoE Model Lab — Phase 02: Multi-Needle + Baseline Validation")
     print(f"Model: {args.model}")
     print(f"Budgets: {budgets} | final prompt target <= {args.target_tokens} | hard max={args.max_context}")
-    print("Methods: FullContext, KiaOmni-s8, BlockSal (ours), SnapKV, StreamingLLM")
+    active_methods = ["FullContext", "KiaOmni-s8", "BlockSal (ours)"]
+    if "snapkv" not in excluded_methods:
+        active_methods.append("SnapKV")
+    if "streamingllm" not in excluded_methods:
+        active_methods.append("StreamingLLM")
+    print("Methods: " + ", ".join(active_methods))
+    if excluded_methods:
+        print("Deferred methods: " + ", ".join(sorted(excluded_methods)))
     print("=" * 96)
 
     if not torch.cuda.is_available():
@@ -1090,37 +1118,66 @@ def main() -> None:
         "blocksal": validate_blocksal(budgets).__dict__,
     }
     if args.skip_external:
-        validations["snapkv"] = ValidationResult("snapkv", False, "SKIPPED", {"reason": "--skip-external"}).__dict__
-        validations["streamingllm"] = ValidationResult("streamingllm", False, "SKIPPED", {"reason": "--skip-external"}).__dict__
+        validations["snapkv"] = ValidationResult(
+            "snapkv", False, "SKIPPED", {"reason": "--skip-external"}
+        ).__dict__
+        validations["streamingllm"] = ValidationResult(
+            "streamingllm", False, "SKIPPED", {"reason": "--skip-external"}
+        ).__dict__
     else:
         kvpress_version = package_version("kvpress")
-        if kvpress_version is None:
-            validations["snapkv"] = ValidationResult(
-                "snapkv", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}
-            ).__dict__
-            validations["streamingllm"] = ValidationResult(
-                "streamingllm", False, "VALIDATION_FAIL", {"reason": "kvpress_not_installed"}
-            ).__dict__
-        elif kvpress_version != KVPRESS_REQUIRED:
-            details = {
-                "reason": "kvpress_version_mismatch",
-                "required_version": KVPRESS_REQUIRED,
-                "found_version": kvpress_version,
-                "pinned_ref": KVPRESS_REF,
-            }
-            validations["snapkv"] = ValidationResult(
-                "snapkv", False, "VALIDATION_FAIL", details
-            ).__dict__
-            validations["streamingllm"] = ValidationResult(
-                "streamingllm", False, "VALIDATION_FAIL", details
-            ).__dict__
-        else:
-            validations["snapkv"] = validate_external_press(
-                "snapkv", model, tokenizer, budgets
-            ).__dict__
-            validations["streamingllm"] = validate_external_press(
-                "streamingllm", model, tokenizer, budgets
-            ).__dict__
+        for method in ("snapkv", "streamingllm"):
+            if method in excluded_methods:
+                details = {
+                    "reason": "deferred_by_protocol",
+                    "requested_via": "--exclude-methods",
+                }
+                if method == "snapkv":
+                    details.update(
+                        {
+                            "deferred_status": "DEFERRED_INCOMPATIBLE",
+                            "last_known_issue": (
+                                "MobileMoE native SDPA query does not match "
+                                "adapter post-RoPE reconstruction; benchmark "
+                                "excluded to preserve scientific validity."
+                            ),
+                        }
+                    )
+                validations[method] = ValidationResult(
+                    method, False, "DEFERRED_INCOMPATIBLE", details
+                ).__dict__
+
+        methods_to_validate = [
+            method
+            for method in ("snapkv", "streamingllm")
+            if method not in excluded_methods
+        ]
+
+        if methods_to_validate:
+            if kvpress_version is None:
+                for method in methods_to_validate:
+                    validations[method] = ValidationResult(
+                        method,
+                        False,
+                        "VALIDATION_FAIL",
+                        {"reason": "kvpress_not_installed"},
+                    ).__dict__
+            elif kvpress_version != KVPRESS_REQUIRED:
+                details = {
+                    "reason": "kvpress_version_mismatch",
+                    "required_version": KVPRESS_REQUIRED,
+                    "found_version": kvpress_version,
+                    "pinned_ref": KVPRESS_REF,
+                }
+                for method in methods_to_validate:
+                    validations[method] = ValidationResult(
+                        method, False, "VALIDATION_FAIL", details
+                    ).__dict__
+            else:
+                for method in methods_to_validate:
+                    validations[method] = validate_external_press(
+                        method, model, tokenizer, budgets
+                    ).__dict__
 
     print("\nValidation gate:")
     for name, v in validations.items():
@@ -1136,6 +1193,7 @@ def main() -> None:
             "target_final_prompt_tokens": args.target_tokens,
             "environment": environment,
             "validation_gate": validations,
+            "excluded_methods": sorted(excluded_methods),
         }
         out_path = Path(args.output)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1144,8 +1202,14 @@ def main() -> None:
         return
 
     if not args.skip_external:
+        required_external = [
+            name
+            for name in ("snapkv", "streamingllm")
+            if name not in excluded_methods
+        ]
         invalid_external = [
-            name for name in ("snapkv", "streamingllm")
+            name
+            for name in required_external
             if not validations[name]["valid"]
         ]
         if invalid_external:
@@ -1286,6 +1350,7 @@ def main() -> None:
         "budgets": budgets,
         "samples_per_task": args.samples_per_task,
         "seed": args.seed,
+        "excluded_methods": sorted(excluded_methods),
         "tasks": ["single", "multi", "hard_multi", "reason"],
         "methods": {
             "full_context": {"class": "upper_bound", "owner": "baseline"},
