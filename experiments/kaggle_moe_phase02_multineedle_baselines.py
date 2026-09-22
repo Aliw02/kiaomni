@@ -493,31 +493,57 @@ def peak_memory_gb() -> dict[str, float]:
 
 
 @torch.inference_mode()
-def generate_full(model, tokenizer, input_ids: torch.Tensor, max_new_tokens: int) -> dict[str, Any]:
+def generate_full(
+    model,
+    tokenizer,
+    input_ids: torch.Tensor,
+    max_new_tokens: int,
+    *,
+    route_telemetry: bool = True,
+    route_alpha_max: float = 0.10,
+) -> dict[str, Any]:
     ids = input_ids.to(input_device(model))
+    controller = start_route_telemetry(
+        model,
+        enabled=route_telemetry,
+        alpha_max=route_alpha_max,
+    )
     reset_peak_memory()
     torch.cuda.synchronize()
     t0 = time.perf_counter()
-    out = model.generate(
-        ids,
-        max_new_tokens=max_new_tokens,
-        do_sample=False,
-        use_cache=True,
-        pad_token_id=tokenizer.pad_token_id,
-        eos_token_id=tokenizer.eos_token_id,
+    try:
+        out = model.generate(
+            ids,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            use_cache=True,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        torch.cuda.synchronize()
+        dt = time.perf_counter() - t0
+        routing = controller.snapshot() if controller is not None else None
+    finally:
+        remove_moe_route_stability(model)
+
+    diag = generation_diagnostics(
+        out,
+        prefix_len=int(ids.shape[1]),
+        tokenizer=tokenizer,
     )
-    torch.cuda.synchronize()
-    dt = time.perf_counter() - t0
-    new_ids = out[0, ids.shape[1]:]
-    text = tokenizer.decode(new_ids, skip_special_tokens=True).strip()
     peaks = peak_memory_gb()
+    reserved = peak_memory_reserved_gb()
     return {
-        "text": text,
-        "new_tokens": int(new_ids.numel()),
+        **diag,
         "elapsed_s": dt,
-        "tokens_per_s": float(new_ids.numel() / max(dt, 1e-9)),
+        "tokens_per_s": float(diag["new_tokens"] / max(dt, 1e-9)),
         "peak_vram_gb": max(peaks.values(), default=0.0),
         "peak_vram_by_gpu_gb": peaks,
+        "peak_reserved_vram_gb": max(reserved.values(), default=0.0),
+        "peak_reserved_vram_by_gpu_gb": reserved,
+        "routing": routing,
     }
 
 
@@ -615,13 +641,29 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
 
 
 @torch.inference_mode()
-def generate_kiaomni(model, tokenizer, input_ids: torch.Tensor, budget: int, max_new_tokens: int) -> dict[str, Any]:
+def generate_kiaomni(
+    model,
+    tokenizer,
+    input_ids: torch.Tensor,
+    budget: int,
+    max_new_tokens: int,
+    *,
+    route_telemetry: bool = True,
+    route_alpha_max: float = 0.10,
+) -> dict[str, Any]:
     clean_model(model)
     apply_kiaomni(model, policy="kiaomni_s8", budget=budget, verbose=False)
     model._phase02_kia_patch_active = True
     try:
         model._kia_last_compression = None
-        result = generate_full(model, tokenizer, input_ids, max_new_tokens)
+        result = generate_full(
+            model,
+            tokenizer,
+            input_ids,
+            max_new_tokens,
+            route_telemetry=route_telemetry,
+            route_alpha_max=route_alpha_max,
+        )
         result["compression"] = getattr(model, "_kia_last_compression", None)
         return result
     finally:
