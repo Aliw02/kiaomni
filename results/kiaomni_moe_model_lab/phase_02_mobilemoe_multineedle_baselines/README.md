@@ -199,3 +199,24 @@ Validation is fail-closed. SnapKV is accepted only if:
 
 If the model exposes a RoPE form that cannot be converted without changing
 attention semantics, the adapter raises instead of approximating.
+
+
+## SnapKV deferred status
+
+SnapKV is **deferred from Phase 02 scoring** for MobileMoE.
+
+The compatibility adapter can execute SnapKV, compress all 26 layers to the
+requested budgets, and advance generation. Zero-compression identity is exact.
+However, the adapter's reconstructed post-RoPE query does not match the native
+MobileMoE query entering SDPA closely enough for a faithful external-baseline
+claim.
+
+Therefore Phase 02 proceeds with:
+
+- FullContext
+- KiaOmni-s8
+- BlockSal
+- StreamingLLM
+
+Use `--exclude-methods snapkv` for the canonical Phase-02 comparison run.
+SnapKV may be revisited later as a separate compatibility study.
