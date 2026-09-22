@@ -41,10 +41,12 @@
     "blocksal": {
       "owner": "ours",
       "compression": "prompt-side block selection",
-      "block_size": 8,
+      "block_size": 16,
       "score": "mean KiaOmni saliency per block",
-      "exact_budget": true,
-      "boundary_rule": "at most one partial boundary block; highest-saliency members fill residual budget"
+      "exact_budget": false,
+      "budget_semantics": "whole-block eviction; actual retained tokens may be up to block_size-1 below nominal budget",
+      "provenance": "final_paper_data/033_full_comparison.py",
+      "note": "Specialized 035 passkey scripts historically used block_size=8; Phase 02 pins the general full-comparison canonical configuration at 16."
     },
     "snapkv": {
       "owner": "external",
