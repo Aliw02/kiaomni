@@ -5,6 +5,7 @@ import gc
 import hashlib
 import importlib.metadata
 import json
+import logging
 import os
 import random
 import re
@@ -136,6 +137,25 @@ def parse_args() -> argparse.Namespace:
         help="Run method compatibility/budget validation and exit before benchmark generation.",
     )
     return p.parse_args()
+
+
+def configure_benchmark_logging() -> dict[str, Any]:
+    """Silence only known repetitive compatibility warnings.
+
+    Unexpected warnings/errors remain visible. The suppressed logger names are
+    returned so the artifact records exactly what was hidden from stdout.
+    """
+    suppressed = {
+        "kiaomni.adapters.probe": "ERROR",
+        "kvpress.presses.base_press": "ERROR",
+    }
+    for name in suppressed:
+        logging.getLogger(name).setLevel(logging.ERROR)
+    return {
+        "suppressed_repetitive_loggers": suppressed,
+        "errors_still_visible": True,
+        "unexpected_warning_loggers_unchanged": True,
+    }
 
 
 def repo_git_head() -> str | None:
@@ -1490,6 +1510,7 @@ def max_new_for_task(task: str) -> int:
 def main() -> None:
     args = parse_args()
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    logging_policy = configure_benchmark_logging()
     budgets = [int(x.strip()) for x in args.budgets.split(",") if x.strip()]
     excluded_methods = {
         x.strip().lower()
@@ -1568,6 +1589,7 @@ def main() -> None:
         "device_map": getattr(model, "hf_device_map", None),
         "kiaomni_git_head": repo_git_head(),
         "runner_sha256": runner_sha256(),
+        "logging_policy": logging_policy,
     }
 
     validations: dict[str, dict[str, Any]] = {
