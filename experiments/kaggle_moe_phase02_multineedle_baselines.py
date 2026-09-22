@@ -6,6 +6,7 @@ import hashlib
 import importlib.metadata
 import json
 import logging
+import math
 import os
 import random
 import re
@@ -1325,6 +1326,39 @@ def validate_blocksal(
         return ValidationResult("blocksal", False, "VALIDATION_FAIL", details)
 
 
+def wilson_interval(successes: int, total: int, z: float = 1.959963984540054) -> dict[str, float] | None:
+    if total <= 0:
+        return None
+    p = successes / total
+    z2 = z * z
+    denom = 1.0 + z2 / total
+    center = (p + z2 / (2.0 * total)) / denom
+    margin = (
+        z
+        * math.sqrt(
+            p * (1.0 - p) / total
+            + z2 / (4.0 * total * total)
+        )
+        / denom
+    )
+    return {
+        "low": max(0.0, center - margin),
+        "high": min(1.0, center + margin),
+    }
+
+
+def mcnemar_exact_p(method_only: int, comparator_only: int) -> float:
+    discordant = method_only + comparator_only
+    if discordant == 0:
+        return 1.0
+    tail = min(method_only, comparator_only)
+    prob = sum(
+        math.comb(discordant, k)
+        for k in range(tail + 1)
+    ) / (2 ** discordant)
+    return min(1.0, 2.0 * prob)
+
+
 def _mean_present(values: list[Any]) -> float | None:
     numeric = [float(v) for v in values if v is not None]
     return sum(numeric) / len(numeric) if numeric else None
@@ -1344,9 +1378,12 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         [x.get("stable_top1_transition_rate") for x in routings]
     )
 
+    exact_successes = sum(int(bool(r["score"]["exact"])) for r in rows)
     result = {
         "n": len(rows),
-        "exact_accuracy": sum(float(r["score"]["exact"]) for r in rows) / len(rows),
+        "exact_successes": exact_successes,
+        "exact_accuracy": exact_successes / len(rows),
+        "exact_accuracy_wilson95": wilson_interval(exact_successes, len(rows)),
         "mean_recall": sum(float(r["score"]["recall"]) for r in rows) / len(rows),
         "mean_generated_answer_ppl": _mean_present(
             [r.get("generated_answer_ppl") for r in rows]
@@ -1395,13 +1432,126 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         },
     }
     if eligible:
+        conditional_successes = sum(
+            int(bool(r["score"]["exact"])) for r in eligible
+        )
+        result["conditional_exact_successes"] = conditional_successes
         result["conditional_exact_accuracy"] = (
-            sum(float(r["score"]["exact"]) for r in eligible) / len(eligible)
+            conditional_successes / len(eligible)
+        )
+        result["conditional_exact_accuracy_wilson95"] = wilson_interval(
+            conditional_successes,
+            len(eligible),
         )
         result["conditional_mean_recall"] = (
             sum(float(r["score"]["recall"]) for r in eligible) / len(eligible)
         )
     return result
+
+
+def paired_quality_comparisons(
+    rows: list[dict[str, Any]],
+    *,
+    reference_method: str = "kiaomni_s8",
+) -> dict[str, Any]:
+    by_key = {
+        (r["task"], r["sample_id"], r["method"], r["budget"]): r
+        for r in rows
+    }
+    budgets = sorted(
+        {
+            int(r["budget"])
+            for r in rows
+            if r["method"] == reference_method and r["budget"] is not None
+        }
+    )
+    comparators = [
+        "full_context",
+        "blocksal",
+        "recency_only",
+        "random_retention",
+    ]
+
+    out: dict[str, Any] = {}
+    for budget in budgets:
+        refs = [
+            r
+            for r in rows
+            if r["method"] == reference_method and r["budget"] == budget
+        ]
+        for comparator in comparators:
+            both_pass = ref_only = comp_only = both_fail = 0
+            deltas: list[float] = []
+            ppl_deltas: list[float] = []
+            jitter_deltas: list[float] = []
+            continuity_deltas: list[float] = []
+
+            for ref in refs:
+                comp_budget = None if comparator == "full_context" else budget
+                comp = by_key.get(
+                    (
+                        ref["task"],
+                        ref["sample_id"],
+                        comparator,
+                        comp_budget,
+                    )
+                )
+                if comp is None:
+                    continue
+
+                ref_pass = bool(ref["score"]["exact"])
+                comp_pass = bool(comp["score"]["exact"])
+                if ref_pass and comp_pass:
+                    both_pass += 1
+                elif ref_pass and not comp_pass:
+                    ref_only += 1
+                elif comp_pass and not ref_pass:
+                    comp_only += 1
+                else:
+                    both_fail += 1
+                deltas.append(float(ref_pass) - float(comp_pass))
+
+                rp = ref.get("generated_answer_ppl")
+                cp = comp.get("generated_answer_ppl")
+                if rp is not None and cp is not None:
+                    ppl_deltas.append(float(rp) - float(cp))
+
+                rr = ref.get("routing") or {}
+                cr = comp.get("routing") or {}
+                rj = rr.get("raw_top1_transition_rate")
+                cj = cr.get("raw_top1_transition_rate")
+                if rj is not None and cj is not None:
+                    jitter_deltas.append(float(rj) - float(cj))
+                    continuity_deltas.append(
+                        (1.0 - float(rj)) - (1.0 - float(cj))
+                    )
+
+            paired_n = both_pass + ref_only + comp_only + both_fail
+            name = f"{reference_method}_b{budget}_vs_{comparator}"
+            out[name] = {
+                "reference_method": reference_method,
+                "comparator": comparator,
+                "budget": budget,
+                "paired_n": paired_n,
+                "both_pass": both_pass,
+                "reference_only_pass": ref_only,
+                "comparator_only_pass": comp_only,
+                "both_fail": both_fail,
+                "paired_accuracy_delta": _mean_present(deltas),
+                "mcnemar_exact_p": mcnemar_exact_p(ref_only, comp_only),
+                "mean_generated_answer_ppl_delta": _mean_present(ppl_deltas),
+                "mean_raw_jitter_delta": _mean_present(jitter_deltas),
+                "mean_raw_continuity_delta": _mean_present(
+                    continuity_deltas
+                ),
+                "sign_convention": {
+                    "accuracy_delta_positive_favors_reference": True,
+                    "ppl_delta_negative_favors_reference": True,
+                    "jitter_delta_negative_favors_reference": True,
+                    "continuity_delta_positive_favors_reference": True,
+                },
+            }
+    return out
 
 
 def paired_routing_vs_fullcontext(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1909,6 +2059,7 @@ def main() -> None:
         summary[name] = aggregate(sub)
 
     routing_vs_fullcontext = paired_routing_vs_fullcontext(rows)
+    paired_quality = paired_quality_comparisons(rows)
 
     artifact = {
         "experiment": "KIAOMNI_MOE_MODEL_LAB_PHASE02_MULTINEEDLE_BASELINES_V1",
@@ -1997,6 +2148,7 @@ def main() -> None:
         "validation_gate": validations,
         "summary": summary,
         "routing_vs_fullcontext": routing_vs_fullcontext,
+        "paired_quality": paired_quality,
         "rows": rows,
     }
 
