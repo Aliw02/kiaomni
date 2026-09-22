@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import gc
+import hashlib
 import importlib.metadata
 import json
 import os
 import random
 import re
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -100,6 +102,22 @@ def parse_args() -> argparse.Namespace:
         help="Run method compatibility/budget validation and exit before benchmark generation.",
     )
     return p.parse_args()
+
+
+def repo_git_head() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return None
+
+
+def runner_sha256() -> str:
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 
 def package_version(name: str) -> str | None:
@@ -845,6 +863,8 @@ def main() -> None:
         "gpu_count": torch.cuda.device_count(),
         "gpus": [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
         "device_map": getattr(model, "hf_device_map", None),
+        "kiaomni_git_head": repo_git_head(),
+        "runner_sha256": runner_sha256(),
     }
 
     validations: dict[str, dict[str, Any]] = {
