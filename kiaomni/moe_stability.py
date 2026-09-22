@@ -27,7 +27,7 @@ import math
 
 import numpy as np
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import torch
 import torch.nn.functional as F
@@ -139,6 +139,8 @@ class AdaptiveMoERouteController:
         alpha_max: float = 0.10,
         score_func: str = "softmax",
         routing_mode: str = "active",
+        observe_decode_only: bool = False,
+        record_trace: bool = False,
     ) -> None:
         if num_experts < 2:
             raise ValueError("num_experts must be >= 2")
@@ -152,6 +154,9 @@ class AdaptiveMoERouteController:
         self.alpha_max = float(alpha_max)
         self.score_func = str(score_func or "softmax").lower()
         self.routing_mode = str(routing_mode or "active").lower()
+        self.observe_decode_only = bool(observe_decode_only)
+        self.record_trace = bool(record_trace)
+        self.trace: Dict[str, dict[str, list]] = {}
         if self.routing_mode not in {"active", "shadow_counterfactual"}:
             raise ValueError("routing_mode must be 'active' or 'shadow_counterfactual'")
         self.states: Dict[str, _RouteState] = {}
@@ -167,6 +172,52 @@ class AdaptiveMoERouteController:
 
     def reset_metrics(self) -> None:
         self.metrics = RouteMetrics()
+        self.trace = {}
+
+    @staticmethod
+    def _sequence_transition_rate(values: list[int]) -> float | None:
+        if len(values) < 2:
+            return None
+        switches = sum(int(a != b) for a, b in zip(values[:-1], values[1:]))
+        return switches / (len(values) - 1)
+
+    @staticmethod
+    def _sequence_topk_jaccard(values: list[list[int]]) -> float | None:
+        if len(values) < 2:
+            return None
+        scores = []
+        for a, b in zip(values[:-1], values[1:]):
+            sa, sb = set(a), set(b)
+            union = sa | sb
+            scores.append(len(sa & sb) / max(len(union), 1))
+        return sum(scores) / len(scores)
+
+    def _trace_snapshot(self) -> dict[str, Any]:
+        layers: dict[str, Any] = {}
+        for name, trace in self.trace.items():
+            raw_top1 = list(trace.get("raw_top1", []))
+            stable_top1 = list(trace.get("stable_top1", []))
+            raw_topk = [list(x) for x in trace.get("raw_topk", [])]
+            stable_topk = [list(x) for x in trace.get("stable_topk", [])]
+            raw_rate = self._sequence_transition_rate(raw_top1)
+            stable_rate = self._sequence_transition_rate(stable_top1)
+            layers[name] = {
+                "decode_steps": len(raw_top1),
+                "raw_top1_sequence": raw_top1,
+                "stable_top1_sequence": stable_top1,
+                "raw_topk_sequence": raw_topk,
+                "stable_topk_sequence": stable_topk,
+                "raw_top1_transition_rate": raw_rate,
+                "stable_top1_transition_rate": stable_rate,
+                "raw_top1_continuity": None if raw_rate is None else 1.0 - raw_rate,
+                "stable_top1_continuity": None if stable_rate is None else 1.0 - stable_rate,
+                "raw_topk_jaccard": self._sequence_topk_jaccard(raw_topk),
+                "stable_topk_jaccard": self._sequence_topk_jaccard(stable_topk),
+            }
+        return {
+            "scope": "decode_only" if self.observe_decode_only else "all_tokens",
+            "layers": layers,
+        }
 
     def snapshot(self) -> dict:
         data = self.metrics.snapshot()
@@ -180,8 +231,12 @@ class AdaptiveMoERouteController:
                 "active_intervention": self.routing_mode == "active",
                 "router_count": len(self.router_names),
                 "router_names": list(self.router_names),
+                "observe_decode_only": self.observe_decode_only,
+                "record_trace": self.record_trace,
             }
         )
+        if self.record_trace:
+            data["expert_trace"] = self._trace_snapshot()
         return data
 
     def remove(self) -> None:
@@ -248,6 +303,8 @@ class AdaptiveMoERouteController:
 
         z, _ = self._to_btd(logits.detach().float(), self.num_experts)
         h, _ = self._to_btd(hidden.detach().float(), hidden.shape[-1])
+        if self.observe_decode_only and z.shape[1] != 1:
+            return
         if z.shape[:2] != h.shape[:2]:
             z_tokens = z.numel() // self.num_experts
             h_tokens = h.numel() // h.shape[-1]
@@ -336,6 +393,26 @@ class AdaptiveMoERouteController:
 
         raw_topk = _ordered_topk(raw_scores)
         stable_topk = _ordered_topk(stable_scores)
+
+        if self.record_trace:
+            layer_trace = self.trace.setdefault(
+                name,
+                {
+                    "raw_top1": [],
+                    "stable_top1": [],
+                    "raw_topk": [],
+                    "stable_topk": [],
+                },
+            )
+            flat_raw = raw_topk.reshape(-1, self.top_k)
+            flat_stable = stable_topk.reshape(-1, self.top_k)
+            for raw_row, stable_row in zip(flat_raw, flat_stable):
+                layer_trace["raw_top1"].append(int(raw_row[0]))
+                layer_trace["stable_top1"].append(int(stable_row[0]))
+                layer_trace["raw_topk"].append([int(x) for x in raw_row.tolist()])
+                layer_trace["stable_topk"].append(
+                    [int(x) for x in stable_row.tolist()]
+                )
 
         prev_raw = (
             state.raw_topk.detach().cpu().numpy()
@@ -591,6 +668,8 @@ def apply_moe_route_stability(
     top_k: Optional[int] = None,
     score_func: Optional[str] = None,
     routing_mode: str = "active",
+    observe_decode_only: bool = False,
+    record_trace: bool = False,
     verbose: bool = False,
 ) -> AdaptiveMoERouteController:
     """Install adaptive causal smoothing on discovered MoE router gates."""
@@ -694,6 +773,8 @@ def apply_moe_route_stability(
         alpha_max=alpha_max,
         score_func=resolved_score_func,
         routing_mode=routing_mode,
+        observe_decode_only=observe_decode_only,
+        record_trace=record_trace,
     )
 
     if controller.routing_mode == "active":
