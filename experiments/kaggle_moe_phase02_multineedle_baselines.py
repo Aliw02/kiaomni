@@ -1298,21 +1298,74 @@ def validate_blocksal(
         return ValidationResult("blocksal", False, "VALIDATION_FAIL", details)
 
 
+def _mean_present(values: list[Any]) -> float | None:
+    numeric = [float(v) for v in values if v is not None]
+    return sum(numeric) / len(numeric) if numeric else None
+
+
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {}
 
     eligible = [r for r in rows if bool(r.get("full_context_exact", False))]
+    routings = [r.get("routing") for r in rows if r.get("routing")]
+
+    raw_transition = _mean_present(
+        [x.get("raw_top1_transition_rate") for x in routings]
+    )
+    stable_transition = _mean_present(
+        [x.get("stable_top1_transition_rate") for x in routings]
+    )
+
     result = {
         "n": len(rows),
         "exact_accuracy": sum(float(r["score"]["exact"]) for r in rows) / len(rows),
         "mean_recall": sum(float(r["score"]["recall"]) for r in rows) / len(rows),
+        "mean_generated_answer_ppl": _mean_present(
+            [r.get("generated_answer_ppl") for r in rows]
+        ),
+        "mean_generated_answer_nll": _mean_present(
+            [r.get("generated_answer_nll") for r in rows]
+        ),
         "mean_tokens_per_s": sum(float(r["tokens_per_s"]) for r in rows) / len(rows),
         "max_peak_vram_gb": max(float(r["peak_vram_gb"]) for r in rows),
+        "max_peak_reserved_vram_gb": max(
+            float(r.get("peak_reserved_vram_gb", r["peak_vram_gb"]))
+            for r in rows
+        ),
         "full_context_eligible_n": len(eligible),
         "full_context_eligibility_rate": len(eligible) / len(rows),
         "conditional_exact_accuracy": None,
         "conditional_mean_recall": None,
+        "routing": {
+            "scope": "answer_decode_only",
+            "raw_top1_transition_rate": raw_transition,
+            "raw_top1_continuity": (
+                None if raw_transition is None else 1.0 - raw_transition
+            ),
+            "stable_top1_transition_rate_counterfactual": stable_transition,
+            "stable_top1_continuity_counterfactual": (
+                None if stable_transition is None else 1.0 - stable_transition
+            ),
+            "raw_topk_jaccard": _mean_present(
+                [x.get("raw_topk_jaccard") for x in routings]
+            ),
+            "stable_topk_jaccard_counterfactual": _mean_present(
+                [x.get("stable_topk_jaccard") for x in routings]
+            ),
+            "intervention_rate_counterfactual": _mean_present(
+                [x.get("intervention_rate") for x in routings]
+            ),
+            "mean_alpha_counterfactual": _mean_present(
+                [x.get("mean_alpha") for x in routings]
+            ),
+            "mean_uncertainty": _mean_present(
+                [x.get("mean_uncertainty") for x in routings]
+            ),
+            "mean_hidden_similarity": _mean_present(
+                [x.get("mean_hidden_similarity") for x in routings]
+            ),
+        },
     }
     if eligible:
         result["conditional_exact_accuracy"] = (
@@ -1322,6 +1375,105 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
             sum(float(r["score"]["recall"]) for r in eligible) / len(eligible)
         )
     return result
+
+
+def paired_routing_vs_fullcontext(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    full = {
+        (r["task"], r["sample_id"]): r
+        for r in rows
+        if r["method"] == "full_context"
+    }
+    groups: dict[tuple[str, int | None], list[dict[str, Any]]] = {}
+    for row in rows:
+        if row["method"] == "full_context":
+            continue
+        groups.setdefault((row["method"], row["budget"]), []).append(row)
+
+    out: dict[str, Any] = {}
+    for (method, budget), method_rows in groups.items():
+        jitter_deltas: list[float] = []
+        continuity_deltas: list[float] = []
+        topk_deltas: list[float] = []
+        stable_jitter_deltas: list[float] = []
+
+        for row in method_rows:
+            base = full.get((row["task"], row["sample_id"]))
+            if base is None:
+                continue
+            rr = row.get("routing") or {}
+            br = base.get("routing") or {}
+            raw = rr.get("raw_top1_transition_rate")
+            base_raw = br.get("raw_top1_transition_rate")
+            if raw is not None and base_raw is not None:
+                jitter_deltas.append(float(raw) - float(base_raw))
+                continuity_deltas.append(
+                    (1.0 - float(raw)) - (1.0 - float(base_raw))
+                )
+
+            raw_j = rr.get("raw_topk_jaccard")
+            base_j = br.get("raw_topk_jaccard")
+            if raw_j is not None and base_j is not None:
+                topk_deltas.append(float(raw_j) - float(base_j))
+
+            stable = rr.get("stable_top1_transition_rate")
+            base_stable = br.get("stable_top1_transition_rate")
+            if stable is not None and base_stable is not None:
+                stable_jitter_deltas.append(
+                    float(stable) - float(base_stable)
+                )
+
+        key = method if budget is None else f"{method}_b{budget}"
+        out[key] = {
+            "paired_n": len(jitter_deltas),
+            "raw_jitter_delta_vs_fullcontext": _mean_present(jitter_deltas),
+            "raw_continuity_delta_vs_fullcontext": _mean_present(
+                continuity_deltas
+            ),
+            "raw_topk_jaccard_delta_vs_fullcontext": _mean_present(topk_deltas),
+            "counterfactual_stable_jitter_delta_vs_fullcontext": _mean_present(
+                stable_jitter_deltas
+            ),
+            "interpretation": {
+                "raw_jitter_delta_negative_is_better": True,
+                "raw_continuity_delta_positive_is_better": True,
+                "raw_topk_jaccard_delta_positive_is_better": True,
+            },
+        }
+    return out
+
+
+def validate_subset_controls(budgets: list[int]) -> dict[str, dict[str, Any]]:
+    details: dict[str, dict[str, Any]] = {}
+    seq_len = 768
+    for method in ("recency_only", "random_retention"):
+        per_budget: dict[str, Any] = {}
+        all_exact = True
+        for budget in budgets:
+            if method == "recency_only":
+                keep = select_recency_only(seq_len, budget)
+            else:
+                keep = select_random_retention(
+                    seq_len,
+                    budget,
+                    seed=SEED_DEFAULT + budget,
+                )
+            exact = len(keep) == min(seq_len, budget)
+            per_budget[str(budget)] = {
+                "requested_budget": budget,
+                "actual_kept_tokens": len(keep),
+                "exact_budget": exact,
+            }
+            all_exact = all_exact and exact
+        details[method] = ValidationResult(
+            method,
+            all_exact,
+            "VALIDATED" if all_exact else "VALIDATION_FAIL",
+            {
+                "budgets": per_budget,
+                "all_budgets_exact": all_exact,
+            },
+        ).__dict__
+    return details
 
 
 def max_new_for_task(task: str) -> int:
