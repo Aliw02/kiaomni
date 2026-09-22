@@ -267,34 +267,70 @@ def make_mobilemoe_snapkv_press(
     window_size: int,
     kernel_size: int,
 ):
-    """Create a kvpress SnapKV subclass changing representation handling only."""
+    """Create a faithful SnapKV press with MobileMoE representation adaptation."""
     from kvpress import SnapKVPress
 
     class MobileMoESnapKVPress(SnapKVPress):
         compatibility_adapter = ADAPTER_NAME
         algorithm_modified = ALGORITHM_MODIFIED
 
-        @staticmethod
-        def compute_window_attention(
-            module,
-            hidden_states,
-            keys,
-            window_size,
-            position_embeddings,
-        ):
-            # kvpress calls this method with position_embeddings only. Preserve the
-            # official method signature, then feed it through the narrow MobileMoE
-            # representation adapter. cache_position is unavailable here, so the
-            # normal path must use the exact position_embeddings supplied by the
-            # model; rotary fallback is intentionally disabled in this call.
-            kwargs = {"position_embeddings": position_embeddings}
-            return mobilemoe_window_attention(
-                module,
-                hidden_states,
-                keys,
-                window_size,
-                kwargs,
+        def score(
+            self,
+            module: nn.Module,
+            hidden_states: torch.Tensor,
+            keys: torch.Tensor,
+            values: torch.Tensor,
+            attentions: torch.Tensor,
+            kwargs,
+        ) -> torch.Tensor:
+            # This body intentionally mirrors NVIDIA kvpress SnapKVPress.score
+            # at KVPRESS_REF. Only the no-attentions query/RoPE reconstruction
+            # is routed through the MobileMoE representation adapter.
+            bsz, num_key_value_heads, k_len, _ = keys.shape
+            num_key_value_groups = (
+                module.config.num_attention_heads // num_key_value_heads
             )
+
+            assert hidden_states.shape[1] > self.window_size, (
+                f"Query length {hidden_states.shape[1]} should be greater than "
+                f"the window size {self.window_size}"
+            )
+
+            if attentions is not None:
+                attn_weights = attentions[
+                    ..., -self.window_size :, : -self.window_size
+                ]
+            else:
+                attn_weights = mobilemoe_window_attention(
+                    module,
+                    hidden_states,
+                    keys,
+                    self.window_size,
+                    kwargs,
+                )
+
+            scores = attn_weights.mean(dim=-2)
+            scores = F.avg_pool1d(
+                scores,
+                kernel_size=self.kernel_size,
+                padding=self.kernel_size // 2,
+                stride=1,
+            )
+
+            scores = scores.view(
+                bsz,
+                num_key_value_heads,
+                num_key_value_groups,
+                k_len - self.window_size,
+            )
+            scores = scores.mean(2)
+
+            scores = F.pad(
+                scores,
+                (0, self.window_size),
+                value=scores.max().item() + 1,
+            )
+            return scores
 
     return MobileMoESnapKVPress(
         compression_ratio=compression_ratio,
@@ -311,6 +347,8 @@ def adapter_provenance() -> dict[str, Any]:
             "MobileMoE q_proj/q_norm query reconstruction",
             "MobileMoE RoPE representation normalization",
         ],
+        "official_kvpress_ref": "7331c23da9e6f1510d89ea651d0dea77a57b3252",
+        "official_snapkv_score_equation_preserved": True,
         "snapkv_scoring_changed": False,
         "snapkv_window_changed": False,
         "snapkv_pooling_changed": False,
