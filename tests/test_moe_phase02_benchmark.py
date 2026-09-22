@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from experiments.kaggle_moe_phase02_multineedle_baselines import (
     BLOCK_SIZE,
@@ -169,6 +170,21 @@ def test_paired_routing_delta_signs_are_explicit():
 
     result = paired_routing_vs_fullcontext(rows)["kiaomni_s8_b98"]
     assert result["paired_n"] == 1
-    assert result["raw_jitter_delta_vs_fullcontext"] == -0.2
-    assert result["raw_continuity_delta_vs_fullcontext"] == 0.2
-    assert result["raw_topk_jaccard_delta_vs_fullcontext"] == 0.2
+    assert result["raw_jitter_delta_vs_fullcontext"] == pytest.approx(-0.2)
+    assert result["raw_continuity_delta_vs_fullcontext"] == pytest.approx(0.2)
+    assert result["raw_topk_jaccard_delta_vs_fullcontext"] == pytest.approx(0.2)
+
+
+
+def test_wilson_and_mcnemar_statistics_are_bounded():
+    from experiments.kaggle_moe_phase02_multineedle_baselines import (
+        mcnemar_exact_p,
+        wilson_interval,
+    )
+
+    ci = wilson_interval(75, 100)
+    assert ci is not None
+    assert 0.0 <= ci["low"] <= 0.75 <= ci["high"] <= 1.0
+
+    p = mcnemar_exact_p(8, 2)
+    assert 0.0 <= p <= 1.0
