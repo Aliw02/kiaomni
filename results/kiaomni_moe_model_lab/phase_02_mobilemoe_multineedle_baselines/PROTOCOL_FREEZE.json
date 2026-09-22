@@ -93,5 +93,11 @@
   "tests": [
     "tests/test_moe_phase02_benchmark.py",
     "tests/test_blocksal.py"
-  ]
+  ],
+  "scoring": {
+    "absolute": "exact pass and fact recall over every generated case",
+    "full_context_conditioned": "exact pass and fact recall over cases solved by FullContext",
+    "distractor_policy": "hard_multi/reason exact pass requires target recovery without forbidden distractor values",
+    "note": "No case is deleted from the raw artifact; conditioning is an additional analysis view."
+  }
 }
