@@ -26,7 +26,7 @@
     "reason": "four-hop variable tracking plus distractor chain"
   },
   "default_samples_per_task": 3,
-  "analysis_run_samples_per_task": 10,
+  "analysis_run_samples_per_task": 25,
   "methods": {
     "full_context": {
       "owner": "control",
@@ -77,6 +77,19 @@
       "key_rerotation": true,
       "compression": "KV-cache prefill",
       "exact_budget_required": true
+    },
+    "recency_only": {
+      "owner": "baseline",
+      "compression": "prompt-side deterministic recency retention",
+      "selector": "first N_SINK tokens plus most recent remaining tokens",
+      "exact_budget": true
+    },
+    "random_retention": {
+      "owner": "baseline",
+      "compression": "prompt-side deterministic random retention",
+      "selector": "random middle tokens with sink+recency protection",
+      "exact_budget": true,
+      "seed_policy": "derived deterministically from global seed, task, sample_id, and budget"
     }
   },
   "excluded": {
@@ -104,13 +117,15 @@
   "outputs": {
     "validation": "phase02_validation.json",
     "smoke": "phase02_smoke_n1.json",
-    "analysis": "phase02_mobilemoe_multineedle_n10.json"
+    "analysis": "phase02_mobilemoe_multineedle_n25.json"
   },
   "canonical_runner": "experiments/kaggle_moe_phase02_multineedle_baselines.py",
   "requirements": "experiments/phase02_moe_baselines_requirements.txt",
   "tests": [
     "tests/test_moe_phase02_benchmark.py",
-    "tests/test_blocksal.py"
+    "tests/test_moe_stability.py",
+    "tests/test_blocksal.py",
+    "tests/test_mobilemoe_snapkv_adapter.py"
   ],
   "scoring": {
     "absolute": "exact pass and fact recall over every generated case",
@@ -135,12 +150,68 @@
       },
       "interpretation": "SnapKV executes and compresses, but is excluded from Phase 02 scoring because representation parity is not faithful enough to support a clean external-baseline claim.",
       "future_work": "Revisit only in a separate compatibility study; do not block the current MobileMoE benchmark."
+    },
+    "streamingllm": {
+      "status": "DEFERRED_SEMANTIC_COMPATIBILITY",
+      "date": "2026-09-22",
+      "reason": "Smoke generation on MobileMoE became degenerate/repetitive despite exact cache-length validation.",
+      "interpretation": "Technical execution alone is insufficient evidence of semantic compatibility, so StreamingLLM is excluded from the N25 scoring run.",
+      "future_work": "Revisit only in a separate compatibility study."
     }
   },
   "phase02_active_methods": [
     "full_context",
     "kiaomni_s8",
     "blocksal",
-    "streamingllm"
-  ]
+    "recency_only",
+    "random_retention"
+  ],
+  "total_cases": 100,
+  "metrics_contract": {
+    "quality": [
+      "exact_accuracy",
+      "mean_recall",
+      "full_context_conditioned_accuracy",
+      "Wilson 95% confidence intervals",
+      "paired McNemar exact comparisons"
+    ],
+    "efficiency": [
+      "elapsed_s",
+      "end_to_end_output_tokens_per_s",
+      "peak_allocated_vram_gb",
+      "peak_reserved_vram_gb",
+      "retained_tokens",
+      "compression_ratio"
+    ],
+    "likelihood": [
+      "generated_answer_mean_logprob",
+      "generated_answer_nll",
+      "generated_answer_ppl"
+    ],
+    "routing": [
+      "decode-only raw projected Top-1 transition rate",
+      "decode-only raw Top-1 continuity",
+      "decode-only raw Top-K Jaccard",
+      "counterfactual stable transition/continuity/Jaccard",
+      "counterfactual intervention rate and alpha",
+      "per-layer raw/stable Top-1 expert sequence",
+      "per-layer raw/stable Top-K expert sequence",
+      "mean and longest expert dwell",
+      "unique Top-1 experts"
+    ],
+    "routing_semantics": {
+      "raw": "non-mutating projected router Top-K from exact decode hidden states and router weights",
+      "stable": "counterfactual smoothing only; not executed expert dispatch",
+      "actual_dispatch_captured": false
+    },
+    "ppl_semantics": "PPL is computed over each method's own generated answer tokens from generation logits, not held-out corpus perplexity."
+  },
+  "stdout_policy": {
+    "suppress_repetitive_loggers": [
+      "kiaomni.adapters.probe",
+      "kvpress.presses.base_press"
+    ],
+    "unexpected_warnings_visible": true,
+    "errors_visible": true
+  }
 }
