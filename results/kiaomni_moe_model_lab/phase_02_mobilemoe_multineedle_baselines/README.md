@@ -16,7 +16,7 @@ validated.
 |---|---|---|
 | FullContext | upper bound | no compression |
 | KiaOmni-s8 | our method | current KiaOmni prompt-side saliency compression |
-| BlockSal | our internal method | historical whole-block mean-saliency selector |
+| BlockSal | our internal method | mean-saliency block ranking with exact-budget boundary adapter |
 | SnapKV | external baseline | NVIDIA kvpress `SnapKVPress` |
 | StreamingLLM | external baseline | NVIDIA kvpress `StreamingLLMPress` |
 
