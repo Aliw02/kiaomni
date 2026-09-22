@@ -792,13 +792,27 @@ def validate_blocksal(
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         return {}
-    return {
+
+    eligible = [r for r in rows if bool(r.get("full_context_exact", False))]
+    result = {
         "n": len(rows),
         "exact_accuracy": sum(float(r["score"]["exact"]) for r in rows) / len(rows),
         "mean_recall": sum(float(r["score"]["recall"]) for r in rows) / len(rows),
         "mean_tokens_per_s": sum(float(r["tokens_per_s"]) for r in rows) / len(rows),
         "max_peak_vram_gb": max(float(r["peak_vram_gb"]) for r in rows),
+        "full_context_eligible_n": len(eligible),
+        "full_context_eligibility_rate": len(eligible) / len(rows),
+        "conditional_exact_accuracy": None,
+        "conditional_mean_recall": None,
     }
+    if eligible:
+        result["conditional_exact_accuracy"] = (
+            sum(float(r["score"]["exact"]) for r in eligible) / len(eligible)
+        )
+        result["conditional_mean_recall"] = (
+            sum(float(r["score"]["recall"]) for r in eligible) / len(eligible)
+        )
+    return result
 
 
 def max_new_for_task(task: str) -> int:
@@ -956,7 +970,15 @@ def main() -> None:
 
     rows: list[dict[str, Any]] = []
 
-    def record(case: Case, method: str, budget: int | None, prompt_tokens: int, result: dict[str, Any]) -> None:
+    def record(
+        case: Case,
+        method: str,
+        budget: int | None,
+        prompt_tokens: int,
+        result: dict[str, Any],
+        *,
+        full_context_exact: bool,
+    ) -> dict[str, Any]:
         sc = score_answer(case, result["text"])
         row = {
             "task": case.task,
@@ -967,6 +989,7 @@ def main() -> None:
             "gold": case.gold,
             "distractors": case.distractors,
             "info": case.info,
+            "full_context_exact": bool(full_context_exact),
             "score": sc,
             **result,
         }
@@ -979,6 +1002,7 @@ def main() -> None:
             f"tok/s={result['tokens_per_s']:.2f} peak={result['peak_vram_gb']:.2f}GB{kept_text} "
             f"text={result['text'][:100]!r}"
         )
+        return row
 
     for case in cases:
         ids, _ = encode_prompt(tokenizer, case.context, case.question)
@@ -988,17 +1012,55 @@ def main() -> None:
         print(f"{case.task} #{case.sample_id} | prompt={prompt_tokens} | gold={case.gold} | {case.info}")
 
         clean_model(model)
-        record(case, "full_context", None, prompt_tokens, generate_full(model, tokenizer, ids, max_new))
+        full_result = generate_full(model, tokenizer, ids, max_new)
+        full_score = score_answer(case, full_result["text"])
+        full_exact = bool(full_score["exact"])
+        record(
+            case,
+            "full_context",
+            None,
+            prompt_tokens,
+            full_result,
+            full_context_exact=full_exact,
+        )
 
         for budget in budgets:
             if validations["kiaomni_s8"]["valid"]:
-                record(case, "kiaomni_s8", budget, prompt_tokens, generate_kiaomni(model, tokenizer, ids, budget, max_new))
+                record(
+                    case,
+                    "kiaomni_s8",
+                    budget,
+                    prompt_tokens,
+                    generate_kiaomni(model, tokenizer, ids, budget, max_new),
+                    full_context_exact=full_exact,
+                )
             if validations["blocksal"]["valid"]:
-                record(case, "blocksal", budget, prompt_tokens, generate_blocksal(model, tokenizer, ids, budget, max_new))
+                record(
+                    case,
+                    "blocksal",
+                    budget,
+                    prompt_tokens,
+                    generate_blocksal(model, tokenizer, ids, budget, max_new),
+                    full_context_exact=full_exact,
+                )
             if validations["snapkv"]["valid"]:
-                record(case, "snapkv", budget, prompt_tokens, generate_kvpress("snapkv", model, tokenizer, ids, budget, max_new))
+                record(
+                    case,
+                    "snapkv",
+                    budget,
+                    prompt_tokens,
+                    generate_kvpress("snapkv", model, tokenizer, ids, budget, max_new),
+                    full_context_exact=full_exact,
+                )
             if validations["streamingllm"]["valid"]:
-                record(case, "streamingllm", budget, prompt_tokens, generate_kvpress("streamingllm", model, tokenizer, ids, budget, max_new))
+                record(
+                    case,
+                    "streamingllm",
+                    budget,
+                    prompt_tokens,
+                    generate_kvpress("streamingllm", model, tokenizer, ids, budget, max_new),
+                    full_context_exact=full_exact,
+                )
 
     summary: dict[str, Any] = {}
     keys = sorted({(r["method"], r["budget"]) for r in rows}, key=lambda x: (x[0], -1 if x[1] is None else x[1]))
@@ -1066,6 +1128,7 @@ def main() -> None:
         print(
             f"{name:<25} exact={metrics.get('exact_accuracy', 0):.3f} "
             f"recall={metrics.get('mean_recall', 0):.3f} "
+            f"cond_exact={metrics.get('conditional_exact_accuracy')} "
             f"tok/s={metrics.get('mean_tokens_per_s', 0):.2f} "
             f"peak={metrics.get('max_peak_vram_gb', 0):.2f}GB"
         )
