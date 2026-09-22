@@ -19,7 +19,12 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from kiaomni import apply_kiaomni, remove_kiaomni
+from kiaomni import (
+    apply_kiaomni,
+    apply_moe_route_stability,
+    remove_kiaomni,
+    remove_moe_route_stability,
+)
 from kiaomni.adapters import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
 from kiaomni.blocksal import BLOCK_SIZE_DEFAULT, select_blocksal_keep
@@ -104,6 +109,18 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=SEED_DEFAULT)
     p.add_argument("--output", default=OUTPUT_DEFAULT)
     p.add_argument("--skip-external", action="store_true")
+    p.add_argument(
+        "--route-telemetry",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Record decode-only MoE jitter and expert-path telemetry.",
+    )
+    p.add_argument(
+        "--route-alpha-max",
+        type=float,
+        default=0.10,
+        help="Counterfactual shadow smoothing alpha_max for routing diagnostics.",
+    )
     p.add_argument(
         "--exclude-methods",
         default="",
@@ -340,6 +357,127 @@ def clean_model(model) -> None:
 
 def input_device(model) -> torch.device:
     return next(model.parameters()).device
+
+
+def start_route_telemetry(model, *, enabled: bool, alpha_max: float):
+    if not enabled:
+        return None
+    remove_moe_route_stability(model)
+    controller = apply_moe_route_stability(
+        model,
+        alpha_max=alpha_max,
+        score_func="sigmoid",
+        routing_mode="shadow_counterfactual",
+        observe_decode_only=True,
+        record_trace=True,
+        verbose=False,
+    )
+    controller.reset_metrics()
+    return controller
+
+
+def finish_route_telemetry(model, controller) -> dict[str, Any] | None:
+    if controller is None:
+        return None
+    try:
+        return controller.snapshot()
+    finally:
+        remove_moe_route_stability(model)
+
+
+def generation_diagnostics(
+    output,
+    *,
+    prefix_len: int,
+    tokenizer,
+) -> dict[str, Any]:
+    sequences = output.sequences if hasattr(output, "sequences") else output
+    new_ids = sequences[0, prefix_len:]
+    text = tokenizer.decode(new_ids, skip_special_tokens=True).strip()
+
+    log_probs: list[float] = []
+    scores = list(getattr(output, "scores", ()) or ())
+    for step, score in enumerate(scores[: int(new_ids.numel())]):
+        token_id = int(new_ids[step].item())
+        lp = torch.log_softmax(score[0].float(), dim=-1)[token_id]
+        log_probs.append(float(lp.item()))
+
+    if log_probs:
+        mean_logprob = sum(log_probs) / len(log_probs)
+        answer_nll = -mean_logprob
+        answer_ppl = float(np.exp(min(answer_nll, 20.0)))
+    else:
+        mean_logprob = None
+        answer_nll = None
+        answer_ppl = None
+
+    return {
+        "text": text,
+        "new_tokens": int(new_ids.numel()),
+        "new_token_ids": [int(x) for x in new_ids.tolist()],
+        "generated_answer_mean_logprob": mean_logprob,
+        "generated_answer_nll": answer_nll,
+        "generated_answer_ppl": answer_ppl,
+        "ppl_definition": (
+            "Perplexity of the model's own generated answer tokens from "
+            "generation logits; not corpus perplexity."
+        ),
+    }
+
+
+def peak_memory_reserved_gb() -> dict[str, float]:
+    return {
+        str(i): torch.cuda.max_memory_reserved(i) / (1024 ** 3)
+        for i in range(torch.cuda.device_count())
+    }
+
+
+def select_recency_only(seq_len: int, budget: int) -> np.ndarray:
+    target = min(seq_len, budget)
+    if target >= seq_len:
+        return np.arange(seq_len, dtype=np.int64)
+    sink = min(N_SINK, target)
+    tail = target - sink
+    keep = list(range(sink))
+    if tail > 0:
+        keep.extend(range(seq_len - tail, seq_len))
+    return np.asarray(sorted(set(keep)), dtype=np.int64)
+
+
+def select_random_retention(
+    seq_len: int,
+    budget: int,
+    *,
+    seed: int,
+) -> np.ndarray:
+    target = min(seq_len, budget)
+    if target >= seq_len:
+        return np.arange(seq_len, dtype=np.int64)
+
+    protected = set(range(min(N_SINK, seq_len)))
+    protected.update(range(max(0, seq_len - RECENCY), seq_len))
+    if len(protected) > target:
+        raise ValueError(
+            f"budget={target} smaller than protected tokens={len(protected)}"
+        )
+
+    candidates = np.asarray(
+        [i for i in range(seq_len) if i not in protected],
+        dtype=np.int64,
+    )
+    need = target - len(protected)
+    rng = np.random.default_rng(seed)
+    chosen = (
+        rng.choice(candidates, size=need, replace=False)
+        if need > 0
+        else np.asarray([], dtype=np.int64)
+    )
+    keep = np.asarray(sorted(protected | set(int(x) for x in chosen)), dtype=np.int64)
+    if len(keep) != target:
+        raise RuntimeError(
+            f"RandomRetention exact-budget invariant failed: {len(keep)} != {target}"
+        )
+    return keep
 
 
 def reset_peak_memory() -> None:
