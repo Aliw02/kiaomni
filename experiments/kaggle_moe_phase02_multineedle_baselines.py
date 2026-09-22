@@ -1207,7 +1207,14 @@ def validate_kiaomni(
         ids = validation_prompt(tokenizer).to(input_device(model))
         for budget in budgets:
             try:
-                result = generate_kiaomni(model, tokenizer, ids, budget, 1)
+                result = generate_kiaomni(
+                    model,
+                    tokenizer,
+                    ids,
+                    budget,
+                    1,
+                    route_telemetry=False,
+                )
                 comp = result.get("compression") or {}
                 kept = comp.get("kept_tokens")
                 exact = kept == budget
@@ -1505,7 +1512,13 @@ def main() -> None:
     print("KiaOmni x MoE Model Lab — Phase 02: Multi-Needle + Baseline Validation")
     print(f"Model: {args.model}")
     print(f"Budgets: {budgets} | final prompt target <= {args.target_tokens} | hard max={args.max_context}")
-    active_methods = ["FullContext", "KiaOmni-s8", "BlockSal (ours)"]
+    active_methods = [
+        "FullContext",
+        "KiaOmni-s8",
+        "BlockSal (ours)",
+        "RecencyOnly",
+        "RandomRetention",
+    ]
     if "snapkv" not in excluded_methods:
         active_methods.append("SnapKV")
     if "streamingllm" not in excluded_methods:
@@ -1558,10 +1571,16 @@ def main() -> None:
     }
 
     validations: dict[str, dict[str, Any]] = {
-        "full_context": ValidationResult("full_context", True, "VALIDATED", {"compression": False}).__dict__,
+        "full_context": ValidationResult(
+            "full_context",
+            True,
+            "VALIDATED",
+            {"compression": False},
+        ).__dict__,
         "kiaomni_s8": validate_kiaomni(model, tokenizer, budgets).__dict__,
         "blocksal": validate_blocksal(budgets).__dict__,
     }
+    validations.update(validate_subset_controls(budgets))
     if args.skip_external:
         validations["snapkv"] = ValidationResult(
             "snapkv", False, "SKIPPED", {"reason": "--skip-external"}
@@ -1713,10 +1732,19 @@ def main() -> None:
         mark = "PASS" if sc["exact"] else f"FAIL recall={sc['recall']:.2f}"
         kept = (result.get("compression") or {}).get("kept_tokens")
         kept_text = f" kept={kept}" if kept is not None else ""
+        route = result.get("routing") or {}
+        jitter = route.get("raw_top1_transition_rate")
+        continuity = None if jitter is None else 1.0 - float(jitter)
+        ppl = result.get("generated_answer_ppl")
+        jitter_text = "na" if jitter is None else f"{float(jitter):.3f}"
+        cont_text = "na" if continuity is None else f"{continuity:.3f}"
+        ppl_text = "na" if ppl is None else f"{float(ppl):.2f}"
         print(
-            f"  {method:<13} B={str(budget):>4} {mark:<18} "
-            f"tok/s={result['tokens_per_s']:.2f} peak={result['peak_vram_gb']:.2f}GB{kept_text} "
-            f"text={result['text'][:100]!r}"
+            f"  {method:<17} B={str(budget):>4} {mark:<18} "
+            f"tok/s={result['tokens_per_s']:.2f} "
+            f"vram={result['peak_vram_gb']:.2f}GB "
+            f"ppl={ppl_text} jitter={jitter_text} cont={cont_text}"
+            f"{kept_text} text={result['text'][:80]!r}"
         )
         return row
 
@@ -1728,7 +1756,14 @@ def main() -> None:
         print(f"{case.task} #{case.sample_id} | prompt={prompt_tokens} | gold={case.gold} | {case.info}")
 
         clean_model(model)
-        full_result = generate_full(model, tokenizer, ids, max_new)
+        full_result = generate_full(
+            model,
+            tokenizer,
+            ids,
+            max_new,
+            route_telemetry=args.route_telemetry,
+            route_alpha_max=args.route_alpha_max,
+        )
         full_score = score_answer(case, full_result["text"])
         full_exact = bool(full_score["exact"])
         record(
@@ -1747,7 +1782,15 @@ def main() -> None:
                     "kiaomni_s8",
                     budget,
                     prompt_tokens,
-                    generate_kiaomni(model, tokenizer, ids, budget, max_new),
+                    generate_kiaomni(
+                        model,
+                        tokenizer,
+                        ids,
+                        budget,
+                        max_new,
+                        route_telemetry=args.route_telemetry,
+                        route_alpha_max=args.route_alpha_max,
+                    ),
                     full_context_exact=full_exact,
                 )
             if validations["blocksal"]["valid"]:
@@ -1756,7 +1799,65 @@ def main() -> None:
                     "blocksal",
                     budget,
                     prompt_tokens,
-                    generate_blocksal(model, tokenizer, ids, budget, max_new),
+                    generate_blocksal(
+                        model,
+                        tokenizer,
+                        ids,
+                        budget,
+                        max_new,
+                        route_telemetry=args.route_telemetry,
+                        route_alpha_max=args.route_alpha_max,
+                    ),
+                    full_context_exact=full_exact,
+                )
+            task_code = {
+                "single": 1,
+                "multi": 2,
+                "hard_multi": 3,
+                "reason": 4,
+            }[case.task]
+            retention_seed = (
+                args.seed * 1_000_003
+                + task_code * 10_007
+                + case.sample_id * 101
+                + budget
+            )
+            if validations["recency_only"]["valid"]:
+                record(
+                    case,
+                    "recency_only",
+                    budget,
+                    prompt_tokens,
+                    generate_subset_baseline(
+                        model,
+                        tokenizer,
+                        ids,
+                        budget,
+                        max_new,
+                        method="recency_only",
+                        retention_seed=retention_seed,
+                        route_telemetry=args.route_telemetry,
+                        route_alpha_max=args.route_alpha_max,
+                    ),
+                    full_context_exact=full_exact,
+                )
+            if validations["random_retention"]["valid"]:
+                record(
+                    case,
+                    "random_retention",
+                    budget,
+                    prompt_tokens,
+                    generate_subset_baseline(
+                        model,
+                        tokenizer,
+                        ids,
+                        budget,
+                        max_new,
+                        method="random_retention",
+                        retention_seed=retention_seed,
+                        route_telemetry=args.route_telemetry,
+                        route_alpha_max=args.route_alpha_max,
+                    ),
                     full_context_exact=full_exact,
                 )
             if validations["snapkv"]["valid"]:
@@ -1785,6 +1886,8 @@ def main() -> None:
         name = method if budget is None else f"{method}_b{budget}"
         summary[name] = aggregate(sub)
 
+    routing_vs_fullcontext = paired_routing_vs_fullcontext(rows)
+
     artifact = {
         "experiment": "KIAOMNI_MOE_MODEL_LAB_PHASE02_MULTINEEDLE_BASELINES_V1",
         "model": args.model,
@@ -1797,6 +1900,31 @@ def main() -> None:
         "seed": args.seed,
         "excluded_methods": sorted(excluded_methods),
         "tasks": ["single", "multi", "hard_multi", "reason"],
+        "routing_protocol": {
+            "enabled": bool(args.route_telemetry),
+            "scope": "answer_decode_only",
+            "routing_mode": "shadow_counterfactual",
+            "score_func": "sigmoid",
+            "alpha_max": args.route_alpha_max,
+            "raw_path_semantics": (
+                "Non-mutating projected router Top-K on the model's actual "
+                "decode hidden states. Compare raw continuity across methods."
+            ),
+            "stable_path_semantics": (
+                "Counterfactual smoothed Top-K; not executed dispatch. "
+                "Use only as routing-stability diagnostic."
+            ),
+            "expert_trace": (
+                "Per-layer raw/stable Top-1 and Top-K sequences for answer decode."
+            ),
+        },
+        "ppl_protocol": {
+            "metric": "generated_answer_ppl",
+            "definition": (
+                "Perplexity of each method's own generated answer tokens from "
+                "its generation logits; not held-out corpus perplexity."
+            ),
+        },
         "methods": {
             "full_context": {"class": "upper_bound", "owner": "baseline"},
             "kiaomni_s8": {"class": "our_method", "policy": "kiaomni_s8"},
@@ -1810,6 +1938,18 @@ def main() -> None:
                 "exact_budget": False,
                 "budget_semantics": "whole-block eviction may retain up to block_size-1 fewer tokens than nominal budget",
                 "ownership_note": "BlockSal is our internal method, not an external baseline.",
+            },
+            "recency_only": {
+                "class": "control_baseline",
+                "owner": "baseline",
+                "selector": "first N_SINK tokens plus most recent remaining tokens",
+                "exact_budget": True,
+            },
+            "random_retention": {
+                "class": "control_baseline",
+                "owner": "baseline",
+                "selector": "deterministic random middle-token retention with sink+recency protection",
+                "exact_budget": True,
             },
             "snapkv": {
                 "class": "external_baseline",
@@ -1834,6 +1974,7 @@ def main() -> None:
         "environment": environment,
         "validation_gate": validations,
         "summary": summary,
+        "routing_vs_fullcontext": routing_vs_fullcontext,
         "rows": rows,
     }
 
@@ -1844,12 +1985,16 @@ def main() -> None:
     print("\n" + "=" * 96)
     print("PHASE 02 SUMMARY")
     for name, metrics in summary.items():
+        route = metrics.get("routing") or {}
         print(
             f"{name:<25} exact={metrics.get('exact_accuracy', 0):.3f} "
             f"recall={metrics.get('mean_recall', 0):.3f} "
             f"cond_exact={metrics.get('conditional_exact_accuracy')} "
+            f"ppl={metrics.get('mean_generated_answer_ppl')} "
             f"tok/s={metrics.get('mean_tokens_per_s', 0):.2f} "
-            f"peak={metrics.get('max_peak_vram_gb', 0):.2f}GB"
+            f"peak={metrics.get('max_peak_vram_gb', 0):.2f}GB "
+            f"jitter={route.get('raw_top1_transition_rate')} "
+            f"continuity={route.get('raw_top1_continuity')}"
         )
     print(f"Saved: {out_path}")
     print("=" * 96)
