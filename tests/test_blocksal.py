@@ -24,7 +24,7 @@ def test_blocksal_prefers_higher_mean_blocks():
 
     out = select_blocksal_keep(
         sal,
-        budget=56,
+        budget=64,
         L=L,
         block_size=16,
         n_sink=16,
