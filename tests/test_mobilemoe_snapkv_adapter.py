@@ -11,6 +11,7 @@ from kiaomni.baselines.mobilemoe_snapkv import (
     MobileMoESnapKVCompatibilityError,
     adapter_provenance,
     describe_position_embeddings,
+    mobilemoe_postrope_query_states,
     mobilemoe_prerope_query_states,
     resolve_mobilemoe_rope,
 )
@@ -96,3 +97,21 @@ def test_adapter_declares_snapkv_algorithm_unchanged():
     assert provenance["snapkv_window_changed"] is False
     assert provenance["snapkv_pooling_changed"] is False
     assert provenance["snapkv_pruning_changed"] is False
+
+
+def test_postrope_query_matches_identity_rope():
+    module = FakeMobileMoEAttention()
+    hidden = torch.tensor(
+        [[[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]]
+    )
+    cos = torch.ones(1, 2, 2)
+    sin = torch.zeros(1, 2, 2)
+
+    pre = mobilemoe_prerope_query_states(module, hidden)
+    post = mobilemoe_postrope_query_states(
+        module,
+        hidden,
+        {"position_embeddings": (cos, sin)},
+    )
+
+    torch.testing.assert_close(post, pre)
