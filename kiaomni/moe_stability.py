@@ -182,6 +182,21 @@ class AdaptiveMoERouteController:
         return switches / (len(values) - 1)
 
     @staticmethod
+    def _run_lengths(values: list[int]) -> list[int]:
+        if not values:
+            return []
+        runs: list[int] = []
+        current = 1
+        for prev, cur in zip(values[:-1], values[1:]):
+            if cur == prev:
+                current += 1
+            else:
+                runs.append(current)
+                current = 1
+        runs.append(current)
+        return runs
+
+    @staticmethod
     def _sequence_topk_jaccard(values: list[list[int]]) -> float | None:
         if len(values) < 2:
             return None
@@ -201,6 +216,8 @@ class AdaptiveMoERouteController:
             stable_topk = [list(x) for x in trace.get("stable_topk", [])]
             raw_rate = self._sequence_transition_rate(raw_top1)
             stable_rate = self._sequence_transition_rate(stable_top1)
+            raw_runs = self._run_lengths(raw_top1)
+            stable_runs = self._run_lengths(stable_top1)
             layers[name] = {
                 "decode_steps": len(raw_top1),
                 "raw_top1_sequence": raw_top1,
@@ -213,10 +230,55 @@ class AdaptiveMoERouteController:
                 "stable_top1_continuity": None if stable_rate is None else 1.0 - stable_rate,
                 "raw_topk_jaccard": self._sequence_topk_jaccard(raw_topk),
                 "stable_topk_jaccard": self._sequence_topk_jaccard(stable_topk),
+                "raw_mean_top1_dwell_steps": (
+                    sum(raw_runs) / len(raw_runs) if raw_runs else None
+                ),
+                "stable_mean_top1_dwell_steps": (
+                    sum(stable_runs) / len(stable_runs) if stable_runs else None
+                ),
+                "raw_longest_top1_dwell_steps": max(raw_runs) if raw_runs else None,
+                "stable_longest_top1_dwell_steps": (
+                    max(stable_runs) if stable_runs else None
+                ),
+                "raw_unique_top1_experts": len(set(raw_top1)),
+                "stable_unique_top1_experts": len(set(stable_top1)),
             }
+        layer_values = list(layers.values())
+        raw_dwell = [
+            x["raw_mean_top1_dwell_steps"]
+            for x in layer_values
+            if x["raw_mean_top1_dwell_steps"] is not None
+        ]
+        stable_dwell = [
+            x["stable_mean_top1_dwell_steps"]
+            for x in layer_values
+            if x["stable_mean_top1_dwell_steps"] is not None
+        ]
         return {
             "scope": "decode_only" if self.observe_decode_only else "all_tokens",
+            "trace_semantics": "projected_router_topk_non_mutating",
+            "actual_dispatch_captured": False,
             "layers": layers,
+            "summary": {
+                "mean_raw_top1_dwell_steps_across_layers": (
+                    sum(raw_dwell) / len(raw_dwell) if raw_dwell else None
+                ),
+                "mean_stable_top1_dwell_steps_across_layers": (
+                    sum(stable_dwell) / len(stable_dwell) if stable_dwell else None
+                ),
+                "mean_raw_unique_top1_experts_across_layers": (
+                    sum(x["raw_unique_top1_experts"] for x in layer_values)
+                    / len(layer_values)
+                    if layer_values
+                    else None
+                ),
+                "mean_stable_unique_top1_experts_across_layers": (
+                    sum(x["stable_unique_top1_experts"] for x in layer_values)
+                    / len(layer_values)
+                    if layer_values
+                    else None
+                ),
+            },
         }
 
     def snapshot(self) -> dict:
