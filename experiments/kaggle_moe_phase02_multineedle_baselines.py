@@ -27,6 +27,7 @@ from kiaomni.baselines.mobilemoe_snapkv import (
     adapter_provenance as snapkv_adapter_provenance,
     describe_position_embeddings,
     make_mobilemoe_snapkv_press,
+    mobilemoe_postrope_query_states,
     mobilemoe_prerope_query_states,
 )
 
@@ -606,7 +607,7 @@ def forward_hook_count(model) -> int:
 
 @torch.inference_mode()
 def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
-    """Verify the adapter changes representation plumbing only."""
+    """Compare adapter Q directly with the native Q entering SDPA."""
     clean_model(model)
     ids = validation_prompt(tokenizer, target_len=128).to(input_device(model))
     module = attention_modules(model)[0]
@@ -623,19 +624,25 @@ def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
     }
 
     captured: dict[str, Any] = {}
+    active = {"value": False}
 
     def attn_pre_hook(_module, args, kwargs):
+        active["value"] = True
         hidden = kwargs.get("hidden_states")
         if hidden is None and args:
             hidden = args[0]
         if torch.is_tensor(hidden):
             captured["hidden_states"] = hidden.detach()
-        captured["position_embeddings"] = describe_position_embeddings(
-            kwargs.get("position_embeddings")
-        )
+        pos = kwargs.get("position_embeddings")
+        if torch.is_tensor(pos):
+            captured["position_embeddings_tensor"] = pos.detach()
+        else:
+            captured["position_embeddings_tensor"] = pos
+        captured["position_embeddings"] = describe_position_embeddings(pos)
         for key in ("position_ids", "cache_position"):
             value = kwargs.get(key)
             if torch.is_tensor(value):
+                captured[key + "_tensor"] = value.detach()
                 captured[key] = {
                     "shape": list(value.shape),
                     "dtype": str(value.dtype),
@@ -643,70 +650,101 @@ def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
             elif value is not None:
                 captured[key] = {"type": type(value).__name__}
 
-    def qnorm_hook(_module, _args, output):
-        if torch.is_tensor(output):
-            captured["q_norm_output"] = output.detach()
+    def attn_post_hook(_module, _args, _kwargs, output):
+        active["value"] = False
+        return output
 
-    attn_handle = module.register_forward_pre_hook(attn_pre_hook, with_kwargs=True)
-    qnorm_handle = None
-    if hasattr(module, "q_norm"):
-        qnorm_handle = module.q_norm.register_forward_hook(qnorm_hook)
+    original_sdpa = torch.nn.functional.scaled_dot_product_attention
 
+    def capture_sdpa(query, key, value, *args, **kwargs):
+        if active["value"] and "native_sdpa_query" not in captured:
+            captured["native_sdpa_query"] = query.detach()
+            captured["native_sdpa_key"] = key.detach()
+        return original_sdpa(query, key, value, *args, **kwargs)
+
+    attn_pre_handle = module.register_forward_pre_hook(attn_pre_hook, with_kwargs=True)
+    attn_post_handle = module.register_forward_hook(attn_post_hook, with_kwargs=True)
+
+    forward_globals = getattr(module.forward, "__globals__", {})
+    global_sdpa_replaced = False
+    old_global_sdpa = None
+    if forward_globals.get("scaled_dot_product_attention") is original_sdpa:
+        old_global_sdpa = forward_globals["scaled_dot_product_attention"]
+        forward_globals["scaled_dot_product_attention"] = capture_sdpa
+        global_sdpa_replaced = True
+
+    torch.nn.functional.scaled_dot_product_attention = capture_sdpa
     try:
         model(ids, use_cache=False)
     finally:
-        attn_handle.remove()
-        if qnorm_handle is not None:
-            qnorm_handle.remove()
+        torch.nn.functional.scaled_dot_product_attention = original_sdpa
+        if global_sdpa_replaced:
+            forward_globals["scaled_dot_product_attention"] = old_global_sdpa
+        attn_pre_handle.remove()
+        attn_post_handle.remove()
 
     details["runtime"] = {
         key: value
         for key, value in captured.items()
-        if key not in ("hidden_states", "q_norm_output")
+        if key not in (
+            "hidden_states",
+            "position_embeddings_tensor",
+            "position_ids_tensor",
+            "cache_position_tensor",
+            "native_sdpa_query",
+            "native_sdpa_key",
+        )
     }
 
     hidden = captured.get("hidden_states")
-    actual_q = captured.get("q_norm_output")
-    if torch.is_tensor(hidden) and torch.is_tensor(actual_q):
-        reconstructed = mobilemoe_prerope_query_states(module, hidden)
+    native_q = captured.get("native_sdpa_query")
+    if torch.is_tensor(hidden) and torch.is_tensor(native_q):
+        rope_kwargs: dict[str, Any] = {
+            "position_embeddings": captured.get("position_embeddings_tensor"),
+            "position_ids": captured.get("position_ids_tensor"),
+            "cache_position": captured.get("cache_position_tensor"),
+        }
+        adapter_q = mobilemoe_postrope_query_states(
+            module,
+            hidden,
+            rope_kwargs,
+        )
 
-        # Normalize the captured native q_norm layout to [B, H, T, D].
-        native = actual_q
-        if native.ndim == 4:
-            if (
-                native.shape[1] == hidden.shape[1]
-                and native.shape[2] == module.config.num_attention_heads
-            ):
-                native = native.transpose(1, 2)
-        same_shape = tuple(native.shape) == tuple(reconstructed.shape)
+        same_shape = tuple(native_q.shape) == tuple(adapter_q.shape)
         max_abs = None
+        mean_abs = None
         allclose = False
         if same_shape:
-            max_abs = float(
-                (native.float() - reconstructed.float()).abs().max().item()
-            )
+            delta = (native_q.float() - adapter_q.float()).abs()
+            max_abs = float(delta.max().item())
+            mean_abs = float(delta.mean().item())
             allclose = bool(
                 torch.allclose(
-                    native.float(),
-                    reconstructed.float(),
+                    native_q.float(),
+                    adapter_q.float(),
                     atol=1e-5,
                     rtol=1e-4,
                 )
             )
-        details["query_reconstruction_parity"] = {
-            "native_shape": list(native.shape),
-            "adapter_shape": list(reconstructed.shape),
+
+        details["native_sdpa_query_parity"] = {
+            "native_shape": list(native_q.shape),
+            "adapter_shape": list(adapter_q.shape),
             "same_shape": same_shape,
             "max_abs_error": max_abs,
+            "mean_abs_error": mean_abs,
             "allclose": allclose,
+            "criterion": "native query tensor entering torch SDPA vs adapter post-RoPE query",
         }
     else:
-        details["query_reconstruction_parity"] = {
+        details["native_sdpa_query_parity"] = {
             "allclose": False,
-            "reason": "Could not capture hidden_states and q_norm output.",
+            "reason": (
+                "Could not capture the native SDPA query tensor. "
+                "Validation fails closed rather than assuming parity."
+            ),
         }
 
-    # Zero-compression identity: installing the adapter must not change logits.
     short_ids = ids[:, :96]
     clean_model(model)
     baseline = model(short_ids, use_cache=True).logits.detach()
@@ -717,6 +755,7 @@ def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
     )
     with press(model):
         adapted = model(short_ids, use_cache=True).logits.detach()
+
     max_abs_identity = float(
         (baseline.float() - adapted.float()).abs().max().item()
     )
@@ -735,7 +774,7 @@ def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
     }
 
     details["valid"] = bool(
-        details["query_reconstruction_parity"].get("allclose", False)
+        details["native_sdpa_query_parity"].get("allclose", False)
         and details["zero_compression_identity"]["allclose"]
         and not details["adapter_provenance"]["algorithm_modified"]
     )
