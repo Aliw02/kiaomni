@@ -220,3 +220,82 @@ Therefore Phase 02 proceeds with:
 
 Use `--exclude-methods snapkv` for the canonical Phase-02 comparison run.
 SnapKV may be revisited later as a separate compatibility study.
+
+
+## N25 final benchmark contract
+
+The final MobileMoE comparison uses **25 deterministic samples per task**:
+
+- 25 single-needle cases
+- 25 multi-needle cases
+- 25 hard multi-needle cases
+- 25 reasoning cases
+
+That is 100 cases total for each method/budget condition.
+
+Active methods:
+
+- FullContext
+- KiaOmni-s8
+- BlockSal
+- RecencyOnly
+- RandomRetention
+
+SnapKV is deferred because MobileMoE query-representation parity is not
+faithful enough for a clean external-baseline claim. StreamingLLM is also
+deferred from N25 because the smoke run produced repetitive/degenerate
+generation despite technically correct cache-length validation.
+
+### Metrics saved per case
+
+Quality:
+- exact success
+- fact recall
+- FullContext-conditioned success
+
+Efficiency:
+- elapsed time
+- end-to-end output tokens/second
+- peak allocated VRAM
+- peak reserved VRAM
+- retained-token/compression telemetry
+
+Likelihood:
+- generated-answer mean log probability
+- generated-answer NLL
+- generated-answer PPL
+
+Routing:
+- decode-only projected raw Top-1 jitter
+- raw Top-1 continuity
+- raw Top-K Jaccard
+- counterfactual stabilized jitter/continuity/Jaccard
+- intervention rate / alpha / uncertainty / hidden similarity
+- per-layer raw and counterfactual Top-1 expert sequences
+- per-layer raw and counterfactual Top-K expert sequences
+- mean/longest expert dwell and expert diversity
+
+The raw route trace is non-mutating projected routing from the observed decode
+hidden states and router weights. The counterfactual stable path is diagnostic
+only and is **not** claimed as executed expert dispatch.
+
+Statistical summaries include Wilson 95% confidence intervals and paired exact
+McNemar comparisons for KiaOmni versus FullContext, BlockSal, RecencyOnly, and
+RandomRetention.
+
+Known repetitive SDPA/kvpress compatibility warnings are suppressed from stdout;
+unexpected warnings and errors remain visible.
+
+### Canonical N25 command
+
+```bash
+python experiments/kaggle_moe_phase02_multineedle_baselines.py \
+  --exclude-methods snapkv,streamingllm \
+  --samples-per-task 25 \
+  --budgets 512,256,128,98 \
+  --target-tokens 3900 \
+  --max-context 4096 \
+  --route-telemetry \
+  --route-alpha-max 0.10 \
+  --output /kaggle/working/phase02_mobilemoe_multineedle_n25.json
+```
