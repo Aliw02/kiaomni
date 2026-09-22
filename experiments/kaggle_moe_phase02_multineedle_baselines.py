@@ -557,6 +557,9 @@ def generate_kvpress(
             "requested_budget": int(budget),
             "expected_kept_tokens": int(budget),
             "compression_ratio": float(press.compression_ratio),
+            "compatibility_adapter": (
+                snapkv_adapter_provenance() if method == "snapkv" else None
+            ),
         },
     }
 
