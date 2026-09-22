@@ -202,9 +202,17 @@ def apply_kiaomni(
         # yield only the new tokens. Internally we shortened the prompt to
         # `pruned.shape[1]`, so we prepend the original prompt to the new
         # tokens, returning a tensor whose prefix matches the caller's input.
-        if not isinstance(out, torch.Tensor):
-            return out  # generate may return GenerateOutput dataclass — pass through
         pruned_len = pruned.shape[1]
+        if not isinstance(out, torch.Tensor):
+            # Preserve GenerateOutput diagnostics (e.g. per-step scores) while
+            # restoring the same public sequence-prefix contract as the Tensor
+            # path. This lets benchmark code compute generation NLL/PPL without
+            # losing KiaOmni's original-input alignment.
+            sequences = getattr(out, "sequences", None)
+            if torch.is_tensor(sequences) and sequences.shape[1] > pruned_len:
+                new_tokens = sequences[:, pruned_len:]
+                out.sequences = torch.cat([input_ids, new_tokens], dim=1)
+            return out
         if out.shape[1] <= pruned_len:
             return out  # no new tokens generated (e.g., immediate EOS)
         new_tokens = out[:, pruned_len:]
