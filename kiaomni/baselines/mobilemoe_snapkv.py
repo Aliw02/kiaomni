@@ -211,6 +211,24 @@ def _apply_complex_rope(
     return torch.view_as_real(rotated).flatten(-2).to(query_states.dtype)
 
 
+def mobilemoe_postrope_query_states(
+    module: nn.Module,
+    hidden_states: torch.Tensor,
+    kwargs: dict[str, Any],
+) -> torch.Tensor:
+    """Reconstruct the exact post-RoPE query tensor used by the adapter."""
+    query_states = mobilemoe_prerope_query_states(module, hidden_states)
+    rope_kind, rope_value = resolve_mobilemoe_rope(module, hidden_states, kwargs)
+    if rope_kind.endswith("cos_sin"):
+        cos, sin = rope_value
+        return _apply_cos_sin_rope(query_states, cos, sin)
+    if rope_kind.endswith("complex"):
+        return _apply_complex_rope(query_states, rope_value)
+    raise MobileMoESnapKVCompatibilityError(
+        f"Unsupported RoPE kind: {rope_kind}"
+    )
+
+
 def mobilemoe_window_attention(
     module: nn.Module,
     hidden_states: torch.Tensor,
@@ -227,18 +245,11 @@ def mobilemoe_window_attention(
     num_key_value_groups = num_heads // int(module.config.num_key_value_heads)
 
     window_hidden = hidden_states[:, -window_size:]
-    query_states = mobilemoe_prerope_query_states(module, window_hidden)
-
-    rope_kind, rope_value = resolve_mobilemoe_rope(module, hidden_states, kwargs)
-    if rope_kind.endswith("cos_sin"):
-        cos, sin = rope_value
-        query_states = _apply_cos_sin_rope(query_states, cos, sin)
-    elif rope_kind.endswith("complex"):
-        query_states = _apply_complex_rope(query_states, rope_value)
-    else:
-        raise MobileMoESnapKVCompatibilityError(
-            f"Unsupported RoPE kind: {rope_kind}"
-        )
+    query_states = mobilemoe_postrope_query_states(
+        module,
+        window_hidden,
+        kwargs,
+    )
 
     key_states = repeat_kv(keys, num_key_value_groups)
     attn_weights = torch.matmul(
@@ -365,6 +376,7 @@ __all__ = [
     "is_mobilemoe_module",
     "make_mobilemoe_snapkv_press",
     "mobilemoe_prerope_query_states",
+    "mobilemoe_postrope_query_states",
     "mobilemoe_window_attention",
     "resolve_mobilemoe_rope",
 ]
