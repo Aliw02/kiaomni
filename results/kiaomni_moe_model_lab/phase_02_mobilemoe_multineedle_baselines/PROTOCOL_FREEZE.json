@@ -56,7 +56,17 @@
       "window_size": 64,
       "kernel_size": 5,
       "compression": "KV-cache prefill",
-      "exact_budget_required": true
+      "exact_budget_required": true,
+      "compatibility_adapter": {
+        "name": "mobilemoe_snapkv_compat_v1",
+        "algorithm_modified": false,
+        "scope": [
+          "MobileMoE q_proj/q_norm query reconstruction",
+          "MobileMoE RoPE representation normalization"
+        ],
+        "official_snapkv_score_equation_preserved": true,
+        "source_file": "kiaomni/baselines/mobilemoe_snapkv.py"
+      }
     },
     "streamingllm": {
       "owner": "external",
@@ -81,7 +91,10 @@
     "external_requires_one_token_generation": true,
     "external_requires_hook_cleanup": true,
     "fail_closed": true,
-    "note": "If SnapKV or StreamingLLM fails validation, comparison scores are not produced."
+    "note": "If SnapKV or StreamingLLM fails validation, comparison scores are not produced.",
+    "snapkv_adapter_requires_query_reconstruction_parity": true,
+    "snapkv_adapter_requires_zero_compression_identity": true,
+    "snapkv_adapter_fails_closed_on_unsupported_rope": true
   },
   "outputs": {
     "validation": "phase02_validation.json",
