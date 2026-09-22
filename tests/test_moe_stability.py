@@ -234,3 +234,57 @@ def test_shadow_counterfactual_observes_jitter_without_mutating_model():
     assert metrics["stable_top1_transition_rate"] < metrics["raw_top1_transition_rate"]
 
     remove_moe_route_stability(model)
+
+
+
+def test_decode_only_trace_skips_prefill_and_records_expert_sequence():
+    model = _TinyMoE()
+    with torch.no_grad():
+        model.layers[0].mlp.gate.weight.copy_(
+            torch.tensor(
+                [
+                    [1.0, 0.0],
+                    [-1.0, 0.0],
+                    [0.0, 0.0],
+                ]
+            )
+        )
+
+    controller = apply_moe_route_stability(
+        model,
+        alpha_max=0.50,
+        routing_mode="shadow_counterfactual",
+        observe_decode_only=True,
+        record_trace=True,
+    )
+
+    prefill = torch.tensor(
+        [[[0.3, 1.0], [0.2, 1.0], [0.1, 1.0], [-0.1, 1.0]]]
+    )
+    _ = model(
+        inputs_embeds=prefill,
+        cache_position=torch.arange(4),
+    )
+
+    for idx, value in enumerate((0.10, -0.10, 0.11), start=4):
+        step = torch.tensor([[[value, 1.0]]])
+        _ = model(
+            inputs_embeds=step,
+            cache_position=torch.tensor([idx]),
+            past_key_values=object(),
+        )
+
+    snap = controller.snapshot()
+    assert snap["observe_decode_only"] is True
+    assert snap["record_trace"] is True
+    assert snap["tokens_observed"] == 3
+    assert snap["expert_trace"]["scope"] == "decode_only"
+
+    layer = snap["expert_trace"]["layers"]["layers.0.mlp.gate"]
+    assert layer["decode_steps"] == 3
+    assert len(layer["raw_top1_sequence"]) == 3
+    assert len(layer["stable_top1_sequence"]) == 3
+    assert len(layer["raw_topk_sequence"]) == 3
+    assert layer["raw_top1_transition_rate"] is not None
+
+    remove_moe_route_stability(model)
