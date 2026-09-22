@@ -9,9 +9,13 @@ from experiments.kaggle_moe_phase02_multineedle_baselines import (
     Case,
     aggregate,
     blocksal_keep,
+    paired_routing_vs_fullcontext,
     ratio_for_budget,
     score_answer,
+    select_random_retention,
+    select_recency_only,
     validate_blocksal,
+    validate_subset_controls,
 )
 
 
@@ -106,3 +110,65 @@ def test_aggregate_reports_full_context_conditioned_quality():
     assert metrics["full_context_eligibility_rate"] == 0.5
     assert metrics["conditional_exact_accuracy"] == 1.0
     assert metrics["conditional_mean_recall"] == 1.0
+
+
+
+def test_recency_and_random_controls_match_exact_budget():
+    seq_len = 3900
+    for budget in (512, 256, 128, 98):
+        recency = select_recency_only(seq_len, budget)
+        random_keep = select_random_retention(
+            seq_len,
+            budget,
+            seed=1234 + budget,
+        )
+
+        assert len(recency) == budget
+        assert len(random_keep) == budget
+        assert len(set(recency.tolist())) == budget
+        assert len(set(random_keep.tolist())) == budget
+
+
+def test_random_retention_is_deterministic_for_same_seed():
+    a = select_random_retention(1000, 128, seed=77)
+    b = select_random_retention(1000, 128, seed=77)
+    np.testing.assert_array_equal(a, b)
+
+
+def test_subset_control_validation_covers_grid():
+    results = validate_subset_controls([512, 256, 128, 98])
+    assert results["recency_only"]["valid"] is True
+    assert results["random_retention"]["valid"] is True
+
+
+def test_paired_routing_delta_signs_are_explicit():
+    rows = [
+        {
+            "task": "single",
+            "sample_id": 0,
+            "method": "full_context",
+            "budget": None,
+            "routing": {
+                "raw_top1_transition_rate": 0.50,
+                "raw_topk_jaccard": 0.40,
+                "stable_top1_transition_rate": 0.45,
+            },
+        },
+        {
+            "task": "single",
+            "sample_id": 0,
+            "method": "kiaomni_s8",
+            "budget": 98,
+            "routing": {
+                "raw_top1_transition_rate": 0.30,
+                "raw_topk_jaccard": 0.60,
+                "stable_top1_transition_rate": 0.25,
+            },
+        },
+    ]
+
+    result = paired_routing_vs_fullcontext(rows)["kiaomni_s8_b98"]
+    assert result["paired_n"] == 1
+    assert result["raw_jitter_delta_vs_fullcontext"] == -0.2
+    assert result["raw_continuity_delta_vs_fullcontext"] == 0.2
+    assert result["raw_topk_jaccard_delta_vs_fullcontext"] == 0.2
