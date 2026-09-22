@@ -9,6 +9,7 @@ import os
 import random
 import re
 import subprocess
+import traceback
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,12 @@ from kiaomni import apply_kiaomni, remove_kiaomni
 from kiaomni.adapters import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
 from kiaomni.blocksal import BLOCK_SIZE_DEFAULT, select_blocksal_keep
+from kiaomni.baselines.mobilemoe_snapkv import (
+    adapter_provenance as snapkv_adapter_provenance,
+    describe_position_embeddings,
+    make_mobilemoe_snapkv_press,
+    mobilemoe_prerope_query_states,
+)
 
 MODEL_DEFAULT = "facebook/MobileMoE-M-SFT"
 BUDGETS_DEFAULT = "512,256,128,98"
@@ -490,11 +497,11 @@ def ratio_for_budget(prompt_len: int, budget: int) -> float:
 
 
 def make_press(method: str, prompt_len: int, budget: int):
-    from kvpress import KeyRerotationPress, SnapKVPress, StreamingLLMPress
+    from kvpress import KeyRerotationPress, StreamingLLMPress
 
     ratio = ratio_for_budget(prompt_len, budget)
     if method == "snapkv":
-        return SnapKVPress(
+        return make_mobilemoe_snapkv_press(
             compression_ratio=ratio,
             window_size=SNAPKV_WINDOW,
             kernel_size=SNAPKV_KERNEL,
@@ -594,6 +601,145 @@ def forward_hook_count(model) -> int:
     return sum(len(module._forward_hooks) for module in attention_modules(model))
 
 
+@torch.inference_mode()
+def mobilemoe_snapkv_adapter_diagnostics(model, tokenizer) -> dict[str, Any]:
+    """Verify the adapter changes representation plumbing only."""
+    clean_model(model)
+    ids = validation_prompt(tokenizer, target_len=128).to(input_device(model))
+    module = attention_modules(model)[0]
+
+    details: dict[str, Any] = {
+        "module_class": f"{type(module).__module__}.{type(module).__name__}",
+        "has_q_proj": hasattr(module, "q_proj"),
+        "has_q_norm": hasattr(module, "q_norm"),
+        "has_k_norm": hasattr(module, "k_norm"),
+        "head_dim": int(getattr(module, "head_dim", -1)),
+        "num_attention_heads": int(getattr(module.config, "num_attention_heads", -1)),
+        "num_key_value_heads": int(getattr(module.config, "num_key_value_heads", -1)),
+        "adapter_provenance": snapkv_adapter_provenance(),
+    }
+
+    captured: dict[str, Any] = {}
+
+    def attn_pre_hook(_module, args, kwargs):
+        hidden = kwargs.get("hidden_states")
+        if hidden is None and args:
+            hidden = args[0]
+        if torch.is_tensor(hidden):
+            captured["hidden_states"] = hidden.detach()
+        captured["position_embeddings"] = describe_position_embeddings(
+            kwargs.get("position_embeddings")
+        )
+        for key in ("position_ids", "cache_position"):
+            value = kwargs.get(key)
+            if torch.is_tensor(value):
+                captured[key] = {
+                    "shape": list(value.shape),
+                    "dtype": str(value.dtype),
+                }
+            elif value is not None:
+                captured[key] = {"type": type(value).__name__}
+
+    def qnorm_hook(_module, _args, output):
+        if torch.is_tensor(output):
+            captured["q_norm_output"] = output.detach()
+
+    attn_handle = module.register_forward_pre_hook(attn_pre_hook, with_kwargs=True)
+    qnorm_handle = None
+    if hasattr(module, "q_norm"):
+        qnorm_handle = module.q_norm.register_forward_hook(qnorm_hook)
+
+    try:
+        model(ids, use_cache=False)
+    finally:
+        attn_handle.remove()
+        if qnorm_handle is not None:
+            qnorm_handle.remove()
+
+    details["runtime"] = {
+        key: value
+        for key, value in captured.items()
+        if key not in ("hidden_states", "q_norm_output")
+    }
+
+    hidden = captured.get("hidden_states")
+    actual_q = captured.get("q_norm_output")
+    if torch.is_tensor(hidden) and torch.is_tensor(actual_q):
+        reconstructed = mobilemoe_prerope_query_states(module, hidden)
+
+        # Normalize the captured native q_norm layout to [B, H, T, D].
+        native = actual_q
+        if native.ndim == 4:
+            if (
+                native.shape[1] == hidden.shape[1]
+                and native.shape[2] == module.config.num_attention_heads
+            ):
+                native = native.transpose(1, 2)
+        same_shape = tuple(native.shape) == tuple(reconstructed.shape)
+        max_abs = None
+        allclose = False
+        if same_shape:
+            max_abs = float(
+                (native.float() - reconstructed.float()).abs().max().item()
+            )
+            allclose = bool(
+                torch.allclose(
+                    native.float(),
+                    reconstructed.float(),
+                    atol=1e-5,
+                    rtol=1e-4,
+                )
+            )
+        details["query_reconstruction_parity"] = {
+            "native_shape": list(native.shape),
+            "adapter_shape": list(reconstructed.shape),
+            "same_shape": same_shape,
+            "max_abs_error": max_abs,
+            "allclose": allclose,
+        }
+    else:
+        details["query_reconstruction_parity"] = {
+            "allclose": False,
+            "reason": "Could not capture hidden_states and q_norm output.",
+        }
+
+    # Zero-compression identity: installing the adapter must not change logits.
+    short_ids = ids[:, :96]
+    clean_model(model)
+    baseline = model(short_ids, use_cache=True).logits.detach()
+    press = make_mobilemoe_snapkv_press(
+        compression_ratio=0.0,
+        window_size=SNAPKV_WINDOW,
+        kernel_size=SNAPKV_KERNEL,
+    )
+    with press(model):
+        adapted = model(short_ids, use_cache=True).logits.detach()
+    max_abs_identity = float(
+        (baseline.float() - adapted.float()).abs().max().item()
+    )
+    details["zero_compression_identity"] = {
+        "same_shape": tuple(baseline.shape) == tuple(adapted.shape),
+        "max_abs_error": max_abs_identity,
+        "exact_equal": bool(torch.equal(baseline, adapted)),
+        "allclose": bool(
+            torch.allclose(
+                baseline.float(),
+                adapted.float(),
+                atol=0.0,
+                rtol=0.0,
+            )
+        ),
+    }
+
+    details["valid"] = bool(
+        details["query_reconstruction_parity"].get("allclose", False)
+        and details["zero_compression_identity"]["allclose"]
+        and not details["adapter_provenance"]["algorithm_modified"]
+    )
+    clean_model(model)
+    return details
+
+
 def validation_prompt(tokenizer, target_len: int = 768) -> torch.Tensor:
     text = " ".join(f"validation record {i} is ordinary filler." for i in range(300))
     q = "Repeat the word ready."
@@ -615,6 +761,19 @@ def validate_external_press(
         "all_budgets_exact": False,
         "hooks_restored": False,
     }
+    if method == "snapkv":
+        details["compatibility_adapter"] = snapkv_adapter_provenance()
+        try:
+            details["adapter_diagnostics"] = mobilemoe_snapkv_adapter_diagnostics(
+                model, tokenizer
+            )
+        except Exception as exc:
+            details["adapter_diagnostics"] = {
+                "valid": False,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "traceback": traceback.format_exc(limit=10),
+            }
     try:
         clean_model(model)
         ids = validation_prompt(tokenizer).to(input_device(model))
@@ -658,6 +817,7 @@ def validate_external_press(
                 entry["generation_advanced"] = False
                 entry["error_type"] = type(exc).__name__
                 entry["error"] = str(exc)
+                entry["traceback"] = traceback.format_exc(limit=10)
                 all_exact = False
             finally:
                 gc.collect()
@@ -671,7 +831,12 @@ def validate_external_press(
         details["forward_hooks_after"] = hooks_after
         details["hooks_restored"] = hooks_before == hooks_after
         details["all_budgets_exact"] = all_exact
-        valid = all_exact and details["hooks_restored"]
+        adapter_ok = True
+        if method == "snapkv":
+            adapter_ok = bool(
+                details.get("adapter_diagnostics", {}).get("valid", False)
+            )
+        valid = all_exact and details["hooks_restored"] and adapter_ok
         return ValidationResult(
             method,
             valid,
@@ -1101,6 +1266,8 @@ def main() -> None:
                 "window_size": SNAPKV_WINDOW,
                 "kernel_size": SNAPKV_KERNEL,
                 "exact_budget_ratio": True,
+                "compatibility_adapter": snapkv_adapter_provenance(),
+                "algorithm_modified": False,
             },
             "streamingllm": {
                 "class": "external_baseline",
