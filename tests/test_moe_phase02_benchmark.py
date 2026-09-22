@@ -21,7 +21,7 @@ def test_ratio_for_budget_is_exact_for_phase02_grid():
         assert int(prompt_len * (1.0 - ratio)) == budget
 
 
-def test_blocksal_preserves_protected_tokens_and_historical_budget_semantics():
+def test_blocksal_preserves_protected_tokens_and_exact_budget():
     seq_len = 3900
     budget = 98
     saliency = np.random.RandomState(7).rand(seq_len).astype(np.float32)
@@ -31,20 +31,17 @@ def test_blocksal_preserves_protected_tokens_and_historical_budget_semantics():
 
     protected = set(range(N_SINK)) | set(range(seq_len - RECENCY, seq_len))
     assert protected.issubset(kept)
-    assert budget - (BLOCK_SIZE - 1) <= len(keep) <= budget
+    assert len(keep) == budget
 
 
-def test_blocksal_does_not_silently_become_exact_budget_selector():
+def test_blocksal_exact_budget_holds_on_non_aligned_sequence():
     seq_len = 3911
     budget = 128
     saliency = np.linspace(0.0, 1.0, seq_len, dtype=np.float32)
 
     keep = blocksal_keep(saliency, budget, seq_len)
 
-    # Whole-block eviction is the frozen historical behavior. Exact budget is
-    # allowed by coincidence, but the selector must never exceed the budget.
-    assert len(keep) <= budget
-    assert len(keep) >= budget - (BLOCK_SIZE - 1)
+    assert len(keep) == budget
 
 
 def test_hard_multi_rejects_distractor_even_when_all_gold_values_are_present():
