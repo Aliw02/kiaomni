@@ -96,6 +96,11 @@ Tasks:
 Scoring records exact success, fact recall, distractor hits, latency,
 tokens/second, peak allocated VRAM, and compression telemetry.
 
+The artifact also reports **FullContext-conditioned** accuracy/recall: compressed
+methods are evaluated separately on the subset of cases that MobileMoE itself
+solves with no compression. Absolute scores are still retained for every case.
+This prevents model capability failures from being misattributed to compression.
+
 ## Kaggle setup
 
 Use one T4 for the model. The Phase-02 experiment requires
