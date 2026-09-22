@@ -65,8 +65,8 @@ def test_hard_multi_rejects_distractor_even_when_all_gold_values_are_present():
     assert contaminated["distractor_hits"] == ["NOVA"]
 
 
-def test_blocksal_canonical_block_size_is_16():
-    assert BLOCK_SIZE == 16
+def test_blocksal_canonical_block_size_is_8():
+    assert BLOCK_SIZE == 8
 
 
 def test_blocksal_validation_covers_full_phase02_budget_grid():
@@ -78,4 +78,5 @@ def test_blocksal_validation_covers_full_phase02_budget_grid():
     for budget in budgets:
         entry = result.details["budgets"][str(budget)]
         assert entry["protected_tokens_present"] is True
-        assert entry["historical_whole_block_budget_ok"] is True
+        assert entry["exact_budget"] is True
+        assert entry["actual_kept_tokens"] == budget
