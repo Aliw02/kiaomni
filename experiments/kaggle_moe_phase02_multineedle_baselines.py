@@ -568,7 +568,16 @@ def blocksal_keep(
 
 
 @torch.inference_mode()
-def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, max_new_tokens: int) -> dict[str, Any]:
+def generate_blocksal(
+    model,
+    tokenizer,
+    input_ids: torch.Tensor,
+    budget: int,
+    max_new_tokens: int,
+    *,
+    route_telemetry: bool = True,
+    route_alpha_max: float = 0.10,
+) -> dict[str, Any]:
     clean_model(model)
     ids = input_ids.to(input_device(model))
     seq_len = ids.shape[1]
@@ -580,6 +589,11 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
         probe = ArchitectureProbe.probe(model)
         adapter = SaliencyAdapter(probe)
 
+    controller = start_route_telemetry(
+        model,
+        enabled=route_telemetry,
+        alpha_max=route_alpha_max,
+    )
     reset_peak_memory()
     torch.cuda.synchronize()
     t0 = time.perf_counter()
@@ -606,27 +620,40 @@ def generate_blocksal(model, tokenizer, input_ids: torch.Tensor, budget: int, ma
 
     keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
     pruned = ids[:, keep_t]
-    out = model.generate(
-        pruned,
-        attention_mask=torch.ones_like(pruned),
-        max_new_tokens=max_new_tokens,
-        do_sample=False,
-        use_cache=True,
-        pad_token_id=tokenizer.pad_token_id,
-        eos_token_id=tokenizer.eos_token_id,
+    try:
+        out = model.generate(
+            pruned,
+            attention_mask=torch.ones_like(pruned),
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            use_cache=True,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        torch.cuda.synchronize()
+        dt = time.perf_counter() - t0
+        routing = controller.snapshot() if controller is not None else None
+    finally:
+        remove_moe_route_stability(model)
+
+    diag = generation_diagnostics(
+        out,
+        prefix_len=int(pruned.shape[1]),
+        tokenizer=tokenizer,
     )
-    torch.cuda.synchronize()
-    dt = time.perf_counter() - t0
-    new_ids = out[0, pruned.shape[1]:]
-    text = tokenizer.decode(new_ids, skip_special_tokens=True).strip()
     peaks = peak_memory_gb()
+    reserved = peak_memory_reserved_gb()
     return {
-        "text": text,
-        "new_tokens": int(new_ids.numel()),
+        **diag,
         "elapsed_s": dt,
-        "tokens_per_s": float(new_ids.numel() / max(dt, 1e-9)),
+        "tokens_per_s": float(diag["new_tokens"] / max(dt, 1e-9)),
         "peak_vram_gb": max(peaks.values(), default=0.0),
         "peak_vram_by_gpu_gb": peaks,
+        "peak_reserved_vram_gb": max(reserved.values(), default=0.0),
+        "peak_reserved_vram_by_gpu_gb": reserved,
+        "routing": routing,
         "compression": {
             "original_tokens": int(seq_len),
             "requested_budget": int(budget),
@@ -672,6 +699,92 @@ def generate_kiaomni(
             delattr(model, "_phase02_kia_patch_active")
         except AttributeError:
             pass
+
+
+@torch.inference_mode()
+def generate_subset_baseline(
+    model,
+    tokenizer,
+    input_ids: torch.Tensor,
+    budget: int,
+    max_new_tokens: int,
+    *,
+    method: str,
+    retention_seed: int,
+    route_telemetry: bool = True,
+    route_alpha_max: float = 0.10,
+) -> dict[str, Any]:
+    clean_model(model)
+    ids = input_ids.to(input_device(model))
+    seq_len = int(ids.shape[1])
+
+    if method == "recency_only":
+        keep = select_recency_only(seq_len, budget)
+    elif method == "random_retention":
+        keep = select_random_retention(
+            seq_len,
+            budget,
+            seed=retention_seed,
+        )
+    else:
+        raise KeyError(method)
+
+    keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
+    pruned = ids[:, keep_t]
+    controller = start_route_telemetry(
+        model,
+        enabled=route_telemetry,
+        alpha_max=route_alpha_max,
+    )
+    reset_peak_memory()
+    torch.cuda.synchronize()
+    t0 = time.perf_counter()
+    try:
+        out = model.generate(
+            pruned,
+            attention_mask=torch.ones_like(pruned),
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            use_cache=True,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        torch.cuda.synchronize()
+        dt = time.perf_counter() - t0
+        routing = controller.snapshot() if controller is not None else None
+    finally:
+        remove_moe_route_stability(model)
+
+    diag = generation_diagnostics(
+        out,
+        prefix_len=int(pruned.shape[1]),
+        tokenizer=tokenizer,
+    )
+    peaks = peak_memory_gb()
+    reserved = peak_memory_reserved_gb()
+    return {
+        **diag,
+        "elapsed_s": dt,
+        "tokens_per_s": float(diag["new_tokens"] / max(dt, 1e-9)),
+        "peak_vram_gb": max(peaks.values(), default=0.0),
+        "peak_vram_by_gpu_gb": peaks,
+        "peak_reserved_vram_gb": max(reserved.values(), default=0.0),
+        "peak_reserved_vram_by_gpu_gb": reserved,
+        "routing": routing,
+        "compression": {
+            "original_tokens": seq_len,
+            "requested_budget": int(budget),
+            "kept_tokens": int(len(keep)),
+            "budget_delta": int(len(keep) - min(seq_len, budget)),
+            "selector": method,
+            "retention_seed": (
+                int(retention_seed) if method == "random_retention" else None
+            ),
+            "exact_budget": len(keep) == min(seq_len, budget),
+        },
+    }
 
 
 def ratio_for_budget(prompt_len: int, budget: int) -> float:
