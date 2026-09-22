@@ -117,5 +117,30 @@
     "full_context_conditioned": "exact pass and fact recall over cases solved by FullContext",
     "distractor_policy": "hard_multi/reason exact pass requires target recovery without forbidden distractor values",
     "note": "No case is deleted from the raw artifact; conditioning is an additional analysis view."
-  }
+  },
+  "deferred_methods": {
+    "snapkv": {
+      "status": "DEFERRED_INCOMPATIBLE",
+      "date": "2026-09-22",
+      "reason": "MobileMoE native SDPA query parity failed for the current compatibility adapter.",
+      "evidence": {
+        "all_budgets_exact": true,
+        "observed_layers": 26,
+        "generation_advanced": true,
+        "zero_compression_identity_exact": true,
+        "native_sdpa_query_same_shape": true,
+        "native_sdpa_query_max_abs_error": 5.84912109375,
+        "native_sdpa_query_mean_abs_error": 0.6832565069198608,
+        "native_sdpa_query_allclose": false
+      },
+      "interpretation": "SnapKV executes and compresses, but is excluded from Phase 02 scoring because representation parity is not faithful enough to support a clean external-baseline claim.",
+      "future_work": "Revisit only in a separate compatibility study; do not block the current MobileMoE benchmark."
+    }
+  },
+  "phase02_active_methods": [
+    "full_context",
+    "kiaomni_s8",
+    "blocksal",
+    "streamingllm"
+  ]
 }
