@@ -1,0 +1,95 @@
+{
+  "version": "KIAOMNI_MOE_MODEL_LAB_PHASE02_PROTOCOL_V1",
+  "date": "2026-09-22",
+  "model": "facebook/MobileMoE-M-SFT",
+  "precision": "FP16",
+  "device_protocol": "single Kaggle T4 / model on GPU0",
+  "context": {
+    "target_rendered_prompt_tokens": 3900,
+    "hard_max_rendered_prompt_tokens": 4096,
+    "count_after_chat_template": true
+  },
+  "budgets": [
+    512,
+    256,
+    128,
+    98
+  ],
+  "decoding": {
+    "mode": "greedy",
+    "do_sample": false
+  },
+  "tasks": {
+    "single": "one target fact at varying document depth",
+    "multi": "three target facts distributed early/middle/late",
+    "hard_multi": "three target facts plus same-format distractor records",
+    "reason": "four-hop variable tracking plus distractor chain"
+  },
+  "default_samples_per_task": 3,
+  "analysis_run_samples_per_task": 10,
+  "methods": {
+    "full_context": {
+      "owner": "control",
+      "compression": "none"
+    },
+    "kiaomni_s8": {
+      "owner": "ours",
+      "compression": "prompt-side",
+      "policy": "kiaomni_s8",
+      "exact_budget": true
+    },
+    "blocksal": {
+      "owner": "ours",
+      "compression": "prompt-side block selection",
+      "block_size": 8,
+      "score": "mean KiaOmni saliency per block",
+      "exact_budget": true,
+      "boundary_rule": "at most one partial boundary block; highest-saliency members fill residual budget"
+    },
+    "snapkv": {
+      "owner": "external",
+      "implementation": "NVIDIA kvpress SnapKVPress",
+      "kvpress_version": "0.5.5",
+      "kvpress_git_ref": "7331c23da9e6f1510d89ea651d0dea77a57b3252",
+      "window_size": 64,
+      "kernel_size": 5,
+      "compression": "KV-cache prefill",
+      "exact_budget_required": true
+    },
+    "streamingllm": {
+      "owner": "external",
+      "implementation": "NVIDIA kvpress KeyRerotationPress(StreamingLLMPress)",
+      "kvpress_version": "0.5.5",
+      "kvpress_git_ref": "7331c23da9e6f1510d89ea651d0dea77a57b3252",
+      "n_sink": 4,
+      "key_rerotation": true,
+      "compression": "KV-cache prefill",
+      "exact_budget_required": true
+    }
+  },
+  "excluded": {
+    "AdaSnapKV": "explicitly excluded from Phase 02",
+    "H2O": "deferred until independently parity-validated"
+  },
+  "validation_gate": {
+    "transformers_version": "4.57.6",
+    "validate_all_budgets": true,
+    "external_requires_execution_without_exception": true,
+    "external_requires_exact_cache_length_each_observed_layer": true,
+    "external_requires_one_token_generation": true,
+    "external_requires_hook_cleanup": true,
+    "fail_closed": true,
+    "note": "If SnapKV or StreamingLLM fails validation, comparison scores are not produced."
+  },
+  "outputs": {
+    "validation": "phase02_validation.json",
+    "smoke": "phase02_smoke_n1.json",
+    "analysis": "phase02_mobilemoe_multineedle_n10.json"
+  },
+  "canonical_runner": "experiments/kaggle_moe_phase02_multineedle_baselines.py",
+  "requirements": "experiments/phase02_moe_baselines_requirements.txt",
+  "tests": [
+    "tests/test_moe_phase02_benchmark.py",
+    "tests/test_blocksal.py"
+  ]
+}
