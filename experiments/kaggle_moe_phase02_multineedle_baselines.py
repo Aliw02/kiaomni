@@ -1411,6 +1411,16 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "stable_top1_continuity_counterfactual": (
                 None if stable_transition is None else 1.0 - stable_transition
             ),
+            "counterfactual_jitter_reduction_absolute": (
+                None
+                if raw_transition is None or stable_transition is None
+                else raw_transition - stable_transition
+            ),
+            "counterfactual_jitter_reduction_relative": (
+                None
+                if raw_transition in (None, 0.0) or stable_transition is None
+                else (raw_transition - stable_transition) / raw_transition
+            ),
             "raw_topk_jaccard": _mean_present(
                 [x.get("raw_topk_jaccard") for x in routings]
             ),
@@ -1769,9 +1779,10 @@ def main() -> None:
                     "requested_via": "--exclude-methods",
                 }
                 if method == "snapkv":
+                    status = "DEFERRED_INCOMPATIBLE"
                     details.update(
                         {
-                            "deferred_status": "DEFERRED_INCOMPATIBLE",
+                            "deferred_status": status,
                             "last_known_issue": (
                                 "MobileMoE native SDPA query does not match "
                                 "adapter post-RoPE reconstruction; benchmark "
@@ -1779,8 +1790,19 @@ def main() -> None:
                             ),
                         }
                     )
+                else:
+                    status = "DEFERRED_SEMANTIC_COMPATIBILITY"
+                    details.update(
+                        {
+                            "deferred_status": status,
+                            "last_known_issue": (
+                                "MobileMoE smoke generation became repetitive/"
+                                "degenerate despite exact KV-length validation."
+                            ),
+                        }
+                    )
                 validations[method] = ValidationResult(
-                    method, False, "DEFERRED_INCOMPATIBLE", details
+                    method, False, status, details
                 ).__dict__
 
         methods_to_validate = [
