@@ -166,3 +166,36 @@ Runner:
 CI semantics tests:
 
 `tests/test_moe_phase02_benchmark.py`
+
+
+## MobileMoE SnapKV compatibility adapter
+
+SnapKV validation initially failed on MobileMoE before producing any score.
+The Phase-02 runner now uses a narrow compatibility adapter in
+`kiaomni/baselines/mobilemoe_snapkv.py`.
+
+The adapter is allowed to change only architecture representation plumbing:
+
+- reconstruct queries with MobileMoE's native `q_proj` + `q_norm`;
+- normalize the model's RoPE representation into the form required by kvpress.
+
+The following SnapKV semantics remain pinned to NVIDIA kvpress at
+`7331c23da9e6f1510d89ea651d0dea77a57b3252`:
+
+- observation window;
+- attention-based importance equation;
+- pooling kernel;
+- GQA grouping;
+- score ranking;
+- KV Top-K pruning.
+
+Validation is fail-closed. SnapKV is accepted only if:
+
+1. native MobileMoE QK-Norm query reconstruction matches numerically;
+2. zero-compression adapter output is bit-identical to the unadapted model;
+3. all requested budgets produce exact per-layer KV lengths;
+4. one-token generation advances;
+5. hooks are restored after each press context.
+
+If the model exposes a RoPE form that cannot be converted without changing
+attention semantics, the adapter raises instead of approximating.
