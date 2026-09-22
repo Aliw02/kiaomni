@@ -92,9 +92,14 @@
     "external_requires_hook_cleanup": true,
     "fail_closed": true,
     "note": "If SnapKV or StreamingLLM fails validation, comparison scores are not produced.",
-    "snapkv_adapter_requires_query_reconstruction_parity": true,
     "snapkv_adapter_requires_zero_compression_identity": true,
-    "snapkv_adapter_fails_closed_on_unsupported_rope": true
+    "snapkv_adapter_fails_closed_on_unsupported_rope": true,
+    "snapkv_adapter_query_parity": {
+      "method": "capture native query tensor entering torch SDPA on MobileMoE first attention layer",
+      "compare_against": "adapter post-RoPE reconstructed query tensor",
+      "fail_closed": true,
+      "rationale": "does not assume q_norm is exposed as a module; catches functional QK normalization if present"
+    }
   },
   "outputs": {
     "validation": "phase02_validation.json",
