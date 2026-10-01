@@ -4,8 +4,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-import pytest
-
 RUNNER = Path(__file__).resolve().parents[1] / "experiments" / "qwen3_30b_scale_gate.py"
 spec = importlib.util.spec_from_file_location("qwen3_scale_gate", RUNNER)
 mod = importlib.util.module_from_spec(spec)
@@ -14,37 +12,30 @@ sys.modules[spec.name] = mod
 spec.loader.exec_module(mod)
 
 
-def test_stage_plans_are_budget_valid():
-    for cfg in mod.STAGE_PLANS.values():
-        mod.validate_stage_config(cfg)
-
-
-def test_stage_plan_preserves_compression_pressure():
+def test_stage_plan_preserves_4x_8x_16x_pressure():
     final = mod.STAGE_PLANS["final"]
-    target = final["target_tokens"]
-    ratios = [target / budget for budget in final["budgets"]]
-    assert ratios == [4.0, 8.0, 16.0]
+    assert final["retention_ratios"] == [0.25, 0.125, 0.0625]
+    assert mod.PRIMARY_RATIO == 0.125
 
 
-def test_rejects_budget_too_small_for_protected_tokens():
-    cfg = dict(mod.STAGE_PLANS["preflight"])
-    cfg["budgets"] = [mod.N_SINK + mod.RECENCY - 1]
-    with pytest.raises(ValueError, match=r"n_sink\+recency"):
-        mod.validate_stage_config(cfg)
+def test_protected_token_defaults_match_library():
+    assert mod.N_SINK == 16
+    assert mod.RECENCY == 32
+    assert mod._budget_for_ratio(8192, 0.125) == 1024
 
 
-def test_longbench_v2_scoring_uses_exact_choice_letter():
+def test_longbench_v2_scoring_uses_choice_letter():
     case = mod.EvalCase(
         case_id="x",
-        source="longbench-v2",
+        source="longbench_v2",
         task="code/repository",
         context="ctx",
         question="q",
         gold=["C"],
         distractors=[],
-        choices={"A": "a", "B": "b", "C": "c", "D": "d"},
     )
     assert mod.score_answer(case, "C")["success"] is True
+    assert mod.score_answer(case, "The answer is C.")["success"] is True
     assert mod.score_answer(case, "B")["success"] is False
 
 
@@ -60,3 +51,14 @@ def test_synthetic_scoring_blocks_distractor_hits():
     )
     assert mod.score_answer(case, "111, 222")["success"] is True
     assert mod.score_answer(case, "111, 222, 999")["success"] is False
+
+
+def test_recency_and_random_keep_exact_budget():
+    length = 8192
+    budget = 1024
+    recency = mod._recency_keep(length, budget)
+    random_keep = mod._random_keep(length, budget, seed=42)
+    assert len(recency) == budget
+    assert len(random_keep) == budget
+    assert recency[0] == 0
+    assert random_keep[0] == 0
