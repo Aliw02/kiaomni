@@ -39,3 +39,20 @@ jobs:
           # failing (see tests/test_gpt2_smoke.py).
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: pytest tests/test_gpt2_smoke.py -v
+
+
+  modal-windows-import:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install Phase-03 validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install "modal==1.6.0"
+      - name: Validate Phase-03 launcher on Windows
+        run: pytest tests/test_qwen3_scale_gate.py tests/test_phase03_qwen3_modal_gate.py -v
