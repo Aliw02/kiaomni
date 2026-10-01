@@ -917,7 +917,10 @@ def main() -> None:
             "head_dim": probe.head_dim,
         },
         "routing_preflight": neutrality,
-        "cases": [asdict(c) for c in cases],
+        "cases": [
+            asdict(c) | {"context": "<omitted-from-artifact>", "question": "<omitted-from-artifact>"}
+            for c in cases
+        ],
         "rows": rows,
         "aggregate": [],
         "pairwise": [],
