@@ -58,7 +58,7 @@ The large model and LongBench-v2 dataset are downloaded by a **CPU-only** Modal 
 | Stage | Work | Hard GPU ceiling |
 |---|---|---:|
 | preflight | load + probe + CPU/GPU saliency parity + 1 synthetic case | 20 min |
-| smoke | all 4 synthetic task families + 2 LongBench-v2 cases | 40 min |
+| smoke | 4 synthetic + 2 LongBench-v2 cases (8K–12K memory/real-path canary) | 40 min |
 | final | 8 synthetic + 6 naturally fitting LongBench-v2 cases | 90 min |
 
 One pass through all three stages therefore has a hard configured ceiling of **150 A100 GPU minutes**. At Modal's 2026-10-01 listed A100-80GB base rate of about $2.50/hour, the theoretical GPU ceiling is about **$6.25**, before comparatively small CPU/memory/storage charges. Re-running failed stages is outside the one-pass budget contract.
@@ -66,6 +66,8 @@ One pass through all three stages therefore has a hard configured ceiling of **1
 The launcher is sequential and fail-closed:
 
 - smoke refuses to start unless preflight artifact says `PASS`
+- smoke returns `FAIL` if KiaOmni@8x solves zero FullContext-solvable smoke cases
+- smoke returns `INCONCLUSIVE` if FullContext solves fewer than two smoke cases
 - final refuses to start unless smoke artifact says `PASS`
 
 ## Retention conditions
@@ -118,6 +120,7 @@ python -m pip install -U "modal==1.6.0"
 modal setup
 modal billing rates
 modal billing summary
+modal billing report --for "this month" --show-resources
 ```
 
 ## Run order
@@ -172,6 +175,32 @@ phase_03_qwen3_30b_scale_gate/
   smoke.json
   final.json
 ```
+
+## If A100 runs out of memory
+
+Only if preflight fails specifically because of OOM or the 8 GiB post-load headroom gate, rerun that stage on H200:
+
+```powershell
+modal run modal/qwen3_30b_scale_gate_modal.py --stage preflight --gpu H200
+```
+
+Do **not** switch GPU for a code, architecture-probe, saliency-parity, or dataset failure. Fix that failure first. If H200 is required for preflight, use H200 for the later stages too so the execution environment stays consistent.
+
+## After the final artifact is backed up
+
+Check the bill again:
+
+```powershell
+modal billing report --for "this month" --show-resources
+```
+
+The large model lives in the persistent asset volume and continues to incur storage charges while retained. After `final.json` is downloaded and backed up, remove the asset volume:
+
+```powershell
+modal volume delete kiaomni-qwen3-assets
+```
+
+Keep `kiaomni-qwen3-results` until the JSON artifacts are safely copied locally.
 
 ## Hard-stop policy
 
