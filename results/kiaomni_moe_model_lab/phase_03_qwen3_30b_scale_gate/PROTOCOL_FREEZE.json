@@ -7,7 +7,7 @@
   "attention_implementation": "sdpa",
   "quantization": "none",
   "cpu_offload": "forbidden",
-  "gpu_default": "A100 80GB",
+  "gpu_default": "A100-80GB",
   "policy": "kiaomni_s8",
   "protected_tokens": {
     "n_sink": 16,
