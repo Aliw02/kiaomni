@@ -9,7 +9,7 @@ import modal
 
 APP_NAME = "kiaomni-qwen3-30b-scale-gate"
 MODEL_ID = "Qwen/Qwen3-30B-A3B-Instruct-2507"
-GPU_TYPE = os.environ.get("KIAOMNI_GPU", "A100")
+GPU_TYPE = os.environ.get("KIAOMNI_GPU", "A100-80GB")
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REMOTE_REPO = "/root/kiaomni"
 HF_HOME = "/cache/huggingface"
