@@ -45,6 +45,8 @@ def test_protocol_is_claim_bounded_and_budget_capped():
     assert data["kiaomni"]["recency"] == 32
     assert data["retention"]["ratios"] == [0.25, 0.125, 0.0625]
     assert data["cost_guard"]["one_pass_total_gpu_ceiling_minutes"] == 150
+    assert data["stages"]["smoke"]["real_cases"] == 2
+    assert data["stages"]["smoke"]["cases"] == 6
     assert "past_key_values" in " ".join(data["claim_boundary"]["forbidden"])
     assert data["final_gate"]["16x"].startswith("Stress diagnostic")
 
