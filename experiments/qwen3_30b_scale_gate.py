@@ -769,12 +769,20 @@ def main() -> None:
     manifest = json.loads(Path(args.asset_manifest).read_text(encoding="utf-8"))
     if manifest.get("model_repo") != args.model:
         raise RuntimeError("asset manifest model repo mismatch")
-    if not str(manifest.get("model_revision_requested", "")).startswith(args.model_revision):
+    requested_model_rev = str(manifest.get("model_revision_requested", ""))
+    resolved_model_rev = str(manifest.get("model_revision_resolved", ""))
+    if (
+        requested_model_rev != args.model_revision
+        or not resolved_model_rev.startswith(args.model_revision)
+    ):
         raise RuntimeError("asset manifest model revision mismatch")
     if manifest.get("dataset_repo") != args.dataset:
         raise RuntimeError("asset manifest dataset repo mismatch")
     if manifest.get("dataset_revision") != args.dataset_revision:
         raise RuntimeError("asset manifest dataset revision mismatch")
+    resolved_dataset_rev = str(manifest.get("dataset_revision_resolved", ""))
+    if resolved_dataset_rev != args.dataset_revision:
+        raise RuntimeError("resolved dataset revision mismatch")
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA GPU is required")
