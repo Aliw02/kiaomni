@@ -75,14 +75,14 @@ def _local_git_state() -> str:
         stderr=subprocess.STDOUT,
     ).strip()
     dirty = subprocess.check_output(
-        ["git", "status", "--porcelain"],
+        ["git", "status", "--porcelain", "--untracked-files=no"],
         cwd=LOCAL_REPO,
         text=True,
         stderr=subprocess.STDOUT,
     ).strip()
     if dirty:
         raise RuntimeError(
-            "Working tree is dirty. Commit/stash local changes before running Phase 03:\n"
+            "Tracked working-tree changes detected. Commit/stash them before running Phase 03:\n"
             + dirty
         )
     return head
@@ -238,6 +238,20 @@ def prepare_assets() -> dict[str, object]:
         assets.commit()
 
     index_payload = json.loads(dataset_index.read_text(encoding="utf-8"))
+    expected_index_identity = {
+        "model_repo": MODEL_ID,
+        "model_revision": MODEL_REVISION,
+        "dataset_repo": DATASET_ID,
+        "dataset_revision": DATASET_REVISION,
+    }
+    observed_index_identity = {
+        k: index_payload.get(k) for k in expected_index_identity
+    }
+    if observed_index_identity != expected_index_identity:
+        raise RuntimeError(
+            "Frozen LongBench-v2 token index identity mismatch: "
+            f"expected={expected_index_identity} observed={observed_index_identity}"
+        )
     if int(index_payload.get("smoke_eligible_8k_12k", 0)) < 2:
         raise RuntimeError("Fewer than 2 LongBench-v2 cases fit the frozen smoke window")
     if int(index_payload.get("final_eligible_8k_16k", 0)) < 6:
@@ -305,9 +319,15 @@ def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
             raise RuntimeError(f"Required previous-stage artifact is missing: {dep}")
         dep_payload = json.loads(dep.read_text(encoding="utf-8"))
         dep_status = dep_payload.get("gate", {}).get("status")
+        dep_revision = dep_payload.get("repo_revision")
         if dep_status != "PASS":
             raise RuntimeError(
                 f"Previous stage did not PASS ({dep.name}: {dep_status}); refusing {stage}."
+            )
+        if dep_revision != repo_revision:
+            raise RuntimeError(
+                f"Previous stage used repo revision {dep_revision}, but current run uses "
+                f"{repo_revision}. Refusing to mix revisions across a frozen gate."
             )
 
     results_root.mkdir(parents=True, exist_ok=True)
