@@ -69,3 +69,44 @@ def test_recency_and_random_keep_exact_budget():
     assert len(random_keep) == budget
     assert recency[0] == 0
     assert random_keep[0] == 0
+
+
+def test_smoke_gate_blocks_catastrophic_8x_collapse():
+    rows = [
+        {"case_id": "s1", "result": {"method": "full_context", "success": True}},
+        {"case_id": "r1", "result": {"method": "full_context", "success": True}},
+    ]
+    bad = [
+        {
+            "source": "synthetic",
+            "method": "kiaomni_r0.125",
+            "full_context_solved_n": 1,
+            "full_context_conditioned_accuracy": 0.0,
+        },
+        {
+            "source": "longbench_v2",
+            "method": "kiaomni_r0.125",
+            "full_context_solved_n": 1,
+            "full_context_conditioned_accuracy": 0.0,
+        },
+    ]
+    assert mod.build_gate("smoke", rows, bad, None, 2)["status"] == "FAIL"
+
+    good = [dict(x) for x in bad]
+    good[0] = dict(good[0], full_context_conditioned_accuracy=1.0)
+    assert mod.build_gate("smoke", rows, good, None, 2)["status"] == "PASS"
+
+
+def test_smoke_gate_is_inconclusive_when_fullcontext_denominator_is_too_small():
+    rows = [
+        {"case_id": "s1", "result": {"method": "full_context", "success": True}},
+    ]
+    agg = [
+        {
+            "source": "synthetic",
+            "method": "kiaomni_r0.125",
+            "full_context_solved_n": 1,
+            "full_context_conditioned_accuracy": 1.0,
+        },
+    ]
+    assert mod.build_gate("smoke", rows, agg, None, 1)["status"] == "INCONCLUSIVE"
