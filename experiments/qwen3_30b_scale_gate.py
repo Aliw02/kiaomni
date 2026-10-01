@@ -329,7 +329,7 @@ def load_real_cases(
             REAL_DATASET_REPO,
             dataset_name,
             split="test",
-            cache_dir=cache_dir,
+            cache_dir=os.environ.get("HF_DATASETS_CACHE") or cache_dir,
         )
         for row in ds:
             question = (
