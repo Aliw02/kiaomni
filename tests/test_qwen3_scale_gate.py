@@ -33,18 +33,19 @@ def test_rejects_budget_too_small_for_protected_tokens():
         mod.validate_stage_config(cfg)
 
 
-def test_longbench_scoring_accepts_concise_gold_answer():
+def test_longbench_v2_scoring_uses_exact_choice_letter():
     case = mod.EvalCase(
         case_id="x",
-        source="longbench",
-        task="qasper",
+        source="longbench-v2",
+        task="code/repository",
         context="ctx",
         question="q",
-        gold=["New York City", "NYC"],
+        gold=["C"],
         distractors=[],
+        choices={"A": "a", "B": "b", "C": "c", "D": "d"},
     )
-    assert mod.score_answer(case, "NYC")["success"] is True
-    assert mod.score_answer(case, "Boston")["success"] is False
+    assert mod.score_answer(case, "C")["success"] is True
+    assert mod.score_answer(case, "B")["success"] is False
 
 
 def test_synthetic_scoring_blocks_distractor_hits():
