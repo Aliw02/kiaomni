@@ -174,3 +174,26 @@ def test_routing_similarity_is_exact_for_identical_actual_dispatch():
     assert out["top8_set_jaccard"] == 1.0
     assert abs(out["dispatch_weight_cosine"] - 1.0) < 1e-6
     assert abs(out["expert_load_jsd"]) < 1e-8
+
+
+def test_aggregate_exposes_requested_measurement_families():
+    src = _source(RUNNER)
+    for field in (
+        "mean_gold_answer_ppl",
+        "mean_output_tokens_per_second",
+        "max_generation_peak_vram_gb",
+        "max_routing_teacher_peak_vram_gb",
+        "max_saliency_peak_vram_gb",
+        "max_pipeline_peak_vram_gb",
+        "routing_mean_top1_expert_agreement",
+        "routing_mean_top8_set_jaccard",
+        "routing_mean_dispatch_weight_cosine",
+        "routing_mean_expert_load_jsd",
+    ):
+        assert field in src
+
+
+def test_preflight_uses_only_b512_while_final_keeps_all_legacy_budgets():
+    mod = _load_runner()
+    assert mod.STAGES["preflight"]["budgets"] == (512,)
+    assert mod.STAGES["final"]["budgets"] == (512, 256, 128, 98)
