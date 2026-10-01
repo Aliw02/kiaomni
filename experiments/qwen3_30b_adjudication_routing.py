@@ -499,7 +499,7 @@ def compare_routes(
     def mean(key: str) -> float:
         return float(np.mean([x[key] for x in per_layer]))
 
-    return {
+    summary = {
         "matched_tokens": int(len(keep)),
         "layers": len(per_layer),
         "top1_expert_agreement": mean("top1_expert_agreement"),
@@ -509,6 +509,16 @@ def compare_routes(
         "expert_load_jsd": mean("expert_load_jsd"),
         "per_layer": per_layer,
     }
+    scalar_metrics = [
+        summary["top1_expert_agreement"],
+        summary["top8_set_jaccard"],
+        summary["dispatch_weight_cosine"],
+        summary["dispatch_entropy_delta"],
+        summary["expert_load_jsd"],
+    ]
+    if not all(math.isfinite(float(x)) for x in scalar_metrics):
+        raise RuntimeError(f"Non-finite actual-routing metric detected: {summary}")
+    return summary
 
 
 def teacher_gold_and_routing(
@@ -548,6 +558,8 @@ def teacher_gold_and_routing(
     )
     nll = float(loss.item())
     ppl = float(math.exp(min(nll, 50.0)))
+    if not math.isfinite(nll) or not math.isfinite(ppl):
+        raise RuntimeError(f"Non-finite gold-answer likelihood: nll={nll} ppl={ppl}")
     return {
         "gold_target": gold_target,
         "gold_target_tokens": len(target_ids),
