@@ -296,76 +296,118 @@ def peak_gb() -> float:
 
 
 class ActualRoutingCapture:
+    """Capture routing from the exact Transformers 4.57.6 execution path.
+
+    Qwen3MoeSparseMoeBlock computes top-k routing internally from the output
+    of its real gate Linear and then calls each selected expert module. We
+    capture the actual gate logits, reconstruct the exact top-k with the same
+    softmax/topk/normalization operations, and independently count the token
+    rows that are physically sent through every expert module. The derived
+    dispatch counts must match the observed expert-call counts exactly.
+    """
+
     def __init__(self, model):
         self.model = model
         self.enabled = False
         self.routes: dict[int, dict[str, torch.Tensor]] = {}
-        self.pending: dict[int, tuple[torch.Tensor, torch.Tensor]] = {}
-        self.dispatch_verified = True
-        self.weight_max_abs_error = 0.0
+        self.observed_counts: dict[int, torch.Tensor] = {}
         self.handles = []
         self.layer_ids: list[int] = []
+        self.blocks: dict[int, Any] = {}
+        self.dispatch_verified = True
+        self.dispatch_count_mismatches: list[dict[str, Any]] = []
 
-        layers = model.model.layers
-        for layer_idx, layer in enumerate(layers):
+        for layer_idx, layer in enumerate(model.model.layers):
             mlp = getattr(layer, "mlp", None)
             gate = getattr(mlp, "gate", None)
             experts = getattr(mlp, "experts", None)
-            if gate is None or experts is None:
+            if gate is None or experts is None or not isinstance(experts, torch.nn.ModuleList):
                 continue
+            if not hasattr(mlp, "top_k") or not hasattr(mlp, "num_experts"):
+                continue
+
             self.layer_ids.append(layer_idx)
+            self.blocks[layer_idx] = mlp
             self.handles.append(gate.register_forward_hook(self._gate_hook(layer_idx)))
-            self.handles.append(experts.register_forward_pre_hook(self._experts_hook(layer_idx)))
+            for expert_idx, expert in enumerate(experts):
+                self.handles.append(
+                    expert.register_forward_pre_hook(
+                        self._expert_hook(layer_idx, expert_idx)
+                    )
+                )
 
     def _gate_hook(self, layer_idx: int):
         def hook(module, inputs, output):
             if not self.enabled:
                 return
-            if not isinstance(output, tuple) or len(output) < 3:
-                raise RuntimeError(f"Router layer {layer_idx} did not return (logits, weights, indices)")
-            _, weights, indices = output
-            self.pending[layer_idx] = (indices.detach(), weights.detach())
+            logits = output.detach()
+            block = self.blocks[layer_idx]
+            probs = torch.softmax(logits, dim=1, dtype=torch.float)
+            weights, indices = torch.topk(probs, int(block.top_k), dim=-1)
+            if bool(block.norm_topk_prob):
+                weights = weights / weights.sum(dim=-1, keepdim=True)
+            weights = weights.to(logits.dtype)
+            self.routes[layer_idx] = {
+                "indices": indices.detach().to(device="cpu", dtype=torch.uint8),
+                "weights": weights.detach().to(device="cpu", dtype=torch.float16),
+            }
         return hook
 
-    def _experts_hook(self, layer_idx: int):
+    def _expert_hook(self, layer_idx: int, expert_idx: int):
         def hook(module, inputs):
             if not self.enabled:
                 return
-            if len(inputs) < 3:
-                raise RuntimeError(f"Experts layer {layer_idx} did not receive dispatch tensors")
-            _, expert_indices, expert_weights = inputs[:3]
-            if layer_idx not in self.pending:
-                raise RuntimeError(f"Experts layer {layer_idx} executed without captured router output")
-            gate_indices, gate_weights = self.pending.pop(layer_idx)
-            if not torch.equal(gate_indices, expert_indices):
-                self.dispatch_verified = False
-            err = float((gate_weights.float() - expert_weights.float()).abs().max().item())
-            self.weight_max_abs_error = max(self.weight_max_abs_error, err)
-            if err > 1e-6:
-                self.dispatch_verified = False
-            self.routes[layer_idx] = {
-                "indices": expert_indices.detach().to(device="cpu", dtype=torch.uint8),
-                "weights": expert_weights.detach().to(device="cpu", dtype=torch.float16),
-            }
+            if not inputs:
+                raise RuntimeError(
+                    f"Expert layer={layer_idx} expert={expert_idx} called without input"
+                )
+            current_state = inputs[0]
+            rows = int(current_state.shape[0])
+            if layer_idx not in self.observed_counts:
+                self.observed_counts[layer_idx] = torch.zeros(
+                    int(self.blocks[layer_idx].num_experts), dtype=torch.int64
+                )
+            self.observed_counts[layer_idx][expert_idx] += rows
         return hook
 
     def start(self) -> None:
         self.routes = {}
-        self.pending = {}
+        self.observed_counts = {}
         self.dispatch_verified = True
-        self.weight_max_abs_error = 0.0
+        self.dispatch_count_mismatches = []
         self.enabled = True
 
     def stop(self) -> dict[int, dict[str, torch.Tensor]]:
         self.enabled = False
-        if self.pending:
-            raise RuntimeError(f"Unconsumed router captures: {sorted(self.pending)}")
         if set(self.routes) != set(self.layer_ids):
             missing = sorted(set(self.layer_ids) - set(self.routes))
-            raise RuntimeError(f"Missing actual routing capture for layers: {missing}")
+            raise RuntimeError(f"Missing router-logit capture for sparse layers: {missing}")
+
+        for layer_idx in self.layer_ids:
+            indices = self.routes[layer_idx]["indices"].long()
+            expected = torch.bincount(
+                indices.reshape(-1),
+                minlength=int(self.blocks[layer_idx].num_experts),
+            ).to(torch.int64)
+            observed = self.observed_counts.get(
+                layer_idx,
+                torch.zeros_like(expected),
+            )
+            if not torch.equal(expected, observed):
+                self.dispatch_verified = False
+                diff = (expected - observed).abs()
+                self.dispatch_count_mismatches.append({
+                    "layer": layer_idx,
+                    "mismatched_experts": int((diff != 0).sum().item()),
+                    "max_abs_count_error": int(diff.max().item()),
+                    "expected_assignments": int(expected.sum().item()),
+                    "observed_assignments": int(observed.sum().item()),
+                })
+
         if not self.dispatch_verified:
             raise RuntimeError(
-                f"Router/expert dispatch mismatch; max weight error={self.weight_max_abs_error}"
+                "Actual expert-dispatch count verification failed: "
+                + json.dumps(self.dispatch_count_mismatches)
             )
         return self.routes
 
@@ -504,7 +546,7 @@ def teacher_gold_and_routing(
         "routing_teacher_elapsed_seconds": elapsed,
         "routing_teacher_peak_allocated_vram_gb": peak_gb(),
         "dispatch_verified": capture.dispatch_verified,
-        "dispatch_weight_max_abs_error": capture.weight_max_abs_error,
+        "dispatch_count_mismatches": list(capture.dispatch_count_mismatches),
     }, routes
 
 
@@ -614,7 +656,7 @@ def hook_neutrality_check(model, capture: ActualRoutingCapture, ids: torch.Tenso
         "logits_allclose_rtol_1e-4_atol_1e-5": allclose,
         "max_abs_logit_error": float(delta.max().item()),
         "dispatch_verified": capture.dispatch_verified,
-        "dispatch_weight_max_abs_error": capture.weight_max_abs_error,
+        "dispatch_count_mismatches": list(capture.dispatch_count_mismatches),
         "captured_sparse_layers": len(routes),
     }
 
