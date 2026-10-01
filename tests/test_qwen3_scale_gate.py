@@ -21,8 +21,8 @@ def test_stage_plan_preserves_4x_8x_16x_pressure():
 def test_smoke_exercises_real_benchmark_before_final():
     smoke = mod.STAGE_PLANS["smoke"]
     assert smoke["real_cases"] == 2
-    assert smoke["real_min_tokens"] == 4096
-    assert smoke["real_max_tokens"] == 8192
+    assert smoke["real_min_tokens"] == 8192
+    assert smoke["real_max_tokens"] == 12288
 
 
 def test_protected_token_defaults_match_library():
