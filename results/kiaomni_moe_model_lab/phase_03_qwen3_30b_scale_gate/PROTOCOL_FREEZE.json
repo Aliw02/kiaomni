@@ -94,11 +94,11 @@
       ],
       "cases": 6,
       "hard_gpu_timeout_minutes": 40,
-      "purpose": "All four synthetic task families plus two real LongBench-v2 cases before the expensive final stage.",
+      "purpose": "All four synthetic task families plus two 8K–12K LongBench-v2 cases as a real-path and long-context memory canary before final.",
       "real_cases": 2,
       "real_token_window": [
-        4096,
-        8192
+        8192,
+        12288
       ]
     },
     "final": {
