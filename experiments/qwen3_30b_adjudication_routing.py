@@ -37,8 +37,18 @@ MAX_NEW_TOKENS = 256
 SEED = 42
 
 STAGES = {
-    "preflight": {"max_wall_seconds": 15 * 60, "real_cases": 1, "reason_cases": 0},
-    "final": {"max_wall_seconds": 100 * 60, "real_cases": 27, "reason_cases": 2},
+    "preflight": {
+        "max_wall_seconds": 15 * 60,
+        "real_cases": 1,
+        "reason_cases": 0,
+        "budgets": (512,),
+    },
+    "final": {
+        "max_wall_seconds": 100 * 60,
+        "real_cases": 27,
+        "reason_cases": 2,
+        "budgets": FIXED_BUDGETS,
+    },
 }
 
 
@@ -964,7 +974,7 @@ def main() -> None:
             scores = policy_fns[policy_name](saliency)
             if scores.shape != saliency.shape or not np.isfinite(scores).all():
                 raise RuntimeError(f"Invalid policy scores for {policy_name}")
-            for budget in FIXED_BUDGETS:
+            for budget in cfg["budgets"]:
                 if time.perf_counter() >= deadline:
                     raise TimeoutError("Stage wall-time ceiling reached before next condition")
                 keep = select_budget(scores, budget, input_len)
@@ -999,7 +1009,7 @@ def main() -> None:
         gc.collect()
         torch.cuda.empty_cache()
 
-    expected_rows = len(cases) * (1 + len(POLICIES) * len(FIXED_BUDGETS))
+    expected_rows = len(cases) * (1 + len(POLICIES) * len(cfg["budgets"]))
     if len(rows) != expected_rows:
         raise RuntimeError(f"Expected {expected_rows} condition rows, got {len(rows)}")
 
