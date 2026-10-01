@@ -400,12 +400,13 @@ def score_answer(case: EvalCase, answer: str) -> dict[str, Any]:
     flat_gold = [n for group in gold_numbers for n in group]
     if flat_gold:
         pred_numbers = re.findall(r"\d+", answer)
-        success = pred_numbers[:len(flat_gold)] == flat_gold
+        distractor_hit = any(d in answer for d in case.distractors)
+        success = pred_numbers[:len(flat_gold)] == flat_gold and not distractor_hit
         return {
             "success": success,
             "recall": 1.0 if success else 0.0,
             "prediction": answer.strip(),
-            "distractor_hit": any(d in answer for d in case.distractors),
+            "distractor_hit": distractor_hit,
         }
 
     found = [normalize_text(x) in text for x in case.gold]
