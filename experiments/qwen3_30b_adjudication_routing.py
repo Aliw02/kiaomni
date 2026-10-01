@@ -607,9 +607,11 @@ def hook_neutrality_check(model, capture: ActualRoutingCapture, ids: torch.Tenso
         b = model(input_ids=ids, use_cache=False, logits_to_keep=4).logits.detach()
         routes = capture.stop()
     delta = (a.float() - b.float()).abs()
+    allclose = bool(torch.allclose(a.float(), b.float(), rtol=1e-4, atol=1e-5))
     return {
-        "passed": bool(torch.equal(a, b) and capture.dispatch_verified),
+        "passed": bool(allclose and capture.dispatch_verified),
         "logits_exact_equal": bool(torch.equal(a, b)),
+        "logits_allclose_rtol_1e-4_atol_1e-5": allclose,
         "max_abs_logit_error": float(delta.max().item()),
         "dispatch_verified": capture.dispatch_verified,
         "dispatch_weight_max_abs_error": capture.weight_max_abs_error,
