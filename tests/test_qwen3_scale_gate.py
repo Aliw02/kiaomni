@@ -108,5 +108,29 @@ def test_smoke_gate_is_inconclusive_when_fullcontext_denominator_is_too_small():
             "full_context_solved_n": 1,
             "full_context_conditioned_accuracy": 1.0,
         },
+        {
+            "source": "longbench_v2",
+            "method": "kiaomni_r0.125",
+            "full_context_solved_n": 0,
+            "full_context_conditioned_accuracy": None,
+        },
     ]
     assert mod.build_gate("smoke", rows, agg, None, 1)["status"] == "INCONCLUSIVE"
+
+
+def test_smoke_gate_fails_if_required_real_aggregate_is_missing():
+    rows = [
+        {"case_id": "s1", "result": {"method": "full_context", "success": True}},
+        {"case_id": "s2", "result": {"method": "full_context", "success": True}},
+    ]
+    agg = [
+        {
+            "source": "synthetic",
+            "method": "kiaomni_r0.125",
+            "full_context_solved_n": 2,
+            "full_context_conditioned_accuracy": 1.0,
+        },
+    ]
+    gate = mod.build_gate("smoke", rows, agg, None, 2)
+    assert gate["status"] == "FAIL"
+    assert "missing required" in gate["reason"].lower()
