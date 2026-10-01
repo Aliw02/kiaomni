@@ -19,46 +19,49 @@ import numpy as np
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from kiaomni import ArchitectureProbe, apply_kiaomni, remove_kiaomni
+from kiaomni import ArchitectureProbe
+from kiaomni.adapters.saliency import SaliencyAdapter
+from kiaomni.policies import get_policy
+from kiaomni.utils import select_keep
 
 MODEL_DEFAULT = "Qwen/Qwen3-30B-A3B-Instruct-2507"
+MODEL_REVISION_DEFAULT = "b9b7053e66b5de60c03b1913dbc21e900ef7ded7"
+DATASET_DEFAULT = "THUDM/LongBench-v2"
+DATASET_REVISION_DEFAULT = "b0db4901b856522026b7353ab541b8535ff2a4b8"
 SEED_DEFAULT = 42
 N_SINK = 16
-RECENCY = 256
+RECENCY = 32
 POLICY = "kiaomni_s8"
 
 STAGE_PLANS: dict[str, dict[str, Any]] = {
     "preflight": {
-        "target_tokens": 2048,
+        "target_tokens": 8192,
         "budgets": [1024],
         "synthetic_per_task": 1,
         "real_cases": 0,
-        "tasks": ["single"],
+        "tasks": ["hard_multi"],
         "max_new_tokens": 24,
-        "max_wall_seconds": 900,
+        "max_wall_seconds": 28 * 60,
     },
     "smoke": {
-        "target_tokens": 4096,
-        "budgets": [1024, 512],
+        "target_tokens": 8192,
+        "budgets": [2048, 1024],
         "synthetic_per_task": 1,
         "real_cases": 2,
-        "tasks": ["single", "hard_multi", "reason"],
-        "max_new_tokens": 32,
-        "max_wall_seconds": 2100,
+        "tasks": ["single", "multi", "hard_multi", "reason"],
+        "max_new_tokens": 24,
+        "max_wall_seconds": 43 * 60,
     },
     "final": {
         "target_tokens": 8192,
         "budgets": [2048, 1024, 512],
-        "synthetic_per_task": 3,
+        "synthetic_per_task": 2,
         "real_cases": 8,
         "tasks": ["single", "multi", "hard_multi", "reason"],
-        "max_new_tokens": 40,
-        "max_wall_seconds": 9900,
+        "max_new_tokens": 24,
+        "max_wall_seconds": 118 * 60,
     },
 }
-
-REAL_DATASETS = ("qasper", "hotpotqa", "2wikimqa", "musique", "multifieldqa_en")
-REAL_DATASET_REPO = "THUDM/LongBench"
 
 
 @dataclass
@@ -80,6 +83,9 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--stage", choices=sorted(STAGE_PLANS), required=True)
     p.add_argument("--model", default=MODEL_DEFAULT)
+    p.add_argument("--model-revision", default=MODEL_REVISION_DEFAULT)
+    p.add_argument("--dataset", default=DATASET_DEFAULT)
+    p.add_argument("--dataset-revision", default=DATASET_REVISION_DEFAULT)
     p.add_argument("--cache-dir", default=os.environ.get("HF_HOME"))
     p.add_argument("--output", required=True)
     p.add_argument("--seed", type=int, default=SEED_DEFAULT)
@@ -148,8 +154,15 @@ def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
-def render_user(tokenizer, context: str, question: str) -> str:
-    user = f"Document:\n{context}\n\nQuestion:\n{question}"
+def render_user(tokenizer, context: str, question: str, choices: dict[str, str] | None = None) -> str:
+    if choices:
+        opts = "\n".join(f"{k}. {v}" for k, v in choices.items())
+        user = (
+            f"Context:\n{context}\n\nQuestion:\n{question}\n\nChoices:\n{opts}\n\n"
+            "Answer with exactly one letter: A, B, C, or D."
+        )
+    else:
+        user = f"Document:\n{context}\n\nQuestion:\n{question}"
     if getattr(tokenizer, "chat_template", None):
         return tokenizer.apply_chat_template(
             [{"role": "user", "content": user}],
@@ -158,14 +171,13 @@ def render_user(tokenizer, context: str, question: str) -> str:
         )
     return user
 
-
 def token_len(tokenizer, context: str, question: str) -> int:
-    rendered = render_user(tokenizer, context, question)
+    rendered = render_user(tokenizer, context, question, None)
     return len(tokenizer(rendered, add_special_tokens=False).input_ids)
 
 
 def encode_case(tokenizer, case: EvalCase) -> torch.Tensor:
-    rendered = render_user(tokenizer, case.context, case.question)
+    rendered = render_user(tokenizer, case.context, case.question, case.choices)
     return tokenizer(
         rendered,
         return_tensors="pt",
@@ -316,6 +328,8 @@ def load_real_cases(
     seed: int,
     cache_dir: str | None,
     local_files_only: bool,
+    dataset_repo: str,
+    dataset_revision: str,
 ) -> list[EvalCase]:
     if count <= 0:
         return []
@@ -323,79 +337,75 @@ def load_real_cases(
         os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
     from datasets import load_dataset
 
-    candidates: list[tuple[int, str, Any]] = []
-    for dataset_name in REAL_DATASETS:
-        ds = load_dataset(
-            REAL_DATASET_REPO,
-            dataset_name,
-            split="test",
-            cache_dir=os.environ.get("HF_DATASETS_CACHE") or cache_dir,
-        )
-        for row in ds:
-            question = (
-                f"{row['input']}\n\nAnswer concisely with only the answer and no explanation."
-            )
-            context = str(row["context"])
-            n = token_len(tokenizer, context, question)
-            if int(target_tokens * 0.55) <= n <= target_tokens:
-                candidates.append((n, dataset_name, row))
-
-    if len(candidates) < count:
-        raise RuntimeError(
-            f"LongBench has only {len(candidates)} naturally fitting QA cases in the "
-            f"[{int(target_tokens * 0.55)}, {target_tokens}] token window; need {count}."
-        )
-
-    rng = random.Random(seed + target_tokens)
-    by_dataset: dict[str, list[tuple[int, str, Any]]] = {}
-    for item in candidates:
-        by_dataset.setdefault(item[1], []).append(item)
-    for items in by_dataset.values():
-        rng.shuffle(items)
-
-    picked: list[tuple[int, str, Any]] = []
-    names = sorted(by_dataset)
-    while len(picked) < count and any(by_dataset.values()):
-        for name in names:
-            if by_dataset[name] and len(picked) < count:
-                picked.append(by_dataset[name].pop())
-
+    ds = load_dataset(
+        dataset_repo,
+        split="train",
+        revision=dataset_revision,
+        cache_dir=os.environ.get("HF_DATASETS_CACHE") or cache_dir,
+    )
+    indices = list(range(len(ds)))
+    random.Random(seed + target_tokens).shuffle(indices)
+    min_tokens = max(4096, target_tokens // 2)
     cases: list[EvalCase] = []
-    for n, dataset_name, row in picked:
-        answers = [str(x) for x in row.get("answers", []) if str(x).strip()]
-        if not answers:
+    scanned = 0
+    for i in indices:
+        if len(cases) >= count or scanned >= 160:
+            break
+        scanned += 1
+        row = ds[i]
+        choices = {k: str(row[f"choice_{k}"]) for k in "ABCD"}
+        question = str(row["question"])
+        context = str(row["context"])
+        rendered = render_user(tokenizer, context, question, choices)
+        n = len(tokenizer(rendered, add_special_tokens=False).input_ids)
+        if not (min_tokens <= n <= target_tokens):
             continue
-        question = (
-            f"{row['input']}\n\nAnswer concisely with only the answer and no explanation."
-        )
         cases.append(
             EvalCase(
-                case_id=f"longbench-{dataset_name}-{row.get('_id', len(cases))}",
-                source="longbench",
-                task=dataset_name,
-                context=str(row["context"]),
+                case_id=f"longbench-v2-{row['_id']}",
+                source="longbench-v2",
+                task=f"{row.get('domain', '')}/{row.get('sub_domain', '')}",
+                context=context,
                 question=question,
-                gold=answers,
+                gold=[str(row["answer"])],
                 distractors=[],
-                meta={"dataset": dataset_name, "rendered_tokens": n},
+                choices=choices,
+                meta={
+                    "difficulty": row.get("difficulty"),
+                    "length": row.get("length"),
+                    "rendered_tokens": n,
+                },
             )
         )
     if len(cases) < count:
-        raise RuntimeError(f"Only {len(cases)} selected LongBench cases had non-empty answers")
-    return cases[:count]
-
+        raise RuntimeError(
+            f"Only found {len(cases)} naturally fitting LongBench-v2 cases in "
+            f"[{min_tokens}, {target_tokens}] tokens; need {count}."
+        )
+    return cases
 
 def score_answer(case: EvalCase, answer: str) -> dict[str, Any]:
     text = normalize_text(answer)
-    if case.source == "longbench":
-        gold_norm = [normalize_text(x) for x in case.gold]
-        exact = any(text == g for g in gold_norm)
-        contains = any(g and g in text for g in gold_norm)
+    if case.source == "longbench-v2":
+        m = re.search(r"\b([ABCD])\b", answer.upper())
+        success = bool(m and m.group(1) == case.gold[0].upper())
         return {
-            "success": exact or contains,
-            "recall": 1.0 if (exact or contains) else 0.0,
+            "success": success,
+            "recall": 1.0 if success else 0.0,
             "prediction": answer.strip(),
             "distractor_hit": False,
+        }
+
+    gold_numbers = [re.findall(r"\d+", x) for x in case.gold]
+    flat_gold = [n for group in gold_numbers for n in group]
+    if flat_gold:
+        pred_numbers = re.findall(r"\d+", answer)
+        success = pred_numbers[:len(flat_gold)] == flat_gold
+        return {
+            "success": success,
+            "recall": 1.0 if success else 0.0,
+            "prediction": answer.strip(),
+            "distractor_hit": any(d in answer for d in case.distractors),
         }
 
     found = [normalize_text(x) in text for x in case.gold]
@@ -407,7 +417,6 @@ def score_answer(case: EvalCase, answer: str) -> dict[str, Any]:
         "prediction": answer.strip(),
         "distractor_hit": distractor_hit,
     }
-
 
 def _cuda_stats() -> dict[str, float | None]:
     if not torch.cuda.is_available():
