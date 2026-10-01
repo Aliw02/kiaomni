@@ -34,8 +34,14 @@ logger = logging.getLogger(__name__)
 class SaliencyAdapter:
     """Dispatches to the correct extraction strategy for a given probe result."""
 
-    def __init__(self, probe: ProbeResult) -> None:
+    def __init__(self, probe: ProbeResult, *, offload_to_cpu: bool = True) -> None:
         self.probe = probe
+        # Historical default: move captured Q/K to CPU before FP32 saliency
+        # math. This is a numerical refuge for quantized/low-precision runs.
+        # Large BF16 scale gates may opt out and do the same FP32 math on GPU
+        # to avoid PCIe + CPU-matmul bottlenecks without changing selection
+        # semantics.
+        self.offload_to_cpu = bool(offload_to_cpu)
         self._strategy = self._choose_strategy(probe)
         # Upfront safety: fused-interleaved layouts assume nh == nkv (one
         # K/V head per Q head). If the model actually uses GQA / MQA, the
@@ -195,7 +201,8 @@ class SaliencyAdapter:
                 # are bf16 — the downstream softmax(QK^T/√d) accumulates
                 # error and produces NaN/Inf on long sequences. CPU+fp32
                 # gives the same numerical refuge as 039_swap_experiment.
-                store["q"] = out.detach().cpu().to(torch.float32)
+                q_tensor = out.detach().to(torch.float32)
+                store["q"] = q_tensor.cpu() if self.offload_to_cpu else q_tensor
 
             def _k_hook(_m, _i, out, _li=l_idx):
                 # Hook-ordering safety: HF standard attention always fires Q
@@ -207,7 +214,9 @@ class SaliencyAdapter:
                         "contribution from this layer", _li,
                     )
                     return
-                k_tensor = out.detach().cpu().to(torch.float32)
+                k_tensor = out.detach().to(torch.float32)
+                if self.offload_to_cpu:
+                    k_tensor = k_tensor.cpu()
                 _commit(store["q"], k_tensor)
                 del store["q"]   # precise cleanup (no leak on partial state)
 
@@ -227,7 +236,9 @@ class SaliencyAdapter:
             # the downstream softmax(QK^T/√d) accumulates error → NaN/Inf on
             # long sequences. CPU+fp32 isolation is the same refuge that
             # 039_swap_experiment.py relies on.
-            o = out.detach().cpu().to(torch.float32)
+            o = out.detach().to(torch.float32)
+            if self.offload_to_cpu:
+                o = o.cpu()
             if self._strategy == "hook-fused-concat":
                 # Layout: [Q | K | V] concatenated along last dim.
                 q_width = nh * hd
