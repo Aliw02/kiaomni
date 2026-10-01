@@ -145,3 +145,32 @@ def test_launcher_reuses_assets_without_deleting_or_redownloading():
     assert "snapshot_download" not in src
     assert "Volume.from_name(ASSET_VOLUME_NAME, create_if_missing=False)" in src
     assert "prepare_adjudication_index.remote()" in src
+
+
+def test_routing_similarity_is_exact_for_identical_actual_dispatch():
+    import numpy as np
+    import torch
+
+    mod = _load_runner()
+    indices = torch.tensor(
+        [[1, 2, 3, 4, 5, 6, 7, 8], [9, 10, 11, 12, 13, 14, 15, 16]],
+        dtype=torch.uint8,
+    )
+    weights = torch.tensor(
+        [[0.30, 0.20, 0.15, 0.10, 0.08, 0.07, 0.06, 0.04],
+         [0.25, 0.20, 0.15, 0.12, 0.10, 0.08, 0.06, 0.04]],
+        dtype=torch.float16,
+    )
+    routes = {0: {"indices": indices, "weights": weights}}
+    out = mod.compare_routes(
+        routes,
+        routes,
+        np.array([0, 1], dtype=np.int64),
+        full_prompt_len=2,
+        compressed_prompt_len=2,
+        num_experts=128,
+    )
+    assert out["top1_expert_agreement"] == 1.0
+    assert out["top8_set_jaccard"] == 1.0
+    assert abs(out["dispatch_weight_cosine"] - 1.0) < 1e-6
+    assert abs(out["expert_load_jsd"]) < 1e-8
