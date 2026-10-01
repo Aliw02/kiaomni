@@ -99,7 +99,12 @@
       "real_token_window": [
         8192,
         12288
-      ]
+      ],
+      "quality_guard": {
+        "minimum_fullcontext_solved_cases": 2,
+        "catastrophic_fail": "FAIL if KiaOmni 8x solves zero FullContext-solvable smoke cases",
+        "insufficient_denominator": "INCONCLUSIVE; final is blocked"
+      }
     },
     "final": {
       "synthetic_target_tokens": 8192,
