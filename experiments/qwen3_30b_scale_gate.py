@@ -883,7 +883,7 @@ def main() -> None:
 
         full_result = _run_condition(
             model, tokenizer, case, ids, "full_context", None,
-            int(cfg["max_new_tokens"]),
+            8 if case.source == "longbench_v2" else int(cfg["max_new_tokens"]),
         )
         rows.append({
             "case_id": case.case_id,
@@ -896,14 +896,20 @@ def main() -> None:
         saliency, saliency_meta = _extract_saliency(model, gpu_adapter, ids)
         policy_scores = score_fn(saliency)
 
-        for ratio in [float(x) for x in cfg["retention_ratios"]]:
+        case_ratios = [float(x) for x in cfg["retention_ratios"]]
+        if case.source == "longbench_v2":
+            case_ratios = [r for r in case_ratios if r >= PRIMARY_RATIO]
+
+        case_max_new_tokens = 8 if case.source == "longbench_v2" else int(cfg["max_new_tokens"])
+
+        for ratio in case_ratios:
             if time.perf_counter() >= deadline:
                 raise TimeoutError("experiment wall-time budget reached before next condition")
             budget = _budget_for_ratio(input_len, ratio)
             keep = _kia_keep(policy_scores, input_len, budget)
             result = _run_condition(
                 model, tokenizer, case, ids, f"kiaomni_r{ratio:g}", keep,
-                int(cfg["max_new_tokens"]), saliency_meta,
+                case_max_new_tokens, saliency_meta,
             )
             rows.append({
                 "case_id": case.case_id,
@@ -914,7 +920,7 @@ def main() -> None:
                 "result": result,
             })
 
-        if args.stage == "final":
+        if args.stage == "final" and case.source == "synthetic":
             ratio = PRIMARY_RATIO
             budget = _budget_for_ratio(input_len, ratio)
             recency = _recency_keep(input_len, budget)
