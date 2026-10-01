@@ -49,8 +49,8 @@ STAGE_PLANS: dict[str, dict[str, Any]] = {
         "synthetic_tasks": ["single", "multi", "hard_multi", "reason"],
         "synthetic_per_task": 1,
         "real_cases": 2,
-        "real_min_tokens": 4096,
-        "real_max_tokens": 8192,
+        "real_min_tokens": 8192,
+        "real_max_tokens": 12288,
         "max_new_tokens": 32,
         "max_wall_seconds": 35 * 60,
     },
@@ -616,6 +616,14 @@ def assert_model_safety(model, min_free_gb: float) -> dict[str, Any]:
     if forbidden:
         raise RuntimeError(
             f"CPU/disk offload is forbidden in Phase 03; found {sorted(forbidden)}"
+        )
+    non_cuda_param_devices = sorted({
+        str(p.device) for p in model.parameters() if p.device.type != "cuda"
+    })
+    if non_cuda_param_devices:
+        raise RuntimeError(
+            "CPU/disk offload is forbidden in Phase 03; "
+            f"non-CUDA parameters found on {non_cuda_param_devices}"
         )
     free_b, total_b = torch.cuda.mem_get_info()
     free_gb, total_gb = free_b / 2**30, total_b / 2**30
