@@ -1,0 +1,122 @@
+{
+  "version": "KIAOMNI_QWEN3_30B_ADJUDICATION_ROUTING_V1",
+  "date": "2026-10-01",
+  "purpose": "Repair Phase-03 measurement confounds and perform actual executed MoE routing audit without changing KiaOmni policies or the frozen legacy budgets.",
+  "parent_run": {
+    "branch": "exp/kiaomni-qwen3-30b-modal-scale-gate",
+    "results_commit": "aa5d0d5c0eff8809398af1d53a29ed7d83ab5cfb",
+    "status": "INCONCLUSIVE"
+  },
+  "invariants": {
+    "policies": [
+      "kiaomni_s8",
+      "kiaomni_gaussian"
+    ],
+    "fixed_budgets": [
+      512,
+      256,
+      128,
+      98
+    ],
+    "ratios_do_not_replace_fixed_budgets": true,
+    "n_sink": 16,
+    "recency": 32,
+    "no_policy_renaming": true,
+    "no_budget_replacement": true
+  },
+  "model": {
+    "repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23",
+    "precision": "BF16",
+    "attention_implementation": "sdpa",
+    "gpu": "A100-80GB"
+  },
+  "dataset": {
+    "repo": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "frozen_source_set": "All 27 IDs from the parent Phase-03 8K-16K eligible index; official-prompt length is revalidated before GPU execution.",
+    "expected_real_cases": 27,
+    "truncation": false
+  },
+  "prompting": {
+    "real": "LongBench-v2 official zero-shot prompt wording",
+    "max_new_tokens": 256,
+    "generation": "deterministic greedy",
+    "raw_answer_live_print": true
+  },
+  "scoring": {
+    "real_primary": "parsed multiple-choice accuracy after robust deterministic answer extraction",
+    "synthetic_reasoning": "final numeric answer extraction",
+    "ppl": "teacher-forced perplexity of the same gold answer target for every condition",
+    "pairwise": [
+      "fc_kia_agreement",
+      "correct_to_correct",
+      "correct_to_wrong",
+      "wrong_to_correct",
+      "wrong_to_wrong",
+      "parse_failure_rate",
+      "token_limit_hit_rate"
+    ]
+  },
+  "routing": {
+    "type": "actual_executed_dispatch",
+    "source": "Forward hooks capture Qwen3-MoE gate top-k indices/weights and verify equality against the indices/weights received by the actual experts module in the same forward.",
+    "shadow_or_projected": false,
+    "compare_only_same_retained_original_tokens": true,
+    "metrics": [
+      "top1_expert_agreement",
+      "top8_set_jaccard",
+      "dispatch_weight_cosine",
+      "dispatch_entropy_delta",
+      "expert_load_jsd"
+    ],
+    "layerwise": true,
+    "generation_routing": "Not compared after output-token divergence; primary routing audit is prompt prefill on matched retained source tokens."
+  },
+  "performance": {
+    "metrics": [
+      "gold_answer_nll",
+      "gold_answer_ppl",
+      "generation_peak_allocated_vram_gb",
+      "routing_teacher_peak_allocated_vram_gb",
+      "saliency_peak_allocated_vram_gb",
+      "pipeline_peak_allocated_vram_gb",
+      "generated_tokens",
+      "output_tokens_per_second",
+      "generation_elapsed_seconds",
+      "saliency_elapsed_seconds",
+      "routing_teacher_elapsed_seconds"
+    ],
+    "note": "Routing/PPL teacher pass is diagnostic overhead and is reported separately from generation latency."
+  },
+  "stages": {
+    "preflight": {
+      "cases": "one 512-token deterministic synthetic probe plus one real case across FullContext, both policies, and B512",
+      "hard_gpu_timeout_minutes": 20,
+      "requirements": [
+        "hook neutrality",
+        "gate-to-experts dispatch identity",
+        "finite PPL",
+        "finite routing metrics",
+        "live raw answers"
+      ]
+    },
+    "final": {
+      "real_cases": 27,
+      "synthetic_reasoning_cases": 2,
+      "conditions_per_case": 9,
+      "hard_gpu_timeout_minutes": 110
+    }
+  },
+  "outputs": [
+    "preflight.json",
+    "preflight.log",
+    "final.json",
+    "final.log"
+  ],
+  "claim_boundary": [
+    "This remains prompt-side pruning, not runtime past_key_values eviction.",
+    "Actual routing telemetry observes executed expert dispatch but does not intervene in routing.",
+    "Performance claims must separate saliency/routing-diagnostic overhead from generation timing."
+  ]
+}
