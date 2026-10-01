@@ -1,77 +1,121 @@
 # Phase 03 — Qwen3-30B-A3B Modal Scale Gate
 
-## Question
+## What this phase proves
 
-Does the existing **prompt-side** KiaOmni selection policy scale from MobileMoE to a substantially larger MoE without collapsing quality?
+This phase asks one narrow question:
 
-This phase deliberately does **not** claim real `past_key_values` eviction. Cache-side KiaOmni and external KV-cache baselines are Phase 04.
+**Does the current prompt-side KiaOmni selection policy scale from MobileMoE to Qwen3-30B-A3B-Instruct-2507 without collapsing quality?**
 
-## Frozen setup
+It does **not** claim production KV-cache eviction. The current public KiaOmni path still scores the full prompt, selects retained token positions, and generates from the shorter prompt. Real `past_key_values` eviction is Phase 04.
 
-- Model: `Qwen/Qwen3-30B-A3B-Instruct-2507`, pinned revision in `PROTOCOL_FREEZE.json`
-- Precision: BF16, no quantization, no CPU/disk offload
-- Context target: ~8192 rendered tokens
-- KiaOmni budgets: 2048 (~4x), 1024 (~8x), 512 (~16x stress)
-- `n_sink=16`, `recency=32`
-- Real validation: pinned `THUDM/LongBench-v2`, naturally fitting cases only, no truncation
-- Synthetic validation: single, multi, hard_multi, reason
+## Frozen model and benchmark
 
-The runner computes saliency once per case and reuses it across budgets. Phase-03 uses FP32 saliency math on GPU. Preflight compares it against the historical CPU-FP32 path before allowing the scale run.
+Model:
 
-## Cost guard
+- `Qwen/Qwen3-30B-A3B-Instruct-2507`
+- revision `0d7cf23`
+- BF16
+- SDPA
+- no quantization
+- no CPU/disk offload
 
-Large assets are prepared on CPU into a Modal Volume before a GPU is requested.
+Real benchmark:
 
-| Stage | Cases | Budgets | Hard GPU timeout |
-|---|---|---|---:|
-| preflight | 1 synthetic | 1024 | 30 min |
-| smoke | 4 synthetic + 2 real | 2048, 1024 | 45 min |
-| final | 8 synthetic + 8 real | 2048, 1024, 512 | 120 min |
+- `THUDM/LongBench-v2`
+- revision `b0db4901b856522026b7353ab541b8535ff2a4b8`
+- naturally fitting 8K–16K examples only
+- no truncation
+- exact multiple-choice scoring
 
-A one-pass run is capped at **195 configured GPU minutes**. `max_containers=1` prevents accidental parallel GPU burn. Re-running a stage costs additional credit.
+Controlled synthetic tasks remain:
 
-## Pull and install
+- single retrieval
+- multi-record retrieval
+- distractor-heavy relational binding
+- chained reasoning
 
-```powershell
-git fetch origin
-git switch exp/kiaomni-qwen3-30b-modal-scale-gate
-git pull --ff-only
+## Important correction from the earlier scaffold
 
-py -m pip install -U "modal>=1.6,<2"
-modal setup
-modal billing rates
-modal billing summary --for "this month"
-```
+Phase 02 used KiaOmni's package defaults:
+
+- `n_sink=16`
+- `recency=32`
+
+The first Phase-03 scaffold accidentally used `recency=256`. That would have changed the algorithm and weakened comparability, so V2 restores `recency=32`.
+
+Saliency is also computed once per case and reused across 4x / 8x / 16x retention conditions. This avoids paying for three identical full-prompt saliency forwards.
+
+For Qwen3 BF16, the Phase-03 runner performs FP32 saliency math on GPU instead of offloading Q/K to CPU. The preflight compares this path against the historical CPU-offload path on a short frozen case and fails closed unless:
+
+- Pearson correlation >= 0.999
+- Top-128 Jaccard >= 0.98
+
+The default KiaOmni library behavior is not changed.
+
+## Cost contract
+
+Large model and dataset downloads run in a CPU-only Modal function and are stored in a persistent Volume before any GPU is allocated.
+
+| Stage | Work | Hard GPU ceiling |
+|---|---|---:|
+| preflight | load + probe + saliency parity + 1 synthetic case | 20 min |
+| smoke | 4 synthetic task families | 40 min |
+| final | 8 synthetic + 6 LongBench-v2 cases | 90 min |
+
+A one-pass run therefore has a hard configured ceiling of **150 A100 GPU minutes**. Re-running failed stages consumes additional credit and is outside this contract.
+
+## Retention conditions
+
+The final run uses per-case retention ratios rather than fixed token budgets:
+
+- 25% retained ≈ 4x compression
+- 12.5% retained ≈ 8x compression — primary operating point
+- 6.25% retained ≈ 16x compression — stress diagnostic
+
+At 8x the final run also evaluates deterministic RecencyOnly and RandomRetention controls.
+
+## Final PASS / FAIL / INCONCLUSIVE gate
+
+PASS requires all of the following:
+
+- synthetic FullContext-conditioned accuracy at 4x >= 0.80
+- synthetic FullContext-conditioned accuracy at 8x >= 0.70
+- LongBench-v2 FullContext-conditioned accuracy at 8x >= 0.60
+- KiaOmni at 8x is not below RandomRetention on synthetic cases
+- KiaOmni at 8x is not below RecencyOnly on synthetic cases
+
+If FullContext itself solves fewer than 4 synthetic or 3 real frozen cases, the result is **INCONCLUSIVE** rather than moving the thresholds after seeing the data.
+
+16x is diagnostic only and cannot fail the gate by itself.
 
 ## Run order
 
-Prepare the pinned model/dataset on CPU and run preflight:
+Use the stages in order. The Modal launcher refuses to start the next stage unless the previous artifact says `PASS`.
 
 ```powershell
+python -m pip install -U "modal>=1.5,<2"
+modal setup
+
 modal run modal/qwen3_30b_scale_gate_modal.py --stage preflight --gpu A100-80GB --prepare
-modal volume get kiaomni-qwen3-results phase_03_qwen3_30b_scale_gate/preflight.json .
-```
-
-Read `preflight.json` before continuing. If clean:
-
-```powershell
 modal run modal/qwen3_30b_scale_gate_modal.py --stage smoke --gpu A100-80GB
-modal volume get kiaomni-qwen3-results phase_03_qwen3_30b_scale_gate/smoke.json .
-```
-
-Then, only after the smoke artifact is clean:
-
-```powershell
 modal run modal/qwen3_30b_scale_gate_modal.py --stage final --gpu A100-80GB
-modal volume get kiaomni-qwen3-results phase_03_qwen3_30b_scale_gate/final.json .
 ```
 
-If A100 fails the **memory-headroom gate**, do not quantize or offload. Re-run only the failed stage with `--gpu H200`.
+Artifacts are stored in Modal Volume `kiaomni-qwen3-results`:
 
-After the final artifact is safely downloaded, the large model cache can be deleted to stop persistent storage charges:
+```text
+phase_03_qwen3_30b_scale_gate/
+  preflight.json
+  smoke.json
+  final.json
+```
+
+Download, for example:
 
 ```powershell
-modal volume delete kiaomni-qwen3-model-cache
+modal volume get kiaomni-qwen3-results phase_03_qwen3_30b_scale_gate/preflight.json .\preflight.json
 ```
 
-Keep `kiaomni-qwen3-results` until the JSON artifacts are backed up.
+## Hard-stop policy
+
+Do not work around an experiment failure with 4-bit quantization, CPU offload, changed retention ratios, changed cases, or moved quality thresholds. Preserve the artifact and debug the root cause first.
