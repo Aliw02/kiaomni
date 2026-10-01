@@ -9,7 +9,9 @@ import platform
 import random
 import re
 import subprocess
+import sys
 import time
+import traceback
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -91,7 +93,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset-revision", default=DATASET_REVISION_DEFAULT)
     p.add_argument("--model-dir", required=True)
     p.add_argument("--dataset-dir", required=True)
+    p.add_argument("--dataset-index", required=True)
     p.add_argument("--asset-manifest", required=True)
+    p.add_argument("--repo-revision", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--seed", type=int, default=SEED_DEFAULT)
     p.add_argument("--min-free-gb", type=float, default=8.0)
@@ -294,6 +298,7 @@ def _mc_question(row: dict[str, Any]) -> str:
 def load_real_cases(
     tokenizer,
     dataset_dir: str,
+    dataset_index: str,
     count: int,
     min_tokens: int,
     max_tokens: int,
@@ -303,20 +308,36 @@ def load_real_cases(
         return []
     from datasets import load_from_disk
 
-    ds = load_from_disk(dataset_dir)
-    candidates: list[tuple[str, int, dict[str, Any]]] = []
-    for raw in ds:
-        row = dict(raw)
-        q = _mc_question(row)
-        n = token_len(tokenizer, str(row["context"]), q)
-        if min_tokens <= n <= max_tokens:
-            candidates.append((str(row.get("domain", "unknown")), n, row))
-
-    if len(candidates) < count:
+    index_payload = json.loads(Path(dataset_index).read_text(encoding="utf-8"))
+    indexed = [
+        x for x in index_payload.get("eligible_rows", [])
+        if min_tokens <= int(x["rendered_tokens"]) <= max_tokens
+    ]
+    if len(indexed) < count:
         raise RuntimeError(
-            f"LongBench-v2 has only {len(candidates)} naturally fitting cases in "
-            f"[{min_tokens}, {max_tokens}] tokens; need {count}. No truncation allowed."
+            f"Frozen LongBench-v2 index has only {len(indexed)} cases in "
+            f"[{min_tokens}, {max_tokens}] tokens; need {count}."
         )
+
+    wanted_ids = {str(x["_id"]) for x in indexed}
+    ds = load_from_disk(dataset_dir)
+    rows_by_id = {
+        str(raw["_id"]): dict(raw)
+        for raw in ds
+        if str(raw["_id"]) in wanted_ids
+    }
+    if len(rows_by_id) != len(wanted_ids):
+        missing = sorted(wanted_ids - set(rows_by_id))
+        raise RuntimeError(f"Frozen LongBench-v2 index references missing rows: {missing[:5]}")
+
+    candidates: list[tuple[str, int, dict[str, Any]]] = []
+    for item in indexed:
+        row = rows_by_id[str(item["_id"])]
+        candidates.append((
+            str(item.get("domain", row.get("domain", "unknown"))),
+            int(item["rendered_tokens"]),
+            row,
+        ))
 
     rng = random.Random(seed + 7301)
     by_domain: dict[str, list[tuple[str, int, dict[str, Any]]]] = {}
@@ -341,13 +362,20 @@ def load_real_cases(
         answer = str(row["answer"]).strip().upper()
         if answer not in {"A", "B", "C", "D"}:
             continue
+        question = _mc_question(row)
+        actual_tokens = token_len(tokenizer, str(row["context"]), question)
+        if actual_tokens != n:
+            raise RuntimeError(
+                f"Frozen token-length index mismatch for {row['_id']}: "
+                f"index={n} runtime={actual_tokens}"
+            )
         cases.append(
             EvalCase(
                 case_id=f"longbenchv2-{row['_id']}",
                 source="longbench_v2",
                 task=str(row.get("sub_domain", domain)),
                 context=str(row["context"]),
-                question=_mc_question(row),
+                question=question,
                 gold=[answer],
                 distractors=[],
                 meta={
@@ -604,6 +632,24 @@ def check_probe(model) -> tuple[Any, dict[str, Any]]:
     }
 
 
+def assert_expected_model_config(model) -> dict[str, Any]:
+    expected = {
+        "model_type": "qwen3_moe",
+        "num_hidden_layers": 48,
+        "num_attention_heads": 32,
+        "num_key_value_heads": 4,
+        "num_experts": 128,
+        "num_experts_per_tok": 8,
+        "head_dim": 128,
+    }
+    observed = {k: getattr(model.config, k, None) for k in expected}
+    if observed != expected:
+        raise RuntimeError(
+            f"Loaded Qwen architecture mismatch. expected={expected} observed={observed}"
+        )
+    return observed
+
+
 def assert_model_safety(model, min_free_gb: float) -> dict[str, Any]:
     if getattr(model, "is_quantized", False):
         raise RuntimeError("Quantized model detected; Phase 03 requires BF16")
@@ -804,6 +850,9 @@ def main() -> None:
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
+    torch.set_float32_matmul_precision("highest")
+    if hasattr(torch.backends, "cuda") and hasattr(torch.backends.cuda, "matmul"):
+        torch.backends.cuda.matmul.allow_tf32 = False
     started = time.perf_counter()
     deadline = started + int(cfg["max_wall_seconds"])
     output = Path(args.output)
@@ -846,6 +895,7 @@ def main() -> None:
         trust_remote_code=False,
     ).eval()
 
+    loaded_model_config = assert_expected_model_config(model)
     safety = assert_model_safety(model, args.min_free_gb)
     probe, probe_record = check_probe(model)
     gpu_adapter = SaliencyAdapter(probe, offload_to_cpu=False)
@@ -875,6 +925,7 @@ def main() -> None:
             load_real_cases(
                 tokenizer,
                 args.dataset_dir,
+                args.dataset_index,
                 int(cfg["real_cases"]),
                 int(cfg["real_min_tokens"]),
                 int(cfg["real_max_tokens"]),
@@ -894,10 +945,11 @@ def main() -> None:
         "model": {"repo": args.model, "revision": args.model_revision},
         "dataset": {"repo": args.dataset, "revision": args.dataset_revision},
         "seed": args.seed,
-        "repo_git_head": repo_git_head(),
+        "repo_revision": args.repo_revision,
         "runner_sha256": file_sha256(__file__),
         "asset_manifest": manifest,
         "environment": environment_snapshot(model, tokenizer, cfg),
+        "loaded_model_config": loaded_model_config,
         "post_load_safety": safety,
         "probe": probe_record,
         "saliency_cpu_gpu_parity": parity,
@@ -1004,5 +1056,36 @@ def main() -> None:
         raise SystemExit(2)
 
 
+def _cli_value(flag: str) -> str | None:
+    try:
+        idx = sys.argv.index(flag)
+    except ValueError:
+        return None
+    if idx + 1 >= len(sys.argv):
+        return None
+    return sys.argv[idx + 1]
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        output_raw = _cli_value("--output")
+        if output_raw:
+            error_payload = {
+                "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_ERROR_V1",
+                "stage": _cli_value("--stage"),
+                "repo_revision": _cli_value("--repo-revision"),
+                "gate": {
+                    "status": "ERROR",
+                    "exception_type": type(exc).__name__,
+                    "reason": str(exc),
+                },
+                "traceback": traceback.format_exc(),
+            }
+            try:
+                write_artifact(Path(output_raw), error_payload)
+            except Exception:
+                pass
+        traceback.print_exc()
+        raise
