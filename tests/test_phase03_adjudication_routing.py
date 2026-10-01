@@ -68,8 +68,9 @@ def test_actual_routing_is_verified_at_experts_input():
     src = _source(RUNNER)
     assert "register_forward_hook" in src
     assert "register_forward_pre_hook" in src
-    assert "Router/expert dispatch mismatch" in src
-    assert "torch.equal(gate_indices, expert_indices)" in src
+    assert "Actual expert-dispatch count verification failed" in src
+    assert "torch.bincount" in src
+    assert "torch.equal(expected, observed)" in src
     assert "actual_dispatch_verified" in src
     assert "shadow" not in src.lower()
 
