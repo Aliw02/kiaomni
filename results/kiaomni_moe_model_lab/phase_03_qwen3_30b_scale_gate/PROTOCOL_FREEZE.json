@@ -1,0 +1,64 @@
+{
+  "version": "KIAOMNI_QWEN3_30B_SCALE_GATE_V1",
+  "date": "2026-10-01",
+  "claim_scope": "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. This phase does not claim real past_key_values KV-cache eviction.",
+  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "precision": "BF16",
+  "attention_implementation": "sdpa",
+  "quantization": "none",
+  "cpu_offload": "forbidden",
+  "gpu_default": "A100 80GB",
+  "policy": "kiaomni_s8",
+  "protected_tokens": {
+    "n_sink": 16,
+    "recency": 256
+  },
+  "stages": {
+    "preflight": {
+      "target_tokens": 2048,
+      "budgets": [1024],
+      "synthetic_per_task": 1,
+      "real_cases": 0,
+      "gpu_timeout_minutes": 20
+    },
+    "smoke": {
+      "target_tokens": 4096,
+      "budgets": [1024, 512],
+      "synthetic_per_task": 1,
+      "real_cases": 2,
+      "gpu_timeout_minutes": 40
+    },
+    "final": {
+      "target_tokens": 8192,
+      "budgets": [2048, 1024, 512],
+      "compression_ratios": [4, 8, 16],
+      "synthetic_per_task": 3,
+      "real_cases": 8,
+      "gpu_timeout_minutes": 180
+    }
+  },
+  "quality_sources": {
+    "synthetic": ["single", "multi", "hard_multi", "reason"],
+    "real": "THUDM/LongBench QA subsets (qasper, hotpotqa, 2wikimqa, musique, multifieldqa_en), naturally fitting examples only; no context truncation"
+  },
+  "cost_guard": {
+    "asset_download": "CPU-only Modal function into persistent volume",
+    "gpu_stages_run_separately": true,
+    "max_containers": 1,
+    "maximum_configured_gpu_minutes_across_one_run_of_all_stages": 240,
+    "note": "At the documented A100 rate around $2.50/hour, 240 GPU minutes is about $10 before CPU/storage costs. Re-running stages repeatedly is outside this one-pass cap."
+  },
+  "fail_closed": [
+    "BF16 unsupported",
+    "post-load free VRAM below 7 GiB",
+    "Qwen architecture probe failure",
+    "offline model/dataset cache missing after prepare step",
+    "wall-time budget reached",
+    "synthetic prompt cannot reach requested target window"
+  ],
+  "deferred": {
+    "real_kv_cache_eviction": "Phase 04",
+    "external_kv_baselines": "Phase 04 after cache-side KiaOmni exists",
+    "actual_expert_dispatch_intervention": "Not part of Phase 03"
+  }
+}
