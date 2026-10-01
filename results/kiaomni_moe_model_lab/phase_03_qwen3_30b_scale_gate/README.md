@@ -13,7 +13,7 @@ It intentionally does **not** claim production KV-cache eviction. The current pu
 - SDPA
 - no quantization
 - no CPU offload
-- default GPU: A100 80GB
+- default GPU: A100-80GB
 
 ## Cost design
 
