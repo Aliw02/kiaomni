@@ -104,6 +104,9 @@ def test_detach_is_fully_remote_and_no_invalid_scale_down():
     assert "single_use_containers=True" in src
     assert "prepare_assets.remote()" in src
     assert "run_stage.with_options(" in src
+    assert '"--untracked-files=no"' in src
+    assert "Refusing to mix revisions across a frozen gate" in src
+    assert "Frozen LongBench-v2 token index identity mismatch" in src
 
 
 def test_launcher_pins_assets_and_has_hard_timeouts():
