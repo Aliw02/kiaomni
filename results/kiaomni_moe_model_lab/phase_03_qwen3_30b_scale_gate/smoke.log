@@ -1,0 +1,39 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:48,  3.25s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:06<00:47,  3.40s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:10<00:45,  3.48s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:13<00:42,  3.52s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:17<00:38,  3.53s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:20<00:34,  3.44s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:24<00:31,  3.51s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:28<00:28,  3.55s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:31<00:24,  3.55s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [00:34<00:21,  3.51s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [00:38<00:17,  3.52s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [00:41<00:14,  3.50s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [00:45<00:10,  3.50s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [00:48<00:06,  3.46s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [00:52<00:03,  3.51s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:53<00:00,  2.78s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:53<00:00,  3.35s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[1/6] syn-single-0 full=True input_tokens=4086
+[2/6] syn-multi-0 full=True input_tokens=4090
+[3/6] syn-hard-0 full=True input_tokens=4088
+[4/6] syn-reason-0 full=False input_tokens=4088
+[5/6] longbenchv2-66f2e0bc821e116aacb2bf37 full=False input_tokens=10850
+[6/6] longbenchv2-66ec356a821e116aacb1c22b full=False input_tokens=10898
+{
+  "gate": {
+    "status": "PASS",
+    "criteria": {
+      "completed_cases": "6/6",
+      "full_context_solved": 3,
+      "kiaomni_8x_conditioned_successes": 3.0
+    }
+  },
+  "output": "/results/phase_03_qwen3_30b_scale_gate/smoke.json"
+}

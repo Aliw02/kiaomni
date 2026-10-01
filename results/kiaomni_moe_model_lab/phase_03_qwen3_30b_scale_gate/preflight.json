@@ -1,0 +1,252 @@
+{
+  "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
+  "claim_scope": "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. This is not evidence of real past_key_values KV-cache eviction.",
+  "stage": "preflight",
+  "model": {
+    "repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23"
+  },
+  "dataset": {
+    "repo": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8"
+  },
+  "seed": 42,
+  "repo_revision": "f9bd359b2cdaf32f191bc4c8909d61ad1ea2b0d3",
+  "runner_sha256": "d1f9dced6fb85a0f3023539910a012e5bc363916c68439e03009b1f2e38bcefe",
+  "asset_manifest": {
+    "model_repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "model_revision_requested": "0d7cf23",
+    "model_revision_resolved": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "model_dir": "/assets/models/qwen3-30b-a3b-instruct-2507_0d7cf23",
+    "model_config": {
+      "model_type": "qwen3_moe",
+      "num_hidden_layers": 48,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 4,
+      "num_experts": 128,
+      "num_experts_per_tok": 8,
+      "head_dim": 128
+    },
+    "weight_file_count": 16,
+    "dataset_repo": "THUDM/LongBench-v2",
+    "dataset_revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "dataset_revision_resolved": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "dataset_dir": "/assets/datasets/longbench-v2_b0db4901",
+    "dataset_index": "/assets/indices/longbench_v2_qwen3_0d7cf23.json",
+    "dataset_rows": 503,
+    "dataset_columns": [
+      "_id",
+      "answer",
+      "choice_A",
+      "choice_B",
+      "choice_C",
+      "choice_D",
+      "context",
+      "difficulty",
+      "domain",
+      "length",
+      "question",
+      "sub_domain"
+    ],
+    "smoke_eligible_8k_12k": 7,
+    "final_eligible_8k_16k": 27
+  },
+  "environment": {
+    "python": "3.11.12",
+    "torch": "2.8.0+cu128",
+    "transformers": "4.57.6",
+    "cuda_runtime": "12.8",
+    "gpu": {
+      "name": "NVIDIA A100-SXM4-80GB",
+      "total_memory_gb": 79.250732421875,
+      "capability": [
+        8,
+        0
+      ]
+    },
+    "model_type": "qwen3_moe",
+    "num_hidden_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "num_experts": 128,
+    "num_experts_per_tok": 8,
+    "dtype": "torch.bfloat16",
+    "tokenizer_class": "Qwen2TokenizerFast",
+    "stage_config": {
+      "synthetic_target_tokens": 2048,
+      "retention_ratios": [
+        0.25
+      ],
+      "synthetic_tasks": [
+        "hard_multi"
+      ],
+      "synthetic_per_task": 1,
+      "real_cases": 0,
+      "max_new_tokens": 24,
+      "max_wall_seconds": 900
+    },
+    "n_sink": 16,
+    "recency": 32,
+    "policy": "kiaomni_s8"
+  },
+  "loaded_model_config": {
+    "model_type": "qwen3_moe",
+    "num_hidden_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "num_experts": 128,
+    "num_experts_per_tok": 8,
+    "head_dim": 128
+  },
+  "post_load_safety": {
+    "free_gb": 21.93939208984375,
+    "total_gb": 79.250732421875,
+    "hf_device_map": {
+      "": "0"
+    }
+  },
+  "probe": {
+    "confidence": "high",
+    "qkv_pattern": "separate",
+    "num_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "head_dim": 128,
+    "layer_container_path": "model.layers",
+    "attn_module_name": "self_attn",
+    "attn_implementation": "sdpa",
+    "pos_encoding": "rope",
+    "detection_notes": [
+      "layer container at 'model.layers' (n=48)",
+      "representative attention layer index=0",
+      "attn submodule 'self_attn'",
+      "QKV separate: q_proj/k_proj/v_proj",
+      "pos_encoding=rope (config flags)"
+    ]
+  },
+  "saliency_cpu_gpu_parity": {
+    "passed": true,
+    "pearson": 0.999999999999999,
+    "top128_jaccard": 1.0,
+    "max_abs_error": 1.4901161193847656e-08,
+    "mean_abs_error": 3.29347854544082e-10,
+    "cpu": {
+      "elapsed_s": 3.6527317129999943,
+      "peak_allocated_vram_gb": 57.02543306350708
+    },
+    "gpu": {
+      "elapsed_s": 1.9378477549999928,
+      "peak_allocated_vram_gb": 57.02543306350708
+    },
+    "criteria": {
+      "pearson_min": 0.999,
+      "top128_jaccard_min": 0.98
+    }
+  },
+  "cases": [
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "context": "<omitted-from-artifact>",
+      "question": "Using only the AURORA records, return the codes for ALPHA, BRAVO, and CHARLIE in that order, separated by commas.",
+      "gold": [
+        "96794",
+        "28320",
+        "65251"
+      ],
+      "distractors": [
+        "51347",
+        "78905",
+        "98439"
+      ],
+      "meta": null
+    }
+  ],
+  "rows": [
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 2046,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 2046,
+        "kept_tokens": 2046,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "96794, 28320, 65251",
+        "generation": {
+          "elapsed_s": 5.753567802999996,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.476103990565941,
+          "peak_allocated_vram_gb": 57.166072368621826
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794, 28320, 65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 2046,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 2046,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.25024437927663734,
+        "compression_ratio": 3.99609375,
+        "answer": "96794, 28320, 65251",
+        "generation": {
+          "elapsed_s": 5.531529894000002,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.6156362495109735,
+          "peak_allocated_vram_gb": 56.9506516456604
+        },
+        "saliency": {
+          "elapsed_s": 2.276183203000002,
+          "peak_allocated_vram_gb": 57.465800285339355
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794, 28320, 65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    }
+  ],
+  "aggregate": [
+    {
+      "source": "synthetic",
+      "method": "full_context",
+      "n": 1,
+      "accuracy": 1.0,
+      "mean_recall": 1.0,
+      "full_context_solved_n": 1,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "kiaomni_r0.25",
+      "n": 1,
+      "accuracy": 1.0,
+      "mean_recall": 1.0,
+      "full_context_solved_n": 1,
+      "full_context_conditioned_accuracy": 1.0
+    }
+  ],
+  "gate": {
+    "status": "PASS",
+    "criteria": {
+      "completed_cases": "1/1",
+      "gpu_cpu_saliency_parity": true
+    }
+  },
+  "wall_seconds": 92.68562213300001
+}

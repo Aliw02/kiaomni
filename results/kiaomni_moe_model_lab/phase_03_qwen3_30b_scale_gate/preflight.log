@@ -1,0 +1,33 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:57,  3.85s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:08<00:56,  4.06s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:11<00:50,  3.88s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:15<00:46,  3.85s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:20<00:45,  4.17s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:24<00:40,  4.10s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:29<00:40,  4.51s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:34<00:36,  4.57s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:38<00:30,  4.37s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [00:43<00:28,  4.67s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [00:47<00:22,  4.46s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [00:51<00:17,  4.28s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [00:55<00:12,  4.13s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [01:00<00:08,  4.42s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [01:04<00:04,  4.37s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:05<00:00,  3.42s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:05<00:00,  4.11s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[1/1] syn-hard-0 full=True input_tokens=2046
+{
+  "gate": {
+    "status": "PASS",
+    "criteria": {
+      "completed_cases": "1/1",
+      "gpu_cpu_saliency_parity": true
+    }
+  },
+  "output": "/results/phase_03_qwen3_30b_scale_gate/preflight.json"
+}

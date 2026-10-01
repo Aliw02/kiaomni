@@ -1,0 +1,47 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:54,  3.62s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:07<00:52,  3.75s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:10<00:47,  3.64s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:14<00:43,  3.64s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:18<00:39,  3.61s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:21<00:36,  3.61s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:25<00:32,  3.58s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:28<00:28,  3.56s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:32<00:25,  3.59s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [00:36<00:22,  3.76s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [00:40<00:18,  3.75s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [00:43<00:14,  3.69s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [00:47<00:10,  3.65s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [00:50<00:07,  3.61s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [00:54<00:03,  3.56s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:55<00:00,  2.81s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:55<00:00,  3.47s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+[1/14] syn-single-0 full=True input_tokens=8189
+[2/14] syn-single-1 full=True input_tokens=8186
+[3/14] syn-multi-0 full=True input_tokens=8182
+[4/14] syn-multi-1 full=True input_tokens=8189
+[5/14] syn-hard-0 full=True input_tokens=8183
+[6/14] syn-hard-1 full=True input_tokens=8192
+[7/14] syn-reason-0 full=False input_tokens=8184
+[8/14] syn-reason-1 full=False input_tokens=8181
+[9/14] longbenchv2-66f9625fbb02136c067c5456 full=False input_tokens=12978
+[10/14] longbenchv2-66f8c6b4bb02136c067c4480 full=False input_tokens=13739
+[11/14] longbenchv2-66eae4de5a08c7b9b35dd12d full=True input_tokens=15300
+[12/14] longbenchv2-66f2aac2821e116aacb2a9de full=False input_tokens=15873
+[13/14] longbenchv2-66fa7f1dbb02136c067c6e6b full=True input_tokens=15935
+[14/14] longbenchv2-66ebe0fb5a08c7b9b35e14f5 full=False input_tokens=15891
+{
+  "gate": {
+    "status": "INCONCLUSIVE",
+    "reason": "FullContext solved too few frozen cases for a quality-retention decision",
+    "full_context_solved": {
+      "synthetic": 6,
+      "real": 2
+    }
+  },
+  "output": "/results/phase_03_qwen3_30b_scale_gate/final.json"
+}

@@ -1,0 +1,2331 @@
+{
+  "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
+  "claim_scope": "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. This is not evidence of real past_key_values KV-cache eviction.",
+  "stage": "final",
+  "model": {
+    "repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23"
+  },
+  "dataset": {
+    "repo": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8"
+  },
+  "seed": 42,
+  "repo_revision": "f9bd359b2cdaf32f191bc4c8909d61ad1ea2b0d3",
+  "runner_sha256": "d1f9dced6fb85a0f3023539910a012e5bc363916c68439e03009b1f2e38bcefe",
+  "asset_manifest": {
+    "model_repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "model_revision_requested": "0d7cf23",
+    "model_revision_resolved": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+    "model_dir": "/assets/models/qwen3-30b-a3b-instruct-2507_0d7cf23",
+    "model_config": {
+      "model_type": "qwen3_moe",
+      "num_hidden_layers": 48,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 4,
+      "num_experts": 128,
+      "num_experts_per_tok": 8,
+      "head_dim": 128
+    },
+    "weight_file_count": 16,
+    "dataset_repo": "THUDM/LongBench-v2",
+    "dataset_revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "dataset_revision_resolved": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "dataset_dir": "/assets/datasets/longbench-v2_b0db4901",
+    "dataset_index": "/assets/indices/longbench_v2_qwen3_0d7cf23.json",
+    "dataset_rows": 503,
+    "dataset_columns": [
+      "_id",
+      "answer",
+      "choice_A",
+      "choice_B",
+      "choice_C",
+      "choice_D",
+      "context",
+      "difficulty",
+      "domain",
+      "length",
+      "question",
+      "sub_domain"
+    ],
+    "smoke_eligible_8k_12k": 7,
+    "final_eligible_8k_16k": 27
+  },
+  "environment": {
+    "python": "3.11.12",
+    "torch": "2.8.0+cu128",
+    "transformers": "4.57.6",
+    "cuda_runtime": "12.8",
+    "gpu": {
+      "name": "NVIDIA A100-SXM4-80GB",
+      "total_memory_gb": 79.250732421875,
+      "capability": [
+        8,
+        0
+      ]
+    },
+    "model_type": "qwen3_moe",
+    "num_hidden_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "num_experts": 128,
+    "num_experts_per_tok": 8,
+    "dtype": "torch.bfloat16",
+    "tokenizer_class": "Qwen2TokenizerFast",
+    "stage_config": {
+      "synthetic_target_tokens": 8192,
+      "retention_ratios": [
+        0.25,
+        0.125,
+        0.0625
+      ],
+      "synthetic_tasks": [
+        "single",
+        "multi",
+        "hard_multi",
+        "reason"
+      ],
+      "synthetic_per_task": 2,
+      "real_cases": 6,
+      "real_min_tokens": 8192,
+      "real_max_tokens": 16384,
+      "max_new_tokens": 32,
+      "max_wall_seconds": 5100
+    },
+    "n_sink": 16,
+    "recency": 32,
+    "policy": "kiaomni_s8"
+  },
+  "loaded_model_config": {
+    "model_type": "qwen3_moe",
+    "num_hidden_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "num_experts": 128,
+    "num_experts_per_tok": 8,
+    "head_dim": 128
+  },
+  "post_load_safety": {
+    "free_gb": 21.93939208984375,
+    "total_gb": 79.250732421875,
+    "hf_device_map": {
+      "": "0"
+    }
+  },
+  "probe": {
+    "confidence": "high",
+    "qkv_pattern": "separate",
+    "num_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "head_dim": 128,
+    "layer_container_path": "model.layers",
+    "attn_module_name": "self_attn",
+    "attn_implementation": "sdpa",
+    "pos_encoding": "rope",
+    "detection_notes": [
+      "layer container at 'model.layers' (n=48)",
+      "representative attention layer index=0",
+      "attn submodule 'self_attn'",
+      "QKV separate: q_proj/k_proj/v_proj",
+      "pos_encoding=rope (config flags)"
+    ]
+  },
+  "saliency_cpu_gpu_parity": null,
+  "cases": [
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "context": "<omitted-from-artifact>",
+      "question": "What is the vault access code? Answer with the number only.",
+      "gold": [
+        "506795"
+      ],
+      "distractors": [],
+      "meta": null
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "context": "<omitted-from-artifact>",
+      "question": "What is the vault access code? Answer with the number only.",
+      "gold": [
+        "860753"
+      ],
+      "distractors": [],
+      "meta": null
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "context": "<omitted-from-artifact>",
+      "question": "Return the three project codes for ALPHA, BRAVO, and CHARLIE in that order, separated by commas.",
+      "gold": [
+        "23307",
+        "30362",
+        "43650"
+      ],
+      "distractors": [],
+      "meta": null
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "context": "<omitted-from-artifact>",
+      "question": "Return the three project codes for ALPHA, BRAVO, and CHARLIE in that order, separated by commas.",
+      "gold": [
+        "77650",
+        "81565",
+        "67571"
+      ],
+      "distractors": [],
+      "meta": null
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "context": "<omitted-from-artifact>",
+      "question": "Using only the AURORA records, return the codes for ALPHA, BRAVO, and CHARLIE in that order, separated by commas.",
+      "gold": [
+        "96794",
+        "28320",
+        "65251"
+      ],
+      "distractors": [
+        "51347",
+        "78905",
+        "98439"
+      ],
+      "meta": null
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "context": "<omitted-from-artifact>",
+      "question": "Using only the AURORA records, return the codes for ALPHA, BRAVO, and CHARLIE in that order, separated by commas.",
+      "gold": [
+        "84825",
+        "29714",
+        "95533"
+      ],
+      "distractors": [
+        "30955",
+        "58581",
+        "33108"
+      ],
+      "meta": null
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "context": "<omitted-from-artifact>",
+      "question": "What is the final value of variable D? Answer with the number only.",
+      "gold": [
+        "3705"
+      ],
+      "distractors": [
+        "3773"
+      ],
+      "meta": null
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "context": "<omitted-from-artifact>",
+      "question": "What is the final value of variable D? Answer with the number only.",
+      "gold": [
+        "7562"
+      ],
+      "distractors": [
+        "7630"
+      ],
+      "meta": null
+    },
+    {
+      "case_id": "longbenchv2-66f9625fbb02136c067c5456",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "context": "<omitted-from-artifact>",
+      "question": "If the original audio has low clarity, after completing the audio cutting,what should  I do?\n\nChoices:\nA: Begin audio marking\nB: Begin the proofreading and annotation step.\nC: Keep the .bat running, copy and open the following URL in your browser: http://0.0.0.0:9874.\nD: Before exiting, remember to save your file.\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "B"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Long In-context Learning",
+        "sub_domain": "User guide QA",
+        "difficulty": "easy",
+        "length": "short",
+        "rendered_tokens": 12978
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f8c6b4bb02136c067c4480",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "context": "<omitted-from-artifact>",
+      "question": "Among these three durations: \nduration A: 28 June 2024 to 29 July 2024\nduration B: 30 July 2024 to 29 August 2024\nduration C: 30 August 2024 to 22 September 2024\nI wanna find out  which duration(month)  has the worst situation in terms of Palestinians deaths per day and injuries per day.\n\nChoices:\nA: duration A has the largest number of deaths per day, duration C has the largest number of injuries per day.\nB: duration B has the largest number of deaths per day, duration B has the largest number of injuries per day.\nC: duration A has the largest number of deaths per day, duration A has the largest number of injuries per day.\nD: duration C has the largest number of deaths per day, duration B has the largest number of injuries per day.\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "C"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Multi-Document QA",
+        "sub_domain": "Multi-news",
+        "difficulty": "hard",
+        "length": "short",
+        "rendered_tokens": 13739
+      }
+    },
+    {
+      "case_id": "longbenchv2-66eae4de5a08c7b9b35dd12d",
+      "source": "longbench_v2",
+      "task": "Academic",
+      "context": "<omitted-from-artifact>",
+      "question": "Which kind of ability is not mentioned in the essay?\n\nChoices:\nA: Segment and label objects within the scene using SoM and represent the functional parts by vectors.\nB: Understand and execute higher level and multi-step instruction.\nC: Process accurate coordinates of object parts generated by VLMs to form a 3D grounding.\nD: Generate the appropriate 6-DoF grasp pose for the specified objects of interest and show a higher success rate than Voxposer.\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "C"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Single-Document QA",
+        "sub_domain": "Academic",
+        "difficulty": "hard",
+        "length": "short",
+        "rendered_tokens": 15300
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f2aac2821e116aacb2a9de",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "context": "<omitted-from-artifact>",
+      "question": "The robot begins to experience frequent Error Code E03, causing unexpected stops. Based on the user manual, which action should you take to resolve the issue without compromising the operational requirements?\n\nChoices:\nA: Disable obstacle avoidance to prevent sensor-related errors and continue operating at high speed in Wheeled Mode.\nB: Switch to Legged Mode, reduce speed, and recalibrate the sensors to enhance stability and sensor performance.\nC: Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.\nD: Update the firmware to the latest version and lower the speed settings in Wheeled Mode to reduce the likelihood of sensor errors.\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "B"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Long In-context Learning",
+        "sub_domain": "User guide QA",
+        "difficulty": "hard",
+        "length": "short",
+        "rendered_tokens": 15873
+      }
+    },
+    {
+      "case_id": "longbenchv2-66fa7f1dbb02136c067c6e6b",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "context": "<omitted-from-artifact>",
+      "question": "Based on these press releases from Sanofi regarding their pharmaceutical products, which of the following products cannot usually be used to treat blood diseases?\n①ALTUVIIIO\n②Dupixent\n③Sarclisa\n④Tolebrutinib\n⑤Aubagio\n⑥Placebo\n\nChoices:\nA: ①④⑤⑥\nB: ①②③⑥\nC: ②③⑤⑥\nD: ②④⑤⑥\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "D"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Multi-Document QA",
+        "sub_domain": "Multi-news",
+        "difficulty": "easy",
+        "length": "short",
+        "rendered_tokens": 15935
+      }
+    },
+    {
+      "case_id": "longbenchv2-66ebe0fb5a08c7b9b35e14f5",
+      "source": "longbench_v2",
+      "task": "Legal",
+      "context": "<omitted-from-artifact>",
+      "question": "According to the judgment, when the court analyzed the reasons why PepsiCo’s advertisement did not constitute a unilateral offer in the form of a reward, which of the following reasons was not mentioned?\n\nChoices:\nA: A reward advertisement is an offer to anyone who performs the obligations mentioned in the advertisement.\nB: As long as someone fulfills the content specified in the reward advertisement, the advertiser must fulfill their obligation.\nC: A reasonable and objective person would not consider PepsiCo's advertisement to be an offer.\nD: Reward advertisements that ask people to take specific actions are generally based on non-commercial reasons.\n\nAnswer with one letter only: A, B, C, or D.",
+      "gold": [
+        "C"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Single-Document QA",
+        "sub_domain": "Legal",
+        "difficulty": "hard",
+        "length": "short",
+        "rendered_tokens": 15891
+      }
+    }
+  ],
+  "rows": [
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8189,
+        "kept_tokens": 8189,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "506795",
+        "generation": {
+          "elapsed_s": 5.3392320460000064,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 1.3110499674282168,
+          "peak_allocated_vram_gb": 58.02607822418213
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "506795",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8189,
+        "kept_tokens": 2047,
+        "retention_ratio_actual": 0.24996947124190988,
+        "compression_ratio": 4.000488519785051,
+        "answer": "506795",
+        "generation": {
+          "elapsed_s": 3.1412351789999917,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.228422770379275,
+          "peak_allocated_vram_gb": 57.166088581085205
+        },
+        "saliency": {
+          "elapsed_s": 3.329702451000003,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "506795",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "506795",
+        "generation": {
+          "elapsed_s": 3.076015106,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.2756715291631604,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": {
+          "elapsed_s": 3.329702451000003,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "506795",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8189,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.06252289656856759,
+        "compression_ratio": 15.994140625,
+        "answer": "506795",
+        "generation": {
+          "elapsed_s": 2.975790395000004,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.3523162154705424,
+          "peak_allocated_vram_gb": 56.95069742202759
+        },
+        "saliency": {
+          "elapsed_s": 3.329702451000003,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "506795",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "The document provided does not contain any information related to a vault access code. Therefore, based on the given text, it is impossible to determine the vault access code",
+        "generation": {
+          "elapsed_s": 7.953802315999994,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.023233005883022,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The document provided does not contain any information related to a vault access code. Therefore, based on the given text, it is impossible to determine the vault access code",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-0",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "The provided text does not contain any information about a vault access code. Therefore, based on the given document, it is not possible to determine the vault access code",
+        "generation": {
+          "elapsed_s": 7.730051911000004,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.139687594395507,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text does not contain any information about a vault access code. Therefore, based on the given document, it is not possible to determine the vault access code",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8186,
+        "kept_tokens": 8186,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "860753",
+        "generation": {
+          "elapsed_s": 3.6603881199999933,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 1.9123655116660179,
+          "peak_allocated_vram_gb": 58.02604055404663
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "860753",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8186,
+        "kept_tokens": 2046,
+        "retention_ratio_actual": 0.2499389201075006,
+        "compression_ratio": 4.000977517106549,
+        "answer": "860753",
+        "generation": {
+          "elapsed_s": 3.1683211229999984,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.20937200752299,
+          "peak_allocated_vram_gb": 57.166078090667725
+        },
+        "saliency": {
+          "elapsed_s": 3.278200584000004,
+          "peak_allocated_vram_gb": 59.226905822753906
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "860753",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8186,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1249694600537503,
+        "compression_ratio": 8.001955034213099,
+        "answer": "860753",
+        "generation": {
+          "elapsed_s": 3.1341454420000048,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.2334636759974553,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": {
+          "elapsed_s": 3.278200584000004,
+          "peak_allocated_vram_gb": 59.226905822753906
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "860753",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8186,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.06254580991937454,
+        "compression_ratio": 15.98828125,
+        "answer": "860753",
+        "generation": {
+          "elapsed_s": 2.9937949910000015,
+          "generated_tokens": 7,
+          "output_tokens_per_s": 2.33816945416888,
+          "peak_allocated_vram_gb": 56.95069742202759
+        },
+        "saliency": {
+          "elapsed_s": 3.278200584000004,
+          "peak_allocated_vram_gb": 59.226905822753906
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "860753",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8186,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1249694600537503,
+        "compression_ratio": 8.001955034213099,
+        "answer": "The document provided does not contain any information about a vault access code. Therefore, based on the given text, it is not possible to determine the vault access code",
+        "generation": {
+          "elapsed_s": 7.956432239999998,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.021903163973908,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The document provided does not contain any information about a vault access code. Therefore, based on the given text, it is not possible to determine the vault access code",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-single-1",
+      "source": "synthetic",
+      "task": "single",
+      "rendered_tokens": 8186,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8186,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1249694600537503,
+        "compression_ratio": 8.001955034213099,
+        "answer": "The provided text does not contain any information about a vault access code. Therefore, based on the given document, the vault access code cannot be determined.",
+        "generation": {
+          "elapsed_s": 7.57298471499999,
+          "generated_tokens": 31,
+          "output_tokens_per_s": 4.093498292502502,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text does not contain any information about a vault access code. Therefore, based on the given document, the vault access code cannot be determined.",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8182,
+        "kept_tokens": 8182,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "23307, 30362, 43650",
+        "generation": {
+          "elapsed_s": 6.22175443399999,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.2145273832580243,
+          "peak_allocated_vram_gb": 58.02599096298218
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "23307, 30362, 43650",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8182,
+        "kept_tokens": 2046,
+        "retention_ratio_actual": 0.2500611097531166,
+        "compression_ratio": 3.9990224828934506,
+        "answer": "23307, 30362, 43650",
+        "generation": {
+          "elapsed_s": 5.865162279999993,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.409965324949206,
+          "peak_allocated_vram_gb": 57.166078090667725
+        },
+        "saliency": {
+          "elapsed_s": 3.360702083999996,
+          "peak_allocated_vram_gb": 59.226635456085205
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "23307, 30362, 43650",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8182,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1250305548765583,
+        "compression_ratio": 7.998044965786901,
+        "answer": "23307, 30362, 43650",
+        "generation": {
+          "elapsed_s": 5.760365919000009,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.472001654275458,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": {
+          "elapsed_s": 3.360702083999996,
+          "peak_allocated_vram_gb": 59.226635456085205
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "23307, 30362, 43650",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8182,
+        "kept_tokens": 511,
+        "retention_ratio_actual": 0.06245416768516255,
+        "compression_ratio": 16.01174168297456,
+        "answer": "23307, 30362, 43650",
+        "generation": {
+          "elapsed_s": 5.6097596870000075,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.5652151100782037,
+          "peak_allocated_vram_gb": 56.9505615234375
+        },
+        "saliency": {
+          "elapsed_s": 3.360702083999996,
+          "peak_allocated_vram_gb": 59.226635456085205
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "23307, 30362, 43650",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8182,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1250305548765583,
+        "compression_ratio": 7.998044965786901,
+        "answer": "The provided document contains a series of statements involving various departments, teams, and observations, but **no explicit project codes** (such as ALPHA, BRAVO,",
+        "generation": {
+          "elapsed_s": 8.119218120999989,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.941266206068963,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided document contains a series of statements involving various departments, teams, and observations, but **no explicit project codes** (such as ALPHA, BRAVO,",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-0",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8182,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8182,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.1250305548765583,
+        "compression_ratio": 7.998044965786901,
+        "answer": "The provided text does not contain any explicit project codes for ALPHA, BRAVO, or CHARLIE. There is no mention of project codes, identifiers, or",
+        "generation": {
+          "elapsed_s": 7.88872262000001,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.056423522722359,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text does not contain any explicit project codes for ALPHA, BRAVO, or CHARLIE. There is no mention of project codes, identifiers, or",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8189,
+        "kept_tokens": 8189,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "77650,81565,67571",
+        "generation": {
+          "elapsed_s": 6.0264715309999985,
+          "generated_tokens": 18,
+          "output_tokens_per_s": 2.9868223731595696,
+          "peak_allocated_vram_gb": 58.02607822418213
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "77650,81565,67571",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8189,
+        "kept_tokens": 2047,
+        "retention_ratio_actual": 0.24996947124190988,
+        "compression_ratio": 4.000488519785051,
+        "answer": "77650, 81565, 67571",
+        "generation": {
+          "elapsed_s": 5.783719503000015,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.4579823571364416,
+          "peak_allocated_vram_gb": 57.166088581085205
+        },
+        "saliency": {
+          "elapsed_s": 3.35537377,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "77650, 81565, 67571",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "77650, 81565, 67571",
+        "generation": {
+          "elapsed_s": 6.13180364599998,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.261683047050405,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": {
+          "elapsed_s": 3.35537377,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "77650, 81565, 67571",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8189,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.06252289656856759,
+        "compression_ratio": 15.994140625,
+        "answer": "77650, 81565, 67571",
+        "generation": {
+          "elapsed_s": 5.682933233,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.5193093390333696,
+          "peak_allocated_vram_gb": 56.95069742202759
+        },
+        "saliency": {
+          "elapsed_s": 3.35537377,
+          "peak_allocated_vram_gb": 59.228615283966064
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "77650, 81565, 67571",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "The document provided contains a series of statements involving various teams, departments, and activities, but it does **not** include any explicit project codes for ALPHA, BRA",
+        "generation": {
+          "elapsed_s": 8.201318422999975,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.901811678261196,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The document provided contains a series of statements involving various teams, departments, and activities, but it does **not** include any explicit project codes for ALPHA, BRA",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-multi-1",
+      "source": "synthetic",
+      "task": "multi",
+      "rendered_tokens": 8189,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8189,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.12504579313713518,
+        "compression_ratio": 7.9970703125,
+        "answer": "The provided text does not contain any explicit project codes for ALPHA, BRAVO, or CHARLIE. There is no mention of project codes or identifiers corresponding to",
+        "generation": {
+          "elapsed_s": 8.050684321999995,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.974817384474266,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text does not contain any explicit project codes for ALPHA, BRAVO, or CHARLIE. There is no mention of project codes or identifiers corresponding to",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8183,
+        "kept_tokens": 8183,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "96794,28320,65251",
+        "generation": {
+          "elapsed_s": 5.872652560999995,
+          "generated_tokens": 18,
+          "output_tokens_per_s": 3.0650544729203184,
+          "peak_allocated_vram_gb": 58.02600336074829
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794,28320,65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8183,
+        "kept_tokens": 2046,
+        "retention_ratio_actual": 0.25003055114261274,
+        "compression_ratio": 3.9995112414467253,
+        "answer": "96794,28320,65251",
+        "generation": {
+          "elapsed_s": 5.3469885149999925,
+          "generated_tokens": 18,
+          "output_tokens_per_s": 3.3663808982391323,
+          "peak_allocated_vram_gb": 57.166078090667725
+        },
+        "saliency": {
+          "elapsed_s": 3.3491874170000244,
+          "peak_allocated_vram_gb": 59.22663927078247
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794,28320,65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8183,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12501527557130637,
+        "compression_ratio": 7.999022482893451,
+        "answer": "96794, 28320, 65251",
+        "generation": {
+          "elapsed_s": 5.790657675999995,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.453839117945472,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": {
+          "elapsed_s": 3.3491874170000244,
+          "peak_allocated_vram_gb": 59.22663927078247
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794, 28320, 65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8183,
+        "kept_tokens": 511,
+        "retention_ratio_actual": 0.06244653550042772,
+        "compression_ratio": 16.013698630136986,
+        "answer": "96794, 28320, 65251",
+        "generation": {
+          "elapsed_s": 5.639601029999994,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.5463501573266467,
+          "peak_allocated_vram_gb": 56.9505615234375
+        },
+        "saliency": {
+          "elapsed_s": 3.3491874170000244,
+          "peak_allocated_vram_gb": 59.22663927078247
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "96794, 28320, 65251",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8183,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12501527557130637,
+        "compression_ratio": 7.999022482893451,
+        "answer": "The only record provided that contains a code is:\n\n**BOREAL record: CHARLIE code is 98439.**\n\nThere is no mention",
+        "generation": {
+          "elapsed_s": 8.145532594999963,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.9285337854571734,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The only record provided that contains a code is:\n\n**BOREAL record: CHARLIE code is 98439.**\n\nThere is no mention",
+        "parsed_choice": null,
+        "distractor_hit": true
+      }
+    },
+    {
+      "case_id": "syn-hard-0",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8183,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8183,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12501527557130637,
+        "compression_ratio": 7.999022482893451,
+        "answer": "The provided text appears to be a highly fragmented and corrupted document, likely the result of a data transmission or parsing error. It contains repeated phrases, nonsensical",
+        "generation": {
+          "elapsed_s": 7.887126751999972,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.057244292655196,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text appears to be a highly fragmented and corrupted document, likely the result of a data transmission or parsing error. It contains repeated phrases, nonsensical",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8192,
+        "kept_tokens": 8192,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "84825, 29714, 95533",
+        "generation": {
+          "elapsed_s": 6.274071703999994,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.187722573723397,
+          "peak_allocated_vram_gb": 58.025747776031494
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "84825, 29714, 95533",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8192,
+        "kept_tokens": 2048,
+        "retention_ratio_actual": 0.25,
+        "compression_ratio": 4.0,
+        "answer": "84825, 29714, 95533",
+        "generation": {
+          "elapsed_s": 5.794285706999972,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.4516765329397483,
+          "peak_allocated_vram_gb": 57.16609859466553
+        },
+        "saliency": {
+          "elapsed_s": 3.3102196489999756,
+          "peak_allocated_vram_gb": 59.22862672805786
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "84825, 29714, 95533",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8192,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "84825, 29714, 95533",
+        "generation": {
+          "elapsed_s": 5.792371632000027,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.452817130984787,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": {
+          "elapsed_s": 3.3102196489999756,
+          "peak_allocated_vram_gb": 59.22862672805786
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "84825, 29714, 95533",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8192,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.0625,
+        "compression_ratio": 16.0,
+        "answer": "84825, 29714, 95533",
+        "generation": {
+          "elapsed_s": 5.651784907000035,
+          "generated_tokens": 20,
+          "output_tokens_per_s": 3.538705086817607,
+          "peak_allocated_vram_gb": 56.95069742202759
+        },
+        "saliency": {
+          "elapsed_s": 3.3102196489999756,
+          "peak_allocated_vram_gb": 59.22862672805786
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "84825, 29714, 95533",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8192,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "The only record provided that contains a code is:\n\n**BOREAL record: CHARLIE code is 33108.**\n\nThere is no mention",
+        "generation": {
+          "elapsed_s": 8.12018047600003,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.9407991108792544,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The only record provided that contains a code is:\n\n**BOREAL record: CHARLIE code is 33108.**\n\nThere is no mention",
+        "parsed_choice": null,
+        "distractor_hit": true
+      }
+    },
+    {
+      "case_id": "syn-hard-1",
+      "source": "synthetic",
+      "task": "hard_multi",
+      "rendered_tokens": 8192,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8192,
+        "kept_tokens": 1024,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "ALPHA, BRAVO, CHARLIE",
+        "generation": {
+          "elapsed_s": 3.5617191649999995,
+          "generated_tokens": 10,
+          "output_tokens_per_s": 2.8076329257699917,
+          "peak_allocated_vram_gb": 57.02237558364868
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "ALPHA, BRAVO, CHARLIE",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8184,
+        "kept_tokens": 8184,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "We are given a series of statements involving variables A, B, C, and D.\n\nLet's trace the values step by step:\n\n1. **Variable A",
+        "generation": {
+          "elapsed_s": 8.767000071999973,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.650051298870355,
+          "peak_allocated_vram_gb": 58.026015281677246
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of statements involving variables A, B, C, and D.\n\nLet's trace the values step by step:\n\n1. **Variable A",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8184,
+        "kept_tokens": 2046,
+        "retention_ratio_actual": 0.25,
+        "compression_ratio": 4.0,
+        "answer": "We are given a series of variable assignments:\n\n1. Variable A is initialized to 3674.  \n   → A = 3674",
+        "generation": {
+          "elapsed_s": 8.166821663999997,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.9182929806167506,
+          "peak_allocated_vram_gb": 57.166078090667725
+        },
+        "saliency": {
+          "elapsed_s": 3.387193197999977,
+          "peak_allocated_vram_gb": 59.226643085479736
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of variable assignments:\n\n1. Variable A is initialized to 3674.  \n   → A = 3674",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8184,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "We are given a series of variable assignments:\n\n1. Variable A is initialized to 3674.  \n   → A = 3674",
+        "generation": {
+          "elapsed_s": 8.618367247000037,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.7130002798545005,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": {
+          "elapsed_s": 3.387193197999977,
+          "peak_allocated_vram_gb": 59.226643085479736
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of variable assignments:\n\n1. Variable A is initialized to 3674.  \n   → A = 3674",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8184,
+        "kept_tokens": 512,
+        "retention_ratio_actual": 0.06256109481915934,
+        "compression_ratio": 15.984375,
+        "answer": "We are given a series of variable assignments. Let's trace them step by step:\n\n1. **Variable A is initialized to 3674.**",
+        "generation": {
+          "elapsed_s": 8.00980974700002,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.995101133580011,
+          "peak_allocated_vram_gb": 56.95069742202759
+        },
+        "saliency": {
+          "elapsed_s": 3.387193197999977,
+          "peak_allocated_vram_gb": 59.226643085479736
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of variable assignments. Let's trace them step by step:\n\n1. **Variable A is initialized to 3674.**",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8184,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "The question asks for the \"final value of variable D,\" but there is no mention of a variable D in the provided document. The text consists of a series",
+        "generation": {
+          "elapsed_s": 8.106325656000024,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.9475344759082924,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The question asks for the \"final value of variable D,\" but there is no mention of a variable D in the provided document. The text consists of a series",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-0",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8184,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8184,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.125,
+        "compression_ratio": 8.0,
+        "answer": "The final value of variable D is not explicitly stated or calculable from the provided text. The text is a fragmented and repetitive memo with no clear definition or assignment",
+        "generation": {
+          "elapsed_s": 7.900995894000005,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.0501223427164055,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The final value of variable D is not explicitly stated or calculable from the provided text. The text is a fragmented and repetitive memo with no clear definition or assignment",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8181,
+        "kept_tokens": 8181,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "We are given a series of statements, and we need to determine the final value of **variable D**.\n\nLet’s trace the variables step by step:\n\n1",
+        "generation": {
+          "elapsed_s": 8.695062989999997,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.680249359527643,
+          "peak_allocated_vram_gb": 58.02597904205322
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of statements, and we need to determine the final value of **variable D**.\n\nLet’s trace the variables step by step:\n\n1",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 8181,
+        "kept_tokens": 2045,
+        "retention_ratio_actual": 0.2499694413885833,
+        "compression_ratio": 4.000488997555013,
+        "answer": "We are given a series of statements involving variables A, B, C, and D, with the following relationships:\n\n- Variable A is initialized to 75",
+        "generation": {
+          "elapsed_s": 8.171935083999983,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.9158411895186886,
+          "peak_allocated_vram_gb": 57.16606855392456
+        },
+        "saliency": {
+          "elapsed_s": 3.5322363359999827,
+          "peak_allocated_vram_gb": 59.22547197341919
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "We are given a series of statements involving variables A, B, C, and D, with the following relationships:\n\n- Variable A is initialized to 75",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 8181,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12504583791712504,
+        "compression_ratio": 7.997067448680352,
+        "answer": "7531 (Variable A)  \n+ 7 = 7538 (Variable B)  \n+ 11 = 754",
+        "generation": {
+          "elapsed_s": 8.259210101000008,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 3.8744625222847286,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": {
+          "elapsed_s": 3.5322363359999827,
+          "peak_allocated_vram_gb": 59.22547197341919
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "7531 (Variable A)  \n+ 7 = 7538 (Variable B)  \n+ 11 = 754",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "requested_retention_ratio": 0.0625,
+      "result": {
+        "method": "kiaomni_r0.0625",
+        "input_tokens": 8181,
+        "kept_tokens": 511,
+        "retention_ratio_actual": 0.06246180173572913,
+        "compression_ratio": 16.009784735812133,
+        "answer": "7562",
+        "generation": {
+          "elapsed_s": 2.7981444359999728,
+          "generated_tokens": 5,
+          "output_tokens_per_s": 1.7868984658803542,
+          "peak_allocated_vram_gb": 56.9505615234375
+        },
+        "saliency": {
+          "elapsed_s": 3.5322363359999827,
+          "peak_allocated_vram_gb": 59.22547197341919
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "7562",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "recency_r0.125",
+        "input_tokens": 8181,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12504583791712504,
+        "compression_ratio": 7.997067448680352,
+        "answer": "The document does not mention variable D at all. Therefore, the final value of variable D cannot be determined from the information provided.\n\nAnswer: 0",
+        "generation": {
+          "elapsed_s": 8.401587543000005,
+          "generated_tokens": 31,
+          "output_tokens_per_s": 3.6897788473118314,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The document does not mention variable D at all. Therefore, the final value of variable D cannot be determined from the information provided.\n\nAnswer: 0",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "syn-reason-1",
+      "source": "synthetic",
+      "task": "reason",
+      "rendered_tokens": 8181,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "random_r0.125",
+        "input_tokens": 8181,
+        "kept_tokens": 1023,
+        "retention_ratio_actual": 0.12504583791712504,
+        "compression_ratio": 7.997067448680352,
+        "answer": "The provided text is a highly fragmented and repetitive passage with no clear structure, equations, or logical sequence that would allow for the determination of a variable D. There",
+        "generation": {
+          "elapsed_s": 7.896092100999965,
+          "generated_tokens": 32,
+          "output_tokens_per_s": 4.052637632728157,
+          "peak_allocated_vram_gb": 57.02225160598755
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The provided text is a highly fragmented and repetitive passage with no clear structure, equations, or logical sequence that would allow for the determination of a variable D. There",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f9625fbb02136c067c5456",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 12978,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 12978,
+        "kept_tokens": 12978,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "A",
+        "generation": {
+          "elapsed_s": 3.4562944919999836,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5786543955178717,
+          "peak_allocated_vram_gb": 58.69704055786133
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "A",
+        "parsed_choice": "A",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f9625fbb02136c067c5456",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 12978,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 12978,
+        "kept_tokens": 3244,
+        "retention_ratio_actual": 0.24996147326244414,
+        "compression_ratio": 4.000616522811344,
+        "answer": "A",
+        "generation": {
+          "elapsed_s": 2.453835333000029,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8150506161123796,
+          "peak_allocated_vram_gb": 57.3354549407959
+        },
+        "saliency": {
+          "elapsed_s": 4.913925619999986,
+          "peak_allocated_vram_gb": 60.60137128829956
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "A",
+        "parsed_choice": "A",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f9625fbb02136c067c5456",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 12978,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 12978,
+        "kept_tokens": 1622,
+        "retention_ratio_actual": 0.12498073663122207,
+        "compression_ratio": 8.001233045622689,
+        "answer": "B",
+        "generation": {
+          "elapsed_s": 2.3581267019999927,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8481308482295479,
+          "peak_allocated_vram_gb": 57.11114025115967
+        },
+        "saliency": {
+          "elapsed_s": 4.913925619999986,
+          "peak_allocated_vram_gb": 60.60137128829956
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "B",
+        "parsed_choice": "B",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f8c6b4bb02136c067c4480",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 13739,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 13739,
+        "kept_tokens": 13739,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 3.380560323999987,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5916179000863194,
+          "peak_allocated_vram_gb": 58.80513954162598
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f8c6b4bb02136c067c4480",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 13739,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 13739,
+        "kept_tokens": 3435,
+        "retention_ratio_actual": 0.25001819637528205,
+        "compression_ratio": 3.999708879184862,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 2.429307623999989,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.823279843294152,
+          "peak_allocated_vram_gb": 57.36312818527222
+        },
+        "saliency": {
+          "elapsed_s": 4.9691498110000225,
+          "peak_allocated_vram_gb": 60.82014083862305
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f8c6b4bb02136c067c4480",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 13739,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 13739,
+        "kept_tokens": 1717,
+        "retention_ratio_actual": 0.12497270543707693,
+        "compression_ratio": 8.001747233546885,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 2.2898986239999886,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8734011100047764,
+          "peak_allocated_vram_gb": 57.12183475494385
+        },
+        "saliency": {
+          "elapsed_s": 4.9691498110000225,
+          "peak_allocated_vram_gb": 60.82014083862305
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66eae4de5a08c7b9b35dd12d",
+      "source": "longbench_v2",
+      "task": "Academic",
+      "rendered_tokens": 15300,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 15300,
+        "kept_tokens": 15300,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "C",
+        "generation": {
+          "elapsed_s": 3.6756940049999685,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5441149337456933,
+          "peak_allocated_vram_gb": 59.02938890457153
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "C",
+        "parsed_choice": "C",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66eae4de5a08c7b9b35dd12d",
+      "source": "longbench_v2",
+      "task": "Academic",
+      "rendered_tokens": 15300,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 15300,
+        "kept_tokens": 3825,
+        "retention_ratio_actual": 0.25,
+        "compression_ratio": 4.0,
+        "answer": "C",
+        "generation": {
+          "elapsed_s": 2.5714070550000088,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.7777842858877873,
+          "peak_allocated_vram_gb": 57.4168496131897
+        },
+        "saliency": {
+          "elapsed_s": 5.731608915000038,
+          "peak_allocated_vram_gb": 61.26751375198364
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "C",
+        "parsed_choice": "C",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66eae4de5a08c7b9b35dd12d",
+      "source": "longbench_v2",
+      "task": "Academic",
+      "rendered_tokens": 15300,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 15300,
+        "kept_tokens": 1912,
+        "retention_ratio_actual": 0.1249673202614379,
+        "compression_ratio": 8.002092050209205,
+        "answer": "A",
+        "generation": {
+          "elapsed_s": 2.3842806259999634,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8388274342334193,
+          "peak_allocated_vram_gb": 57.14772987365723
+        },
+        "saliency": {
+          "elapsed_s": 5.731608915000038,
+          "peak_allocated_vram_gb": 61.26751375198364
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "A",
+        "parsed_choice": "A",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f2aac2821e116aacb2a9de",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 15873,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 15873,
+        "kept_tokens": 15873,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "C",
+        "generation": {
+          "elapsed_s": 3.6848546240000246,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5427622536242522,
+          "peak_allocated_vram_gb": 59.10170602798462
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "C",
+        "parsed_choice": "C",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f2aac2821e116aacb2a9de",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 15873,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 15873,
+        "kept_tokens": 3968,
+        "retention_ratio_actual": 0.24998424998424998,
+        "compression_ratio": 4.000252016129032,
+        "answer": "C",
+        "generation": {
+          "elapsed_s": 2.622314603999996,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.7626849947558783,
+          "peak_allocated_vram_gb": 57.43702411651611
+        },
+        "saliency": {
+          "elapsed_s": 5.819269993999967,
+          "peak_allocated_vram_gb": 61.43181324005127
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "C",
+        "parsed_choice": "C",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f2aac2821e116aacb2a9de",
+      "source": "longbench_v2",
+      "task": "User guide QA",
+      "rendered_tokens": 15873,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 15873,
+        "kept_tokens": 1984,
+        "retention_ratio_actual": 0.12499212499212499,
+        "compression_ratio": 8.000504032258064,
+        "answer": "C",
+        "generation": {
+          "elapsed_s": 2.4986278100000163,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8004393419442437,
+          "peak_allocated_vram_gb": 57.165496826171875
+        },
+        "saliency": {
+          "elapsed_s": 5.819269993999967,
+          "peak_allocated_vram_gb": 61.43181324005127
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "C",
+        "parsed_choice": "C",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66fa7f1dbb02136c067c6e6b",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 15935,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 15935,
+        "kept_tokens": 15935,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 3.8972226000000205,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5131859801900948,
+          "peak_allocated_vram_gb": 59.11080598831177
+        },
+        "saliency": null,
+        "success": true,
+        "recall": 1.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66fa7f1dbb02136c067c6e6b",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 15935,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 15935,
+        "kept_tokens": 3984,
+        "retention_ratio_actual": 0.2500156887354879,
+        "compression_ratio": 3.9997489959839356,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 2.4771165150000343,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8073903620960569,
+          "peak_allocated_vram_gb": 57.438961029052734
+        },
+        "saliency": {
+          "elapsed_s": 5.905461504000016,
+          "peak_allocated_vram_gb": 61.44962787628174
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66fa7f1dbb02136c067c6e6b",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "rendered_tokens": 15935,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 15935,
+        "kept_tokens": 1992,
+        "retention_ratio_actual": 0.12500784436774395,
+        "compression_ratio": 7.999497991967871,
+        "answer": "D: ②④�",
+        "generation": {
+          "elapsed_s": 3.6708184939999455,
+          "generated_tokens": 8,
+          "output_tokens_per_s": 2.1793504672258304,
+          "peak_allocated_vram_gb": 57.165581703186035
+        },
+        "saliency": {
+          "elapsed_s": 5.905461504000016,
+          "peak_allocated_vram_gb": 61.44962787628174
+        },
+        "success": true,
+        "recall": 1.0,
+        "prediction": "D: ②④�",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66ebe0fb5a08c7b9b35e14f5",
+      "source": "longbench_v2",
+      "task": "Legal",
+      "rendered_tokens": 15891,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 15891,
+        "kept_tokens": 15891,
+        "retention_ratio_actual": 1.0,
+        "compression_ratio": 1.0,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 3.7516235319999964,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.5331025309284689,
+          "peak_allocated_vram_gb": 59.10475826263428
+        },
+        "saliency": null,
+        "success": false,
+        "recall": 0.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66ebe0fb5a08c7b9b35e14f5",
+      "source": "longbench_v2",
+      "task": "Legal",
+      "rendered_tokens": 15891,
+      "requested_retention_ratio": 0.25,
+      "result": {
+        "method": "kiaomni_r0.25",
+        "input_tokens": 15891,
+        "kept_tokens": 3973,
+        "retention_ratio_actual": 0.2500157321754452,
+        "compression_ratio": 3.999748301031966,
+        "answer": "D",
+        "generation": {
+          "elapsed_s": 2.3829412819999902,
+          "generated_tokens": 2,
+          "output_tokens_per_s": 0.8392989013650435,
+          "peak_allocated_vram_gb": 57.43763256072998
+        },
+        "saliency": {
+          "elapsed_s": 5.913805946000025,
+          "peak_allocated_vram_gb": 61.43774127960205
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "D",
+        "parsed_choice": "D",
+        "distractor_hit": false
+      }
+    },
+    {
+      "case_id": "longbenchv2-66ebe0fb5a08c7b9b35e14f5",
+      "source": "longbench_v2",
+      "task": "Legal",
+      "rendered_tokens": 15891,
+      "requested_retention_ratio": 0.125,
+      "result": {
+        "method": "kiaomni_r0.125",
+        "input_tokens": 15891,
+        "kept_tokens": 1986,
+        "retention_ratio_actual": 0.12497640173683217,
+        "compression_ratio": 8.001510574018127,
+        "answer": "The question asks which reason was **not",
+        "generation": {
+          "elapsed_s": 3.373483503999978,
+          "generated_tokens": 8,
+          "output_tokens_per_s": 2.371435932772254,
+          "peak_allocated_vram_gb": 57.165520668029785
+        },
+        "saliency": {
+          "elapsed_s": 5.913805946000025,
+          "peak_allocated_vram_gb": 61.43774127960205
+        },
+        "success": false,
+        "recall": 0.0,
+        "prediction": "The question asks which reason was **not",
+        "parsed_choice": null,
+        "distractor_hit": false
+      }
+    }
+  ],
+  "aggregate": [
+    {
+      "source": "longbench_v2",
+      "method": "full_context",
+      "n": 6,
+      "accuracy": 0.3333333333333333,
+      "mean_recall": 0.3333333333333333,
+      "full_context_solved_n": 2,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "longbench_v2",
+      "method": "kiaomni_r0.125",
+      "n": 6,
+      "accuracy": 0.3333333333333333,
+      "mean_recall": 0.3333333333333333,
+      "full_context_solved_n": 2,
+      "full_context_conditioned_accuracy": 0.5
+    },
+    {
+      "source": "longbench_v2",
+      "method": "kiaomni_r0.25",
+      "n": 6,
+      "accuracy": 0.3333333333333333,
+      "mean_recall": 0.3333333333333333,
+      "full_context_solved_n": 2,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "full_context",
+      "n": 8,
+      "accuracy": 0.75,
+      "mean_recall": 0.75,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "kiaomni_r0.0625",
+      "n": 8,
+      "accuracy": 0.875,
+      "mean_recall": 0.875,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "kiaomni_r0.125",
+      "n": 8,
+      "accuracy": 0.75,
+      "mean_recall": 0.75,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "kiaomni_r0.25",
+      "n": 8,
+      "accuracy": 0.75,
+      "mean_recall": 0.75,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 1.0
+    },
+    {
+      "source": "synthetic",
+      "method": "random_r0.125",
+      "n": 8,
+      "accuracy": 0.0,
+      "mean_recall": 0.0,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 0.0
+    },
+    {
+      "source": "synthetic",
+      "method": "recency_r0.125",
+      "n": 8,
+      "accuracy": 0.0,
+      "mean_recall": 0.0,
+      "full_context_solved_n": 6,
+      "full_context_conditioned_accuracy": 0.0
+    }
+  ],
+  "gate": {
+    "status": "INCONCLUSIVE",
+    "reason": "FullContext solved too few frozen cases for a quality-retention decision",
+    "full_context_solved": {
+      "synthetic": 6,
+      "real": 2
+    }
+  },
+  "wall_seconds": 493.81730846299996
+}
