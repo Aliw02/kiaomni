@@ -699,17 +699,24 @@ def main() -> None:
     torch.manual_seed(args.seed)
     started = time.perf_counter()
     deadline = started + int(cfg["max_wall_seconds"])
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
 
     if not torch.cuda.is_available():
         raise RuntimeError("This experiment requires CUDA")
     if not torch.cuda.is_bf16_supported():
         raise RuntimeError("BF16-capable GPU required; do not silently downgrade precision")
 
+    source_kwargs: dict[str, Any] = {}
+    if not Path(args.model).exists():
+        source_kwargs["revision"] = args.model_revision
+
     tokenizer = AutoTokenizer.from_pretrained(
         args.model,
         cache_dir=args.cache_dir,
         local_files_only=args.local_files_only,
         trust_remote_code=False,
+        **source_kwargs,
     )
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
@@ -720,10 +727,25 @@ def main() -> None:
         device_map={"": 0},
         low_cpu_mem_usage=True,
         trust_remote_code=False,
+        **source_kwargs,
     ).eval()
 
-    headroom = assert_memory_headroom()
+    if getattr(model, "is_quantized", False):
+        raise RuntimeError("Quantized model detected; Phase-03 requires BF16")
+    bad_devices = sorted({
+        str(p.device) for p in model.parameters()
+        if p.device.type != "cuda"
+    })
+    if bad_devices:
+        raise RuntimeError(
+            "CPU/disk offload is forbidden in Phase-03; non-CUDA parameters found on "
+            + ", ".join(bad_devices)
+        )
+
+    headroom = assert_memory_headroom(min_free_gb=8.0)
+    probe_obj = ArchitectureProbe.probe(model, force=True)
     probe = check_probe(model)
+    saliency_gpu = SaliencyAdapter(probe_obj, offload_to_cpu=False)
 
     cases: list[EvalCase] = []
     for task in cfg["tasks"]:
@@ -741,66 +763,153 @@ def main() -> None:
             args.seed,
             args.cache_dir,
             args.local_files_only,
+            args.dataset,
+            args.dataset_revision,
         )
     )
 
+    saliency_parity: dict[str, Any] | None = None
+    if args.stage == "preflight":
+        parity_ids = encode_case(tokenizer, cases[0])[:, :512].to(model.device)
+        cpu_adapter = SaliencyAdapter(probe_obj, offload_to_cpu=True)
+        gpu_adapter = SaliencyAdapter(probe_obj, offload_to_cpu=False)
+        cpu_sal, cpu_meta = extract_saliency_once(model, parity_ids, cpu_adapter)
+        gpu_sal, gpu_meta = extract_saliency_once(model, parity_ids, gpu_adapter)
+        allclose = bool(np.allclose(cpu_sal, gpu_sal, rtol=1e-4, atol=2e-5))
+        k = min(128, cpu_sal.shape[1])
+        cpu_top = set(np.argpartition(-cpu_sal[0], k - 1)[:k].tolist())
+        gpu_top = set(np.argpartition(-gpu_sal[0], k - 1)[:k].tolist())
+        union = cpu_top | gpu_top
+        jaccard = len(cpu_top & gpu_top) / len(union) if union else 1.0
+        saliency_parity = {
+            "tokens": int(parity_ids.shape[1]),
+            "allclose_rtol_1e-4_atol_2e-5": allclose,
+            "top_k": k,
+            "top_k_jaccard": jaccard,
+            "cpu": cpu_meta,
+            "gpu": gpu_meta,
+        }
+        if not allclose and jaccard < 0.98:
+            raise RuntimeError(
+                f"CPU/GPU saliency parity failed: allclose={allclose}, "
+                f"top-{k} Jaccard={jaccard:.4f}"
+            )
+
     rows: list[dict[str, Any]] = []
+
+    def payload(complete: bool) -> dict[str, Any]:
+        summary = summarize(rows)
+        gate = evaluate_gate(args.stage, summary) if complete else {
+            "status": "INCOMPLETE",
+            "reason": "Checkpoint written before all frozen cases completed.",
+        }
+        return {
+            "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
+            "claim_scope": (
+                "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. "
+                "This artifact is not evidence of real past_key_values KV-cache eviction."
+            ),
+            "stage": args.stage,
+            "complete": complete,
+            "model": {
+                "id_or_path": args.model,
+                "frozen_id": MODEL_DEFAULT,
+                "revision": args.model_revision,
+            },
+            "real_dataset": {
+                "id": args.dataset,
+                "revision": args.dataset_revision,
+            },
+            "seed": args.seed,
+            "repo_git_head": repo_git_head(),
+            "runner_sha256": file_sha256(__file__),
+            "environment": environment_snapshot(model, tokenizer, cfg),
+            "post_load_headroom": headroom,
+            "probe": probe,
+            "saliency_parity": saliency_parity,
+            "cases": [
+                asdict(c) | {"context": "<omitted-from-artifact>"}
+                for c in cases
+            ],
+            "rows": rows,
+            "summary": summary,
+            "gate": gate,
+            "wall_seconds": time.perf_counter() - started,
+        }
+
     for case in cases:
         if time.perf_counter() >= deadline:
+            write_artifact(output, payload(False))
             raise TimeoutError("experiment wall-time budget reached before next case")
-        case_tokens = token_len(tokenizer, case.context, case.question)
-        methods: list[int | None] = [None, *[int(x) for x in cfg["budgets"]]]
-        for budget in methods:
+
+        ids = encode_case(tokenizer, case).to(model.device)
+        case_tokens = int(ids.shape[1])
+        if case_tokens > int(cfg["target_tokens"]):
+            write_artifact(output, payload(False))
+            raise RuntimeError(
+                f"Case {case.case_id} exceeds frozen target: "
+                f"{case_tokens} > {cfg['target_tokens']}"
+            )
+
+        full = generate_ids(
+            model,
+            tokenizer,
+            case,
+            ids,
+            int(cfg["max_new_tokens"]),
+            "full_context",
+            None,
+        )
+        rows.append({
+            "case_id": case.case_id,
+            "source": case.source,
+            "task": case.task,
+            "rendered_tokens": case_tokens,
+            "gold": case.gold,
+            "meta": case.meta,
+            "result": full,
+        })
+
+        saliency, saliency_meta = extract_saliency_once(model, ids, saliency_gpu)
+        for budget in [int(x) for x in cfg["budgets"]]:
             if time.perf_counter() >= deadline:
-                raise TimeoutError("experiment wall-time budget reached before next method")
-            result = generate_once(
+                write_artifact(output, payload(False))
+                raise TimeoutError("experiment wall-time budget reached before next budget")
+            pruned, compression = select_pruned_ids(ids, saliency, budget)
+            result = generate_ids(
                 model,
                 tokenizer,
                 case,
+                pruned,
                 int(cfg["max_new_tokens"]),
+                f"kiaomni_{budget}",
                 budget,
             )
-            rows.append(
-                {
-                    "case_id": case.case_id,
-                    "source": case.source,
-                    "task": case.task,
-                    "rendered_tokens": case_tokens,
-                    "gold": case.gold,
-                    "meta": case.meta,
-                    "result": result,
-                }
-            )
+            result["compression"] = compression
+            result["saliency"] = saliency_meta
+            rows.append({
+                "case_id": case.case_id,
+                "source": case.source,
+                "task": case.task,
+                "rendered_tokens": case_tokens,
+                "gold": case.gold,
+                "meta": case.meta,
+                "result": result,
+            })
             print(
                 f"[{case.case_id}] {result['method']} "
-                f"success={result['success']} recall={result['recall']:.3f} "
+                f"success={result['success']} "
                 f"elapsed={result['elapsed_s']:.2f}s"
             )
 
-    artifact = {
-        "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V1",
-        "claim_scope": (
-            "Prompt-side KiaOmni policy scaling on a substantially larger MoE. "
-            "This artifact is not evidence of real past_key_values KV-cache eviction."
-        ),
-        "stage": args.stage,
-        "model": args.model,
-        "seed": args.seed,
-        "repo_git_head": repo_git_head(),
-        "runner_sha256": file_sha256(__file__),
-        "environment": environment_snapshot(model, tokenizer, cfg),
-        "post_load_headroom": headroom,
-        "probe": probe,
-        "cases": [asdict(c) | {"context": "<omitted-from-artifact>"} for c in cases],
-        "rows": rows,
-        "aggregate": aggregate(rows),
-        "wall_seconds": time.perf_counter() - started,
-    }
+        write_artifact(output, payload(False))
 
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(artifact, indent=2, ensure_ascii=False), encoding="utf-8")
+    write_artifact(output, payload(True))
     print(f"Wrote {output}")
+    final_gate = evaluate_gate(args.stage, summarize(rows))
+    print(f"Gate: {final_gate['status']}")
+
+
 
 
 if __name__ == "__main__":
