@@ -18,6 +18,13 @@ def test_stage_plan_preserves_4x_8x_16x_pressure():
     assert mod.PRIMARY_RATIO == 0.125
 
 
+def test_smoke_exercises_real_benchmark_before_final():
+    smoke = mod.STAGE_PLANS["smoke"]
+    assert smoke["real_cases"] == 2
+    assert smoke["real_min_tokens"] == 4096
+    assert smoke["real_max_tokens"] == 8192
+
+
 def test_protected_token_defaults_match_library():
     assert mod.N_SINK == 16
     assert mod.RECENCY == 32
