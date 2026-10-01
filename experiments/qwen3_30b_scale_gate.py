@@ -428,33 +428,19 @@ def _cuda_stats() -> dict[str, float | None]:
     }
 
 
-def generate_once(
+def generate_ids(
     model,
     tokenizer,
     case: EvalCase,
+    ids: torch.Tensor,
     max_new_tokens: int,
+    method: str,
     budget: int | None,
 ) -> dict[str, Any]:
-    remove_kiaomni(model)
-    ids = encode_case(tokenizer, case).to(model.device)
     input_len = int(ids.shape[1])
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
-        torch.cuda.synchronize()
-
-    method = "full_context"
-    if budget is not None:
-        method = f"kiaomni_{budget}"
-        apply_kiaomni(
-            model,
-            policy=POLICY,
-            budget=budget,
-            n_sink=N_SINK,
-            recency=RECENCY,
-            verbose=False,
-        )
-
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
     t0 = time.perf_counter()
     with torch.inference_mode():
         out = model.generate(
@@ -464,21 +450,13 @@ def generate_once(
             use_cache=True,
             pad_token_id=tokenizer.eos_token_id,
         )
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
+    torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
-
     seq = out.sequences if hasattr(out, "sequences") else out
     generated = seq[:, input_len:]
     answer = tokenizer.decode(generated[0], skip_special_tokens=True)
     score = score_answer(case, answer)
-    compression = getattr(model, "_kia_last_compression", None)
     stats = _cuda_stats()
-    remove_kiaomni(model)
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
     return {
         "method": method,
         "budget": budget,
@@ -489,34 +467,171 @@ def generate_once(
         "output_tokens_per_s": (
             float(generated.shape[1]) / elapsed if elapsed > 0 else None
         ),
-        "compression": compression,
         "cuda": stats,
         **score,
     }
 
 
-def aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    for row in rows:
-        key = (row["source"], row["result"]["method"])
-        groups.setdefault(key, []).append(row)
-    out = []
-    for (source, method), items in sorted(groups.items()):
-        successes = [1.0 if x["result"]["success"] else 0.0 for x in items]
-        recalls = [float(x["result"]["recall"]) for x in items]
-        elapsed = [float(x["result"]["elapsed_s"]) for x in items]
-        out.append(
-            {
-                "source": source,
-                "method": method,
-                "n": len(items),
-                "accuracy": float(np.mean(successes)),
-                "mean_recall": float(np.mean(recalls)),
-                "mean_elapsed_s": float(np.mean(elapsed)),
-            }
+def extract_saliency_once(
+    model,
+    ids: torch.Tensor,
+    adapter: SaliencyAdapter,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
+    t0 = time.perf_counter()
+    sal = adapter.extract(ids, model)
+    torch.cuda.synchronize()
+    elapsed = time.perf_counter() - t0
+    if sal.shape != tuple(ids.shape):
+        raise RuntimeError(
+            f"Saliency shape mismatch: got {sal.shape}, expected {tuple(ids.shape)}"
         )
+    if not np.isfinite(sal).all():
+        raise RuntimeError("Non-finite saliency detected; fail closed")
+    return sal, {
+        "elapsed_s": elapsed,
+        "min": float(sal.min()),
+        "max": float(sal.max()),
+        "mean": float(sal.mean()),
+        "peak_allocated_gb": torch.cuda.max_memory_allocated() / 2**30,
+    }
+
+
+def select_pruned_ids(
+    ids: torch.Tensor,
+    saliency: np.ndarray,
+    budget: int,
+) -> tuple[torch.Tensor, dict[str, Any]]:
+    L = int(ids.shape[1])
+    scores = get_policy(POLICY)(saliency[0])
+    keep = np.sort(
+        select_keep(
+            scores,
+            budget,
+            L,
+            n_sink=N_SINK,
+            recency=RECENCY,
+        )
+    )
+    keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
+    pruned = ids[:, keep_t]
+    return pruned, {
+        "original_tokens": L,
+        "kept_tokens": int(pruned.shape[1]),
+        "budget": int(budget),
+        "compression_ratio": float(L / pruned.shape[1]),
+        "retained_fraction": float(pruned.shape[1] / L),
+    }
+
+
+def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    full_by_case = {
+        r["case_id"]: bool(r["result"]["success"])
+        for r in rows
+        if r["result"]["method"] == "full_context"
+    }
+    methods = sorted({r["result"]["method"] for r in rows})
+    out: dict[str, Any] = {"methods": {}, "by_source": {}}
+    for method in methods:
+        items = [r for r in rows if r["result"]["method"] == method]
+        successes = [bool(r["result"]["success"]) for r in items]
+        conditioned = [r for r in items if full_by_case.get(r["case_id"], False)]
+        out["methods"][method] = {
+            "n": len(items),
+            "accuracy": float(np.mean(successes)) if successes else None,
+            "conditioned_n": len(conditioned),
+            "full_context_conditioned_accuracy": (
+                float(np.mean([bool(r["result"]["success"]) for r in conditioned]))
+                if conditioned else None
+            ),
+            "mean_elapsed_s": (
+                float(np.mean([float(r["result"]["elapsed_s"]) for r in items]))
+                if items else None
+            ),
+        }
+        for source in sorted({r["source"] for r in items}):
+            src = [r for r in items if r["source"] == source]
+            src_cond = [r for r in src if full_by_case.get(r["case_id"], False)]
+            out["by_source"].setdefault(source, {})[method] = {
+                "n": len(src),
+                "accuracy": float(np.mean([bool(r["result"]["success"]) for r in src])),
+                "conditioned_n": len(src_cond),
+                "full_context_conditioned_accuracy": (
+                    float(np.mean([bool(r["result"]["success"]) for r in src_cond]))
+                    if src_cond else None
+                ),
+            }
     return out
 
+
+def evaluate_gate(stage: str, summary: dict[str, Any]) -> dict[str, Any]:
+    if stage != "final":
+        return {
+            "status": "ENGINEERING_STAGE",
+            "reason": "PASS/FAIL thresholds apply only to the frozen final stage.",
+        }
+
+    checks = [
+        ("combined_4x", "kiaomni_2048", None, 0.90, 6),
+        ("combined_8x", "kiaomni_1024", None, 0.80, 6),
+        ("realistic_8x", "kiaomni_1024", "longbench-v2", 0.75, 4),
+        ("synthetic_8x", "kiaomni_1024", "synthetic", 0.80, 4),
+    ]
+    results = []
+    inconclusive = False
+    failed = False
+    for name, method, source, threshold, min_n in checks:
+        rec = (
+            summary["methods"].get(method, {})
+            if source is None
+            else summary["by_source"].get(source, {}).get(method, {})
+        )
+        n = int(rec.get("conditioned_n") or 0)
+        acc = rec.get("full_context_conditioned_accuracy")
+        if n < min_n or acc is None:
+            status = "INCONCLUSIVE"
+            inconclusive = True
+        elif float(acc) >= threshold:
+            status = "PASS"
+        else:
+            status = "FAIL"
+            failed = True
+        results.append({
+            "name": name,
+            "method": method,
+            "source": source or "combined",
+            "threshold": threshold,
+            "minimum_conditioned_n": min_n,
+            "conditioned_n": n,
+            "observed": acc,
+            "status": status,
+        })
+
+    if failed:
+        overall = "FAIL"
+    elif inconclusive:
+        overall = "INCONCLUSIVE"
+    else:
+        overall = "PASS"
+    return {
+        "status": overall,
+        "checks": results,
+        "stress_16x": (
+            "Diagnostic only; 512-token budget does not determine the Phase-03 gate."
+        ),
+    }
+
+
+def write_artifact(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    tmp.replace(path)
 
 def environment_snapshot(model, tokenizer, cfg: dict[str, Any]) -> dict[str, Any]:
     gpu = None
