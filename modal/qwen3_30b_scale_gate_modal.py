@@ -212,6 +212,8 @@ def prepare_assets() -> dict[str, object]:
         final_eligible = 0
         for raw in ds:
             row = dict(raw)
+            if str(row.get("length", "")).lower() != "short":
+                continue
             rendered = _render_for_length(tokenizer, str(row["context"]), row)
             n = len(tokenizer(rendered, add_special_tokens=False).input_ids)
             if 8192 <= n <= 16384:
@@ -230,6 +232,7 @@ def prepare_assets() -> dict[str, object]:
             "model_revision": MODEL_REVISION,
             "dataset_repo": DATASET_ID,
             "dataset_revision": DATASET_REVISION,
+            "source_length_category": "short",
             "eligible_rows": rows,
             "smoke_eligible_8k_12k": smoke_eligible,
             "final_eligible_8k_16k": final_eligible,
@@ -243,6 +246,7 @@ def prepare_assets() -> dict[str, object]:
         "model_revision": MODEL_REVISION,
         "dataset_repo": DATASET_ID,
         "dataset_revision": DATASET_REVISION,
+        "source_length_category": "short",
     }
     observed_index_identity = {
         k: index_payload.get(k) for k in expected_index_identity
