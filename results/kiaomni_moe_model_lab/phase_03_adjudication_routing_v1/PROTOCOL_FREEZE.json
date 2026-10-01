@@ -60,7 +60,7 @@
   },
   "routing": {
     "type": "actual_executed_dispatch",
-    "source": "Forward hooks capture Qwen3-MoE gate top-k indices/weights and verify equality against the indices/weights received by the actual experts module in the same forward.",
+    "source": "Transformers 4.57.6 actual Qwen3MoeSparseMoeBlock gate logits from the executed forward. The runner reconstructs the exact softmax/top-k dispatch used by that block and independently hooks every expert module; per-layer/per-expert dispatched token counts must match exactly.",
     "shadow_or_projected": false,
     "compare_only_same_retained_original_tokens": true,
     "metrics": [
@@ -71,7 +71,8 @@
       "expert_load_jsd"
     ],
     "layerwise": true,
-    "generation_routing": "Not compared after output-token divergence; primary routing audit is prompt prefill on matched retained source tokens."
+    "generation_routing": "Not compared after output-token divergence; primary routing audit is prompt prefill on matched retained source tokens.",
+    "dispatch_verification": "Exact expert-assignment counts from actual expert calls must equal counts implied by the same forward's actual gate logits for every sparse layer and expert."
   },
   "performance": {
     "metrics": [
