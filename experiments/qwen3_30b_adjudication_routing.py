@@ -744,9 +744,16 @@ def print_result(case: EvalCase, result: dict[str, Any]) -> None:
         f"NLL={result['gold_answer_nll']:.6f} "
         f"OUT_TOK_S={result['output_tokens_per_second']:.3f} "
         f"GEN_PEAK_VRAM_GB={result['generation_peak_allocated_vram_gb']:.3f} "
-        f"PIPELINE_PEAK_VRAM_GB={result['pipeline_peak_allocated_vram_gb']:.3f}",
+        f"PIPELINE_PEAK_VRAM_GB={result['pipeline_peak_allocated_vram_gb']:.3f} "
+        f"ACTUAL_DISPATCH_VERIFIED={result['dispatch_verified']}",
         flush=True,
     )
+    if result.get("saliency"):
+        print(
+            f"SALIENCY_SECONDS={result['saliency']['saliency_elapsed_seconds']:.3f} "
+            f"SALIENCY_PEAK_VRAM_GB={result['saliency']['saliency_peak_allocated_vram_gb']:.3f}",
+            flush=True,
+        )
     if result["routing"] is not None:
         r = result["routing"]
         print(
