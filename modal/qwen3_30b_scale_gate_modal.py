@@ -36,6 +36,7 @@ base_image = (
         "numpy>=1.26,<3",
         "datasets>=4.0,<5",
         "huggingface_hub>=0.35,<1",
+        "hf_xet>=1.1,<2",
     )
     .add_local_dir(REPO_ROOT, REMOTE_REPO)
 )
@@ -45,6 +46,8 @@ base_image = (
     image=base_image,
     volumes={HF_HOME: model_cache},
     timeout=2 * 60 * 60,
+    cpu=4.0,
+    memory=8192,
     max_containers=1,
 )
 def prepare_assets() -> dict[str, str]:
@@ -79,6 +82,8 @@ def prepare_assets() -> dict[str, str]:
     gpu=GPU_TYPE,
     volumes={HF_HOME: model_cache, "/results": results_volume},
     timeout=max(GPU_STAGE_TIMEOUTS.values()) + 10 * 60,
+    cpu=4.0,
+    memory=32768,
     max_containers=1,
     scaledown_window=30,
 )
@@ -133,7 +138,9 @@ def main(stage: str = "preflight", prepare: bool = False):
         print("Preparing model and LongBench QA subsets on CPU...")
         print(prepare_assets.remote())
     print(f"Running {stage} on {GPU_TYPE}...")
-    summary = run_stage.remote(stage)
+    summary = run_stage.with_options(
+        timeout=GPU_STAGE_TIMEOUTS[stage] + 5 * 60
+    ).remote(stage)
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     print(
         "Artifact is stored in Modal volume 'kiaomni-qwen3-results' at "
