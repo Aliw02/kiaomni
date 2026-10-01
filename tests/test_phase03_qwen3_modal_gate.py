@@ -33,6 +33,15 @@ def _load_runner():
     return mod
 
 
+def _load_launcher():
+    spec = importlib.util.spec_from_file_location("phase03_modal_launcher", LAUNCHER)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def test_phase03_python_files_parse():
     ast.parse(_source(RUNNER))
     ast.parse(_source(LAUNCHER))
@@ -60,6 +69,9 @@ def test_runner_reuses_saliency_and_does_not_use_apply_wrapper():
     assert "Non-finite saliency" in src
     assert "top128_jaccard" in src
     assert "RECENCY = RECENCY_DEFAULT" in src
+    assert 'p.add_argument("--dataset-index", required=True)' in src
+    assert 'p.add_argument("--repo-revision", required=True)' in src
+    assert "KIAOMNI_QWEN3_30B_SCALE_GATE_ERROR_V1" in src
 
 
 def test_modal_remote_paths_are_posix_strings_on_windows_hosts():
@@ -69,8 +81,29 @@ def test_modal_remote_paths_are_posix_strings_on_windows_hosts():
     assert 'REMOTE_REPO = "/root/kiaomni"' in src
     assert 'Path("/assets")' not in src
     assert 'Path("/root/kiaomni")' not in src
-    assert "remote_path=REMOTE_REPO" in src
-    assert ".workdir(REMOTE_REPO)" in src
+    assert 'remote_path=f"{REMOTE_REPO}/kiaomni"' in src
+    assert 'remote_path=REMOTE_RUNNER' in src
+    assert ".workdir(" not in src
+
+
+def test_modal_launcher_imports_under_pinned_sdk():
+    mod = _load_launcher()
+    assert mod.APP_NAME == "kiaomni-qwen3-30b-scale-gate"
+    assert mod.GPU_STAGE_TIMEOUTS == {
+        "preflight": 20 * 60,
+        "smoke": 40 * 60,
+        "final": 90 * 60,
+    }
+
+
+def test_detach_is_fully_remote_and_no_invalid_scale_down():
+    src = _source(LAUNCHER)
+    assert "scaledown_window=0" not in src
+    assert "def orchestrate(" in src
+    assert "orchestrate.spawn(" in src
+    assert "single_use_containers=True" in src
+    assert "prepare_assets.remote()" in src
+    assert "run_stage.with_options(" in src
 
 
 def test_launcher_pins_assets_and_has_hard_timeouts():
@@ -83,6 +116,10 @@ def test_launcher_pins_assets_and_has_hard_timeouts():
     assert "max_containers=1" in src
     assert "Previous stage did not PASS" in src
     assert "with_options(" in src
+    assert '"--dataset-index", DATASET_INDEX' in src
+    assert '"--repo-revision", repo_revision' in src
+    assert "results.reload()" in src
+    assert "assets.reload()" in src
 
 
 def test_final_gate_pass_fail_and_inconclusive():
