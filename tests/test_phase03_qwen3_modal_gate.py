@@ -62,6 +62,17 @@ def test_runner_reuses_saliency_and_does_not_use_apply_wrapper():
     assert "RECENCY = RECENCY_DEFAULT" in src
 
 
+def test_modal_remote_paths_are_posix_strings_on_windows_hosts():
+    src = _source(LAUNCHER)
+    assert 'ASSET_ROOT = "/assets"' in src
+    assert 'RESULTS_ROOT = "/results/phase_03_qwen3_30b_scale_gate"' in src
+    assert 'REMOTE_REPO = "/root/kiaomni"' in src
+    assert 'Path("/assets")' not in src
+    assert 'Path("/root/kiaomni")' not in src
+    assert "remote_path=REMOTE_REPO" in src
+    assert ".workdir(REMOTE_REPO)" in src
+
+
 def test_launcher_pins_assets_and_has_hard_timeouts():
     src = _source(LAUNCHER)
     assert 'MODEL_REVISION = "0d7cf23"' in src
