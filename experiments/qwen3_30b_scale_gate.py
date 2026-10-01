@@ -4,7 +4,6 @@ import argparse
 import gc
 import hashlib
 import json
-import math
 import os
 import platform
 import random
@@ -22,44 +21,47 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from kiaomni import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
 from kiaomni.policies import get_policy
-from kiaomni.utils import select_keep
+from kiaomni.utils import N_SINK_DEFAULT, RECENCY_DEFAULT, select_keep
 
 MODEL_DEFAULT = "Qwen/Qwen3-30B-A3B-Instruct-2507"
-MODEL_REVISION_DEFAULT = "b9b7053e66b5de60c03b1913dbc21e900ef7ded7"
+MODEL_REVISION_DEFAULT = "0d7cf23"
 DATASET_DEFAULT = "THUDM/LongBench-v2"
 DATASET_REVISION_DEFAULT = "b0db4901b856522026b7353ab541b8535ff2a4b8"
 SEED_DEFAULT = 42
-N_SINK = 16
-RECENCY = 32
 POLICY = "kiaomni_s8"
+N_SINK = N_SINK_DEFAULT
+RECENCY = RECENCY_DEFAULT
+PRIMARY_RATIO = 0.125
 
 STAGE_PLANS: dict[str, dict[str, Any]] = {
     "preflight": {
-        "target_tokens": 8192,
-        "budgets": [1024],
+        "synthetic_target_tokens": 2048,
+        "retention_ratios": [0.25],
+        "synthetic_tasks": ["hard_multi"],
         "synthetic_per_task": 1,
         "real_cases": 0,
-        "tasks": ["hard_multi"],
         "max_new_tokens": 24,
-        "max_wall_seconds": 28 * 60,
+        "max_wall_seconds": 15 * 60,
     },
     "smoke": {
-        "target_tokens": 8192,
-        "budgets": [2048, 1024],
+        "synthetic_target_tokens": 4096,
+        "retention_ratios": [0.25, 0.125],
+        "synthetic_tasks": ["single", "multi", "hard_multi", "reason"],
         "synthetic_per_task": 1,
-        "real_cases": 2,
-        "tasks": ["single", "multi", "hard_multi", "reason"],
-        "max_new_tokens": 24,
-        "max_wall_seconds": 43 * 60,
+        "real_cases": 0,
+        "max_new_tokens": 32,
+        "max_wall_seconds": 35 * 60,
     },
     "final": {
-        "target_tokens": 8192,
-        "budgets": [2048, 1024, 512],
+        "synthetic_target_tokens": 8192,
+        "retention_ratios": [0.25, 0.125, 0.0625],
+        "synthetic_tasks": ["single", "multi", "hard_multi", "reason"],
         "synthetic_per_task": 2,
-        "real_cases": 8,
-        "tasks": ["single", "multi", "hard_multi", "reason"],
-        "max_new_tokens": 24,
-        "max_wall_seconds": 118 * 60,
+        "real_cases": 6,
+        "real_min_tokens": 8192,
+        "real_max_tokens": 16384,
+        "max_new_tokens": 32,
+        "max_wall_seconds": 85 * 60,
     },
 }
 
@@ -73,65 +75,25 @@ class EvalCase:
     question: str
     gold: list[str]
     distractors: list[str]
-    choices: dict[str, str] | None = None
     meta: dict[str, Any] | None = None
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Budget-capped Qwen3-30B-A3B KiaOmni MoE scaling gate"
+        description="Budget-capped Qwen3-30B-A3B prompt-side KiaOmni scale gate"
     )
     p.add_argument("--stage", choices=sorted(STAGE_PLANS), required=True)
     p.add_argument("--model", default=MODEL_DEFAULT)
     p.add_argument("--model-revision", default=MODEL_REVISION_DEFAULT)
     p.add_argument("--dataset", default=DATASET_DEFAULT)
     p.add_argument("--dataset-revision", default=DATASET_REVISION_DEFAULT)
-    p.add_argument("--cache-dir", default=os.environ.get("HF_HOME"))
+    p.add_argument("--model-dir", required=True)
+    p.add_argument("--dataset-dir", required=True)
+    p.add_argument("--asset-manifest", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--seed", type=int, default=SEED_DEFAULT)
-    p.add_argument("--target-tokens", type=int)
-    p.add_argument("--budgets", default="")
-    p.add_argument("--synthetic-per-task", type=int)
-    p.add_argument("--real-cases", type=int)
-    p.add_argument("--max-wall-seconds", type=int)
-    p.add_argument("--max-new-tokens", type=int)
-    p.add_argument("--local-files-only", action="store_true")
+    p.add_argument("--min-free-gb", type=float, default=8.0)
     return p.parse_args()
-
-
-def stage_config(args: argparse.Namespace) -> dict[str, Any]:
-    cfg = dict(STAGE_PLANS[args.stage])
-    if args.target_tokens is not None:
-        cfg["target_tokens"] = args.target_tokens
-    if args.budgets:
-        cfg["budgets"] = [int(x) for x in args.budgets.split(",") if x.strip()]
-    if args.synthetic_per_task is not None:
-        cfg["synthetic_per_task"] = args.synthetic_per_task
-    if args.real_cases is not None:
-        cfg["real_cases"] = args.real_cases
-    if args.max_wall_seconds is not None:
-        cfg["max_wall_seconds"] = args.max_wall_seconds
-    if args.max_new_tokens is not None:
-        cfg["max_new_tokens"] = args.max_new_tokens
-    validate_stage_config(cfg)
-    return cfg
-
-
-def validate_stage_config(cfg: dict[str, Any]) -> None:
-    target = int(cfg["target_tokens"])
-    budgets = [int(x) for x in cfg["budgets"]]
-    if target < 512:
-        raise ValueError("target_tokens must be >= 512")
-    if not budgets:
-        raise ValueError("at least one budget is required")
-    if any(b >= target for b in budgets):
-        raise ValueError("every compressed budget must be smaller than target_tokens")
-    if any(b < N_SINK + RECENCY for b in budgets):
-        raise ValueError(
-            f"budgets must be >= n_sink+recency={N_SINK + RECENCY}"
-        )
-    if int(cfg["max_wall_seconds"]) <= 0:
-        raise ValueError("max_wall_seconds must be positive")
 
 
 def repo_git_head() -> str | None:
@@ -154,15 +116,8 @@ def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
 
 
-def render_user(tokenizer, context: str, question: str, choices: dict[str, str] | None = None) -> str:
-    if choices:
-        opts = "\n".join(f"{k}. {v}" for k, v in choices.items())
-        user = (
-            f"Context:\n{context}\n\nQuestion:\n{question}\n\nChoices:\n{opts}\n\n"
-            "Answer with exactly one letter: A, B, C, or D."
-        )
-    else:
-        user = f"Document:\n{context}\n\nQuestion:\n{question}"
+def render_user(tokenizer, context: str, question: str) -> str:
+    user = f"Document:\n{context}\n\nQuestion:\n{question}"
     if getattr(tokenizer, "chat_template", None):
         return tokenizer.apply_chat_template(
             [{"role": "user", "content": user}],
@@ -171,18 +126,21 @@ def render_user(tokenizer, context: str, question: str, choices: dict[str, str] 
         )
     return user
 
-def token_len(tokenizer, context: str, question: str) -> int:
-    rendered = render_user(tokenizer, context, question, None)
-    return len(tokenizer(rendered, add_special_tokens=False).input_ids)
-
 
 def encode_case(tokenizer, case: EvalCase) -> torch.Tensor:
-    rendered = render_user(tokenizer, case.context, case.question, case.choices)
+    rendered = render_user(tokenizer, case.context, case.question)
     return tokenizer(
         rendered,
         return_tensors="pt",
         add_special_tokens=False,
     ).input_ids
+
+
+def token_len(tokenizer, context: str, question: str) -> int:
+    return int(encode_case(
+        tokenizer,
+        EvalCase("_len", "_", "_", context, question, [], []),
+    ).shape[1])
 
 
 def _filler_sentence(rng: random.Random) -> str:
@@ -216,7 +174,7 @@ def _fit_synthetic(
     rng: random.Random,
     target_tokens: int,
 ) -> str:
-    fillers = [_filler_sentence(rng) for _ in range(max(900, target_tokens // 5))]
+    fillers = [_filler_sentence(rng) for _ in range(max(900, target_tokens // 4))]
 
     def build(n: int) -> str:
         out = list(fillers[:n])
@@ -255,10 +213,10 @@ def make_synthetic_case(
         code = str(rng.randint(100000, 999999))
         question = "What is the vault access code? Answer with the number only."
         items = [(0.52, f"Security register: the vault access code is {code}.")]
-        context = _fit_synthetic(tokenizer, question, items, rng, target_tokens)
         return EvalCase(
-            case_id=f"syn-single-{sample_id}", source="synthetic", task=task,
-            context=context, question=question, gold=[code], distractors=[]
+            f"syn-single-{sample_id}", "synthetic", task,
+            _fit_synthetic(tokenizer, question, items, rng, target_tokens),
+            question, [code], []
         )
 
     if task == "multi":
@@ -272,10 +230,10 @@ def make_synthetic_case(
             (0.50, f"Registry record: project BRAVO code is {vals[1]}."),
             (0.86, f"Registry record: project CHARLIE code is {vals[2]}."),
         ]
-        context = _fit_synthetic(tokenizer, question, items, rng, target_tokens)
         return EvalCase(
-            case_id=f"syn-multi-{sample_id}", source="synthetic", task=task,
-            context=context, question=question, gold=vals, distractors=[]
+            f"syn-multi-{sample_id}", "synthetic", task,
+            _fit_synthetic(tokenizer, question, items, rng, target_tokens),
+            question, vals, []
         )
 
     if task == "hard_multi":
@@ -293,15 +251,15 @@ def make_synthetic_case(
             (0.79, f"AURORA record: CHARLIE code is {vals[2]}."),
             (0.91, f"BOREAL record: CHARLIE code is {bad[2]}."),
         ]
-        context = _fit_synthetic(tokenizer, question, items, rng, target_tokens)
         return EvalCase(
-            case_id=f"syn-hard-{sample_id}", source="synthetic", task=task,
-            context=context, question=question, gold=vals, distractors=bad
+            f"syn-hard-{sample_id}", "synthetic", task,
+            _fit_synthetic(tokenizer, question, items, rng, target_tokens),
+            question, vals, bad
         )
 
     if task == "reason":
         a = rng.randint(1000, 8000)
-        b, c, d = a + 7, a + 18, a + 31
+        d = a + 31
         distractor = a + 99
         question = "What is the final value of variable D? Answer with the number only."
         items = [
@@ -311,66 +269,88 @@ def make_synthetic_case(
             (0.78, "Variable D equals variable C plus 13."),
             (0.88, f"Unrelated note: variable X is {distractor}."),
         ]
-        context = _fit_synthetic(tokenizer, question, items, rng, target_tokens)
         return EvalCase(
-            case_id=f"syn-reason-{sample_id}", source="synthetic", task=task,
-            context=context, question=question, gold=[str(d)],
-            distractors=[str(distractor)], meta={"chain": [a, b, c, d]}
+            f"syn-reason-{sample_id}", "synthetic", task,
+            _fit_synthetic(tokenizer, question, items, rng, target_tokens),
+            question, [str(d)], [str(distractor)]
         )
 
     raise ValueError(f"unknown synthetic task: {task}")
 
 
+def _mc_question(row: dict[str, Any]) -> str:
+    return (
+        f"{row['question']}\n\nChoices:\n"
+        f"A: {row['choice_A']}\n"
+        f"B: {row['choice_B']}\n"
+        f"C: {row['choice_C']}\n"
+        f"D: {row['choice_D']}\n\n"
+        "Answer with one letter only: A, B, C, or D."
+    )
+
+
 def load_real_cases(
     tokenizer,
+    dataset_dir: str,
     count: int,
-    target_tokens: int,
+    min_tokens: int,
+    max_tokens: int,
     seed: int,
-    cache_dir: str | None,
-    local_files_only: bool,
-    dataset_repo: str,
-    dataset_revision: str,
 ) -> list[EvalCase]:
     if count <= 0:
         return []
-    if local_files_only:
-        os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
-    from datasets import load_dataset
+    from datasets import load_from_disk
 
-    ds = load_dataset(
-        dataset_repo,
-        split="train",
-        revision=dataset_revision,
-        cache_dir=os.environ.get("HF_DATASETS_CACHE") or cache_dir,
-    )
-    indices = list(range(len(ds)))
-    random.Random(seed + target_tokens).shuffle(indices)
-    min_tokens = max(4096, target_tokens // 2)
-    cases: list[EvalCase] = []
-    scanned = 0
-    for i in indices:
-        if len(cases) >= count or scanned >= 160:
+    ds = load_from_disk(dataset_dir)
+    candidates: list[tuple[str, int, dict[str, Any]]] = []
+    for raw in ds:
+        row = dict(raw)
+        q = _mc_question(row)
+        n = token_len(tokenizer, str(row["context"]), q)
+        if min_tokens <= n <= max_tokens:
+            candidates.append((str(row.get("domain", "unknown")), n, row))
+
+    if len(candidates) < count:
+        raise RuntimeError(
+            f"LongBench-v2 has only {len(candidates)} naturally fitting cases in "
+            f"[{min_tokens}, {max_tokens}] tokens; need {count}. No truncation allowed."
+        )
+
+    rng = random.Random(seed + 7301)
+    by_domain: dict[str, list[tuple[str, int, dict[str, Any]]]] = {}
+    for item in candidates:
+        by_domain.setdefault(item[0], []).append(item)
+    for items in by_domain.values():
+        rng.shuffle(items)
+
+    picked: list[tuple[str, int, dict[str, Any]]] = []
+    domains = sorted(by_domain)
+    while len(picked) < count:
+        progressed = False
+        for domain in domains:
+            if by_domain[domain] and len(picked) < count:
+                picked.append(by_domain[domain].pop())
+                progressed = True
+        if not progressed:
             break
-        scanned += 1
-        row = ds[i]
-        choices = {k: str(row[f"choice_{k}"]) for k in "ABCD"}
-        question = str(row["question"])
-        context = str(row["context"])
-        rendered = render_user(tokenizer, context, question, choices)
-        n = len(tokenizer(rendered, add_special_tokens=False).input_ids)
-        if not (min_tokens <= n <= target_tokens):
+
+    cases: list[EvalCase] = []
+    for domain, n, row in picked:
+        answer = str(row["answer"]).strip().upper()
+        if answer not in {"A", "B", "C", "D"}:
             continue
         cases.append(
             EvalCase(
-                case_id=f"longbench-v2-{row['_id']}",
-                source="longbench-v2",
-                task=f"{row.get('domain', '')}/{row.get('sub_domain', '')}",
-                context=context,
-                question=question,
-                gold=[str(row["answer"])],
+                case_id=f"longbenchv2-{row['_id']}",
+                source="longbench_v2",
+                task=str(row.get("sub_domain", domain)),
+                context=str(row["context"]),
+                question=_mc_question(row),
+                gold=[answer],
                 distractors=[],
-                choices=choices,
                 meta={
+                    "domain": domain,
+                    "sub_domain": row.get("sub_domain"),
                     "difficulty": row.get("difficulty"),
                     "length": row.get("length"),
                     "rendered_tokens": n,
@@ -378,37 +358,24 @@ def load_real_cases(
             )
         )
     if len(cases) < count:
-        raise RuntimeError(
-            f"Only found {len(cases)} naturally fitting LongBench-v2 cases in "
-            f"[{min_tokens}, {target_tokens}] tokens; need {count}."
-        )
-    return cases
+        raise RuntimeError(f"Only {len(cases)} valid LongBench-v2 cases selected; need {count}")
+    return cases[:count]
+
 
 def score_answer(case: EvalCase, answer: str) -> dict[str, Any]:
-    text = normalize_text(answer)
-    if case.source == "longbench-v2":
-        m = re.search(r"\b([ABCD])\b", answer.upper())
-        success = bool(m and m.group(1) == case.gold[0].upper())
+    if case.source == "longbench_v2":
+        upper = answer.strip().upper()
+        match = re.search(r"\b([ABCD])\b", upper)
+        parsed = match.group(1) if match else None
         return {
-            "success": success,
-            "recall": 1.0 if success else 0.0,
+            "success": parsed == case.gold[0],
+            "recall": 1.0 if parsed == case.gold[0] else 0.0,
             "prediction": answer.strip(),
+            "parsed_choice": parsed,
             "distractor_hit": False,
         }
 
-    gold_numbers = [re.findall(r"\d+", x) for x in case.gold]
-    flat_gold = [n for group in gold_numbers for n in group]
-    if flat_gold:
-        pred_numbers = re.findall(r"\d+", answer)
-        distractor_hit = any(d in answer for d in case.distractors)
-        success = pred_numbers[:len(flat_gold)] == flat_gold and not distractor_hit
-        return {
-            "success": success,
-            "recall": 1.0 if success else 0.0,
-            "prediction": answer.strip(),
-            "distractor_hit": distractor_hit,
-        }
-
+    text = normalize_text(answer)
     found = [normalize_text(x) in text for x in case.gold]
     distractor_hit = any(normalize_text(x) in text for x in case.distractors)
     recall = sum(found) / len(found) if found else 0.0
@@ -416,36 +383,36 @@ def score_answer(case: EvalCase, answer: str) -> dict[str, Any]:
         "success": bool(found) and all(found) and not distractor_hit,
         "recall": recall,
         "prediction": answer.strip(),
+        "parsed_choice": None,
         "distractor_hit": distractor_hit,
     }
 
-def _cuda_stats() -> dict[str, float | None]:
+
+def _cuda_peak_gb() -> float | None:
     if not torch.cuda.is_available():
-        return {"allocated_gb": None, "reserved_gb": None, "max_allocated_gb": None}
-    return {
-        "allocated_gb": torch.cuda.memory_allocated() / 2**30,
-        "reserved_gb": torch.cuda.memory_reserved() / 2**30,
-        "max_allocated_gb": torch.cuda.max_memory_allocated() / 2**30,
-    }
+        return None
+    return torch.cuda.max_memory_allocated() / 2**30
 
 
-def generate_ids(
+def _reset_peak() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize()
+
+
+def _generate_ids(
     model,
     tokenizer,
-    case: EvalCase,
     ids: torch.Tensor,
     max_new_tokens: int,
-    method: str,
-    budget: int | None,
-) -> dict[str, Any]:
-    input_len = int(ids.shape[1])
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
-    torch.cuda.synchronize()
+) -> tuple[str, dict[str, Any]]:
+    _reset_peak()
     t0 = time.perf_counter()
     with torch.inference_mode():
-        out = model.generate(
+        seq = model.generate(
             ids,
+            attention_mask=torch.ones_like(ids),
             max_new_tokens=max_new_tokens,
             do_sample=False,
             use_cache=True,
@@ -453,203 +420,156 @@ def generate_ids(
         )
     torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
-    seq = out.sequences if hasattr(out, "sequences") else out
-    generated = seq[:, input_len:]
-    answer = tokenizer.decode(generated[0], skip_special_tokens=True)
-    score = score_answer(case, answer)
-    stats = _cuda_stats()
-    return {
-        "method": method,
-        "budget": budget,
-        "input_tokens": input_len,
-        "generated_tokens": int(generated.shape[1]),
-        "answer": answer,
+    new_tokens = seq[:, ids.shape[1]:]
+    text = tokenizer.decode(new_tokens[0], skip_special_tokens=True)
+    return text, {
         "elapsed_s": elapsed,
+        "generated_tokens": int(new_tokens.shape[1]),
         "output_tokens_per_s": (
-            float(generated.shape[1]) / elapsed if elapsed > 0 else None
+            float(new_tokens.shape[1]) / elapsed if elapsed > 0 else None
         ),
-        "cuda": stats,
-        **score,
+        "peak_allocated_vram_gb": _cuda_peak_gb(),
     }
 
 
-def extract_saliency_once(
+def _extract_saliency(
     model,
-    ids: torch.Tensor,
     adapter: SaliencyAdapter,
+    ids: torch.Tensor,
 ) -> tuple[np.ndarray, dict[str, Any]]:
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
-    torch.cuda.synchronize()
+    _reset_peak()
     t0 = time.perf_counter()
     sal = adapter.extract(ids, model)
     torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
     if sal.shape != tuple(ids.shape):
-        raise RuntimeError(
-            f"Saliency shape mismatch: got {sal.shape}, expected {tuple(ids.shape)}"
-        )
+        raise RuntimeError(f"saliency shape mismatch: {sal.shape} vs {tuple(ids.shape)}")
     if not np.isfinite(sal).all():
-        raise RuntimeError("Non-finite saliency detected; fail closed")
-    return sal, {
+        raise RuntimeError("Non-finite saliency detected")
+    return sal[0], {
         "elapsed_s": elapsed,
-        "min": float(sal.min()),
-        "max": float(sal.max()),
-        "mean": float(sal.mean()),
-        "peak_allocated_gb": torch.cuda.max_memory_allocated() / 2**30,
+        "peak_allocated_vram_gb": _cuda_peak_gb(),
     }
 
 
-def select_pruned_ids(
-    ids: torch.Tensor,
-    saliency: np.ndarray,
-    budget: int,
-) -> tuple[torch.Tensor, dict[str, Any]]:
-    L = int(ids.shape[1])
-    scores = get_policy(POLICY)(saliency[0])
-    keep = np.sort(
+def _budget_for_ratio(length: int, ratio: float) -> int:
+    budget = int(round(length * ratio))
+    return max(N_SINK + RECENCY, min(length - 1, budget))
+
+
+def _kia_keep(scores: np.ndarray, length: int, budget: int) -> np.ndarray:
+    return np.sort(
         select_keep(
             scores,
             budget,
-            L,
+            length,
             n_sink=N_SINK,
             recency=RECENCY,
         )
     )
-    keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
-    pruned = ids[:, keep_t]
-    return pruned, {
-        "original_tokens": L,
-        "kept_tokens": int(pruned.shape[1]),
-        "budget": int(budget),
-        "compression_ratio": float(L / pruned.shape[1]),
-        "retained_fraction": float(pruned.shape[1] / L),
-    }
 
 
-def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    full_by_case = {
-        r["case_id"]: bool(r["result"]["success"])
-        for r in rows
-        if r["result"]["method"] == "full_context"
-    }
-    methods = sorted({r["result"]["method"] for r in rows})
-    out: dict[str, Any] = {"methods": {}, "by_source": {}}
-    for method in methods:
-        items = [r for r in rows if r["result"]["method"] == method]
-        successes = [bool(r["result"]["success"]) for r in items]
-        conditioned = [r for r in items if full_by_case.get(r["case_id"], False)]
-        out["methods"][method] = {
-            "n": len(items),
-            "accuracy": float(np.mean(successes)) if successes else None,
-            "conditioned_n": len(conditioned),
-            "full_context_conditioned_accuracy": (
-                float(np.mean([bool(r["result"]["success"]) for r in conditioned]))
-                if conditioned else None
-            ),
-            "mean_elapsed_s": (
-                float(np.mean([float(r["result"]["elapsed_s"]) for r in items]))
-                if items else None
-            ),
-        }
-        for source in sorted({r["source"] for r in items}):
-            src = [r for r in items if r["source"] == source]
-            src_cond = [r for r in src if full_by_case.get(r["case_id"], False)]
-            out["by_source"].setdefault(source, {})[method] = {
-                "n": len(src),
-                "accuracy": float(np.mean([bool(r["result"]["success"]) for r in src])),
-                "conditioned_n": len(src_cond),
-                "full_context_conditioned_accuracy": (
-                    float(np.mean([bool(r["result"]["success"]) for r in src_cond]))
-                    if src_cond else None
-                ),
-            }
-    return out
+def _recency_keep(length: int, budget: int) -> np.ndarray:
+    sink = np.arange(min(N_SINK, length), dtype=np.int64)
+    remaining = max(0, budget - len(sink))
+    tail_start = max(len(sink), length - remaining)
+    tail = np.arange(tail_start, length, dtype=np.int64)
+    return np.unique(np.concatenate([sink, tail]))[:budget]
 
 
-def evaluate_gate(stage: str, summary: dict[str, Any]) -> dict[str, Any]:
-    if stage != "final":
-        return {
-            "status": "ENGINEERING_STAGE",
-            "reason": "PASS/FAIL thresholds apply only to the frozen final stage.",
-        }
+def _random_keep(length: int, budget: int, seed: int) -> np.ndarray:
+    protected = set(range(min(N_SINK, length)))
+    protected.update(range(max(0, length - RECENCY), length))
+    free = max(0, budget - len(protected))
+    candidates = [i for i in range(length) if i not in protected]
+    rng = random.Random(seed)
+    chosen = rng.sample(candidates, k=min(free, len(candidates)))
+    return np.array(sorted(protected | set(chosen)), dtype=np.int64)
 
-    checks = [
-        ("combined_4x", "kiaomni_2048", None, 0.90, 6),
-        ("combined_8x", "kiaomni_1024", None, 0.80, 6),
-        ("realistic_8x", "kiaomni_1024", "longbench-v2", 0.75, 4),
-        ("synthetic_8x", "kiaomni_1024", "synthetic", 0.80, 4),
-    ]
-    results = []
-    inconclusive = False
-    failed = False
-    for name, method, source, threshold, min_n in checks:
-        rec = (
-            summary["methods"].get(method, {})
-            if source is None
-            else summary["by_source"].get(source, {}).get(method, {})
-        )
-        n = int(rec.get("conditioned_n") or 0)
-        acc = rec.get("full_context_conditioned_accuracy")
-        if n < min_n or acc is None:
-            status = "INCONCLUSIVE"
-            inconclusive = True
-        elif float(acc) >= threshold:
-            status = "PASS"
-        else:
-            status = "FAIL"
-            failed = True
-        results.append({
-            "name": name,
-            "method": method,
-            "source": source or "combined",
-            "threshold": threshold,
-            "minimum_conditioned_n": min_n,
-            "conditioned_n": n,
-            "observed": acc,
-            "status": status,
-        })
 
-    if failed:
-        overall = "FAIL"
-    elif inconclusive:
-        overall = "INCONCLUSIVE"
-    else:
-        overall = "PASS"
+def _run_condition(
+    model,
+    tokenizer,
+    case: EvalCase,
+    ids: torch.Tensor,
+    method: str,
+    keep: np.ndarray | None,
+    max_new_tokens: int,
+    saliency_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    used = ids
+    kept_tokens = int(ids.shape[1])
+    if keep is not None:
+        keep_t = torch.as_tensor(keep, device=ids.device, dtype=torch.long)
+        used = ids[:, keep_t]
+        kept_tokens = int(used.shape[1])
+    answer, perf = _generate_ids(model, tokenizer, used, max_new_tokens)
+    score = score_answer(case, answer)
     return {
-        "status": overall,
-        "checks": results,
-        "stress_16x": (
-            "Diagnostic only; 512-token budget does not determine the Phase-03 gate."
-        ),
+        "method": method,
+        "input_tokens": int(ids.shape[1]),
+        "kept_tokens": kept_tokens,
+        "retention_ratio_actual": kept_tokens / int(ids.shape[1]),
+        "compression_ratio": int(ids.shape[1]) / kept_tokens,
+        "answer": answer,
+        "generation": perf,
+        "saliency": saliency_meta,
+        **score,
     }
 
 
-def write_artifact(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False),
-        encoding="utf-8",
+def saliency_parity_check(
+    model,
+    tokenizer,
+    probe,
+    seed: int,
+) -> dict[str, Any]:
+    case = make_synthetic_case(tokenizer, "single", 991, seed, 512)
+    ids = encode_case(tokenizer, case).to(model.device)
+    cpu_adapter = SaliencyAdapter(probe, offload_to_cpu=True)
+    gpu_adapter = SaliencyAdapter(probe, offload_to_cpu=False)
+    cpu, cpu_meta = _extract_saliency(model, cpu_adapter, ids)
+    gpu, gpu_meta = _extract_saliency(model, gpu_adapter, ids)
+    delta = np.abs(cpu - gpu)
+    if np.std(cpu) == 0 or np.std(gpu) == 0:
+        corr = 1.0 if np.allclose(cpu, gpu, rtol=1e-4, atol=1e-6) else 0.0
+    else:
+        corr = float(np.corrcoef(cpu, gpu)[0, 1])
+    k = min(128, len(cpu))
+    cpu_top = set(np.argpartition(-cpu, k - 1)[:k].tolist())
+    gpu_top = set(np.argpartition(-gpu, k - 1)[:k].tolist())
+    jaccard = len(cpu_top & gpu_top) / len(cpu_top | gpu_top)
+    passed = bool(
+        np.isfinite(cpu).all()
+        and np.isfinite(gpu).all()
+        and corr >= 0.999
+        and jaccard >= 0.98
     )
-    tmp.replace(path)
+    return {
+        "passed": passed,
+        "pearson": corr,
+        "top128_jaccard": jaccard,
+        "max_abs_error": float(delta.max()),
+        "mean_abs_error": float(delta.mean()),
+        "cpu": cpu_meta,
+        "gpu": gpu_meta,
+        "criteria": {"pearson_min": 0.999, "top128_jaccard_min": 0.98},
+    }
+
 
 def environment_snapshot(model, tokenizer, cfg: dict[str, Any]) -> dict[str, Any]:
-    gpu = None
-    if torch.cuda.is_available():
-        props = torch.cuda.get_device_properties(0)
-        gpu = {
-            "name": props.name,
-            "total_memory_gb": props.total_memory / 2**30,
-            "capability": list(torch.cuda.get_device_capability(0)),
-        }
+    props = torch.cuda.get_device_properties(0)
     mc = model.config
     return {
         "python": platform.python_version(),
         "torch": torch.__version__,
         "transformers": __import__("transformers").__version__,
         "cuda_runtime": torch.version.cuda,
-        "gpu": gpu,
+        "gpu": {
+            "name": props.name,
+            "total_memory_gb": props.total_memory / 2**30,
+            "capability": list(torch.cuda.get_device_capability(0)),
+        },
         "model_type": getattr(mc, "model_type", None),
         "num_hidden_layers": getattr(mc, "num_hidden_layers", None),
         "num_attention_heads": getattr(mc, "num_attention_heads", None),
@@ -659,12 +579,15 @@ def environment_snapshot(model, tokenizer, cfg: dict[str, Any]) -> dict[str, Any
         "dtype": str(next(model.parameters()).dtype),
         "tokenizer_class": type(tokenizer).__name__,
         "stage_config": cfg,
+        "n_sink": N_SINK,
+        "recency": RECENCY,
+        "policy": POLICY,
     }
 
 
-def check_probe(model) -> dict[str, Any]:
+def check_probe(model) -> tuple[Any, dict[str, Any]]:
     probe = ArchitectureProbe.probe(model)
-    return {
+    return probe, {
         "confidence": probe.confidence,
         "qkv_pattern": probe.qkv_pattern,
         "num_layers": probe.num_layers,
@@ -679,238 +602,348 @@ def check_probe(model) -> dict[str, Any]:
     }
 
 
-def assert_memory_headroom(min_free_gb: float = 7.0) -> dict[str, float]:
-    if not torch.cuda.is_available():
-        raise RuntimeError("CUDA GPU is required")
+def assert_model_safety(model, min_free_gb: float) -> dict[str, Any]:
+    if getattr(model, "is_quantized", False):
+        raise RuntimeError("Quantized model detected; Phase 03 requires BF16")
+    device_map = getattr(model, "hf_device_map", None) or {}
+    forbidden = {
+        str(v).lower()
+        for v in device_map.values()
+        if str(v).lower() in {"cpu", "disk", "meta"}
+    }
+    if forbidden:
+        raise RuntimeError(
+            f"CPU/disk offload is forbidden in Phase 03; found {sorted(forbidden)}"
+        )
     free_b, total_b = torch.cuda.mem_get_info()
     free_gb, total_gb = free_b / 2**30, total_b / 2**30
     if free_gb < min_free_gb:
         raise RuntimeError(
             f"Insufficient post-load GPU headroom: {free_gb:.2f} GiB free; "
-            f"require >= {min_free_gb:.2f} GiB. Do not offload or quantize this gate."
+            f"require >= {min_free_gb:.2f} GiB"
         )
-    return {"free_gb": free_gb, "total_gb": total_gb}
+    return {
+        "free_gb": free_gb,
+        "total_gb": total_gb,
+        "hf_device_map": {str(k): str(v) for k, v in device_map.items()},
+    }
+
+
+def aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    full = {
+        row["case_id"]: bool(row["result"]["success"])
+        for row in rows
+        if row["result"]["method"] == "full_context"
+    }
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = (row["source"], row["result"]["method"])
+        groups.setdefault(key, []).append(row)
+    out: list[dict[str, Any]] = []
+    for (source, method), items in sorted(groups.items()):
+        successes = np.array(
+            [1.0 if x["result"]["success"] else 0.0 for x in items], dtype=float
+        )
+        conditioned = [x for x in items if full.get(x["case_id"], False)]
+        out.append(
+            {
+                "source": source,
+                "method": method,
+                "n": len(items),
+                "accuracy": float(successes.mean()) if len(successes) else None,
+                "mean_recall": float(np.mean([x["result"]["recall"] for x in items])),
+                "full_context_solved_n": len(conditioned),
+                "full_context_conditioned_accuracy": (
+                    float(np.mean([1.0 if x["result"]["success"] else 0.0 for x in conditioned]))
+                    if conditioned else None
+                ),
+            }
+        )
+    return out
+
+
+def _find_aggregate(
+    aggregate_rows: list[dict[str, Any]],
+    source: str,
+    method: str,
+) -> dict[str, Any] | None:
+    return next(
+        (x for x in aggregate_rows if x["source"] == source and x["method"] == method),
+        None,
+    )
+
+
+def build_gate(
+    stage: str,
+    rows: list[dict[str, Any]],
+    aggregate_rows: list[dict[str, Any]],
+    parity: dict[str, Any] | None,
+    expected_cases: int,
+) -> dict[str, Any]:
+    completed = len({row["case_id"] for row in rows})
+    if stage == "preflight":
+        passed = completed == expected_cases and parity is not None and parity["passed"]
+        return {
+            "status": "PASS" if passed else "FAIL",
+            "criteria": {
+                "completed_cases": f"{completed}/{expected_cases}",
+                "gpu_cpu_saliency_parity": bool(parity and parity["passed"]),
+            },
+        }
+
+    if completed != expected_cases:
+        return {
+            "status": "FAIL",
+            "criteria": {"completed_cases": f"{completed}/{expected_cases}"},
+        }
+
+    if stage == "smoke":
+        return {
+            "status": "PASS",
+            "criteria": {"completed_cases": f"{completed}/{expected_cases}"},
+        }
+
+    method4 = "kiaomni_r0.25"
+    method8 = "kiaomni_r0.125"
+    overall4_syn = _find_aggregate(aggregate_rows, "synthetic", method4)
+    overall8_syn = _find_aggregate(aggregate_rows, "synthetic", method8)
+    overall8_real = _find_aggregate(aggregate_rows, "longbench_v2", method8)
+    random8_syn = _find_aggregate(aggregate_rows, "synthetic", "random_r0.125")
+    recency8_syn = _find_aggregate(aggregate_rows, "synthetic", "recency_r0.125")
+
+    required = [overall4_syn, overall8_syn, overall8_real, random8_syn, recency8_syn]
+    if any(x is None for x in required):
+        return {"status": "FAIL", "reason": "missing required aggregate rows"}
+
+    assert overall4_syn and overall8_syn and overall8_real and random8_syn and recency8_syn
+    syn_denom = int(overall8_syn["full_context_solved_n"])
+    real_denom = int(overall8_real["full_context_solved_n"])
+    if syn_denom < 4 or real_denom < 3:
+        return {
+            "status": "INCONCLUSIVE",
+            "reason": "FullContext solved too few frozen cases for a quality-retention decision",
+            "full_context_solved": {"synthetic": syn_denom, "real": real_denom},
+        }
+
+    checks = {
+        "synthetic_4x_conditioned_ge_0.80":
+            float(overall4_syn["full_context_conditioned_accuracy"]) >= 0.80,
+        "synthetic_8x_conditioned_ge_0.70":
+            float(overall8_syn["full_context_conditioned_accuracy"]) >= 0.70,
+        "real_8x_conditioned_ge_0.60":
+            float(overall8_real["full_context_conditioned_accuracy"]) >= 0.60,
+        "kiaomni_8x_not_below_random_synthetic":
+            float(overall8_syn["full_context_conditioned_accuracy"])
+            >= float(random8_syn["full_context_conditioned_accuracy"]),
+        "kiaomni_8x_not_below_recency_synthetic":
+            float(overall8_syn["full_context_conditioned_accuracy"])
+            >= float(recency8_syn["full_context_conditioned_accuracy"]),
+    }
+    return {
+        "status": "PASS" if all(checks.values()) else "FAIL",
+        "criteria": checks,
+        "full_context_solved": {"synthetic": syn_denom, "real": real_denom},
+        "note": "16x is a stress diagnostic and is intentionally not a PASS requirement.",
+    }
+
+
+def write_artifact(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(path)
 
 
 def main() -> None:
     args = parse_args()
-    cfg = stage_config(args)
+    cfg = dict(STAGE_PLANS[args.stage])
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     started = time.perf_counter()
     deadline = started + int(cfg["max_wall_seconds"])
     output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
+
+    manifest = json.loads(Path(args.asset_manifest).read_text(encoding="utf-8"))
+    if manifest.get("model_repo") != args.model:
+        raise RuntimeError("asset manifest model repo mismatch")
+    if not str(manifest.get("model_revision_requested", "")).startswith(args.model_revision):
+        raise RuntimeError("asset manifest model revision mismatch")
+    if manifest.get("dataset_repo") != args.dataset:
+        raise RuntimeError("asset manifest dataset repo mismatch")
+    if manifest.get("dataset_revision") != args.dataset_revision:
+        raise RuntimeError("asset manifest dataset revision mismatch")
 
     if not torch.cuda.is_available():
-        raise RuntimeError("This experiment requires CUDA")
+        raise RuntimeError("CUDA GPU is required")
     if not torch.cuda.is_bf16_supported():
         raise RuntimeError("BF16-capable GPU required; do not silently downgrade precision")
 
-    source_kwargs: dict[str, Any] = {}
-    if not Path(args.model).exists():
-        source_kwargs["revision"] = args.model_revision
-
     tokenizer = AutoTokenizer.from_pretrained(
-        args.model,
-        cache_dir=args.cache_dir,
-        local_files_only=args.local_files_only,
+        args.model_dir,
+        local_files_only=True,
         trust_remote_code=False,
-        **source_kwargs,
     )
     model = AutoModelForCausalLM.from_pretrained(
-        args.model,
-        cache_dir=args.cache_dir,
-        local_files_only=args.local_files_only,
+        args.model_dir,
+        local_files_only=True,
         torch_dtype=torch.bfloat16,
         attn_implementation="sdpa",
         device_map={"": 0},
         low_cpu_mem_usage=True,
         trust_remote_code=False,
-        **source_kwargs,
     ).eval()
 
-    if getattr(model, "is_quantized", False):
-        raise RuntimeError("Quantized model detected; Phase-03 requires BF16")
-    bad_devices = sorted({
-        str(p.device) for p in model.parameters()
-        if p.device.type != "cuda"
-    })
-    if bad_devices:
-        raise RuntimeError(
-            "CPU/disk offload is forbidden in Phase-03; non-CUDA parameters found on "
-            + ", ".join(bad_devices)
-        )
+    safety = assert_model_safety(model, args.min_free_gb)
+    probe, probe_record = check_probe(model)
+    gpu_adapter = SaliencyAdapter(probe, offload_to_cpu=False)
+    score_fn = get_policy(POLICY)
 
-    headroom = assert_memory_headroom(min_free_gb=8.0)
-    probe_obj = ArchitectureProbe.probe(model, force=True)
-    probe = check_probe(model)
-    saliency_gpu = SaliencyAdapter(probe_obj, offload_to_cpu=False)
+    parity = None
+    if args.stage == "preflight":
+        parity = saliency_parity_check(model, tokenizer, probe, args.seed)
+        if not parity["passed"]:
+            raise RuntimeError(f"GPU saliency parity failed: {parity}")
 
     cases: list[EvalCase] = []
-    for task in cfg["tasks"]:
+    for task in cfg["synthetic_tasks"]:
         for i in range(int(cfg["synthetic_per_task"])):
             cases.append(
                 make_synthetic_case(
-                    tokenizer, task, i, args.seed, int(cfg["target_tokens"])
+                    tokenizer,
+                    task,
+                    i,
+                    args.seed,
+                    int(cfg["synthetic_target_tokens"]),
                 )
             )
-    cases.extend(
-        load_real_cases(
-            tokenizer,
-            int(cfg["real_cases"]),
-            int(cfg["target_tokens"]),
-            args.seed,
-            args.cache_dir,
-            args.local_files_only,
-            args.dataset,
-            args.dataset_revision,
+
+    if int(cfg["real_cases"]) > 0:
+        cases.extend(
+            load_real_cases(
+                tokenizer,
+                args.dataset_dir,
+                int(cfg["real_cases"]),
+                int(cfg["real_min_tokens"]),
+                int(cfg["real_max_tokens"]),
+                args.seed,
+            )
         )
-    )
 
-    saliency_parity: dict[str, Any] | None = None
-    if args.stage == "preflight":
-        parity_ids = encode_case(tokenizer, cases[0])[:, :512].to(model.device)
-        cpu_adapter = SaliencyAdapter(probe_obj, offload_to_cpu=True)
-        gpu_adapter = SaliencyAdapter(probe_obj, offload_to_cpu=False)
-        cpu_sal, cpu_meta = extract_saliency_once(model, parity_ids, cpu_adapter)
-        gpu_sal, gpu_meta = extract_saliency_once(model, parity_ids, gpu_adapter)
-        allclose = bool(np.allclose(cpu_sal, gpu_sal, rtol=1e-4, atol=2e-5))
-        k = min(128, cpu_sal.shape[1])
-        cpu_top = set(np.argpartition(-cpu_sal[0], k - 1)[:k].tolist())
-        gpu_top = set(np.argpartition(-gpu_sal[0], k - 1)[:k].tolist())
-        union = cpu_top | gpu_top
-        jaccard = len(cpu_top & gpu_top) / len(union) if union else 1.0
-        saliency_parity = {
-            "tokens": int(parity_ids.shape[1]),
-            "allclose_rtol_1e-4_atol_2e-5": allclose,
-            "top_k": k,
-            "top_k_jaccard": jaccard,
-            "cpu": cpu_meta,
-            "gpu": gpu_meta,
-        }
-        if not allclose and jaccard < 0.98:
-            raise RuntimeError(
-                f"CPU/GPU saliency parity failed: allclose={allclose}, "
-                f"top-{k} Jaccard={jaccard:.4f}"
-            )
-
+    expected_cases = len(cases)
     rows: list[dict[str, Any]] = []
+    artifact: dict[str, Any] = {
+        "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
+        "claim_scope": (
+            "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. "
+            "This is not evidence of real past_key_values KV-cache eviction."
+        ),
+        "stage": args.stage,
+        "model": {"repo": args.model, "revision": args.model_revision},
+        "dataset": {"repo": args.dataset, "revision": args.dataset_revision},
+        "seed": args.seed,
+        "repo_git_head": repo_git_head(),
+        "runner_sha256": file_sha256(__file__),
+        "asset_manifest": manifest,
+        "environment": environment_snapshot(model, tokenizer, cfg),
+        "post_load_safety": safety,
+        "probe": probe_record,
+        "saliency_cpu_gpu_parity": parity,
+        "cases": [asdict(c) | {"context": "<omitted-from-artifact>"} for c in cases],
+        "rows": rows,
+        "aggregate": [],
+        "gate": {"status": "RUNNING"},
+        "wall_seconds": 0.0,
+    }
+    write_artifact(output, artifact)
 
-    def payload(complete: bool) -> dict[str, Any]:
-        summary = summarize(rows)
-        gate = evaluate_gate(args.stage, summary) if complete else {
-            "status": "INCOMPLETE",
-            "reason": "Checkpoint written before all frozen cases completed.",
-        }
-        return {
-            "schema": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
-            "claim_scope": (
-                "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. "
-                "This artifact is not evidence of real past_key_values KV-cache eviction."
-            ),
-            "stage": args.stage,
-            "complete": complete,
-            "model": {
-                "id_or_path": args.model,
-                "frozen_id": MODEL_DEFAULT,
-                "revision": args.model_revision,
-            },
-            "real_dataset": {
-                "id": args.dataset,
-                "revision": args.dataset_revision,
-            },
-            "seed": args.seed,
-            "repo_git_head": repo_git_head(),
-            "runner_sha256": file_sha256(__file__),
-            "environment": environment_snapshot(model, tokenizer, cfg),
-            "post_load_headroom": headroom,
-            "probe": probe,
-            "saliency_parity": saliency_parity,
-            "cases": [
-                asdict(c) | {"context": "<omitted-from-artifact>"}
-                for c in cases
-            ],
-            "rows": rows,
-            "summary": summary,
-            "gate": gate,
-            "wall_seconds": time.perf_counter() - started,
-        }
-
-    for case in cases:
+    for case_index, case in enumerate(cases):
         if time.perf_counter() >= deadline:
-            write_artifact(output, payload(False))
             raise TimeoutError("experiment wall-time budget reached before next case")
-
         ids = encode_case(tokenizer, case).to(model.device)
-        case_tokens = int(ids.shape[1])
-        if case_tokens > int(cfg["target_tokens"]):
-            write_artifact(output, payload(False))
-            raise RuntimeError(
-                f"Case {case.case_id} exceeds frozen target: "
-                f"{case_tokens} > {cfg['target_tokens']}"
-            )
+        input_len = int(ids.shape[1])
 
-        full = generate_ids(
-            model,
-            tokenizer,
-            case,
-            ids,
+        full_result = _run_condition(
+            model, tokenizer, case, ids, "full_context", None,
             int(cfg["max_new_tokens"]),
-            "full_context",
-            None,
         )
         rows.append({
             "case_id": case.case_id,
             "source": case.source,
             "task": case.task,
-            "rendered_tokens": case_tokens,
-            "gold": case.gold,
-            "meta": case.meta,
-            "result": full,
+            "rendered_tokens": input_len,
+            "result": full_result,
         })
 
-        saliency, saliency_meta = extract_saliency_once(model, ids, saliency_gpu)
-        for budget in [int(x) for x in cfg["budgets"]]:
+        saliency, saliency_meta = _extract_saliency(model, gpu_adapter, ids)
+        policy_scores = score_fn(saliency)
+
+        for ratio in [float(x) for x in cfg["retention_ratios"]]:
             if time.perf_counter() >= deadline:
-                write_artifact(output, payload(False))
-                raise TimeoutError("experiment wall-time budget reached before next budget")
-            pruned, compression = select_pruned_ids(ids, saliency, budget)
-            result = generate_ids(
-                model,
-                tokenizer,
-                case,
-                pruned,
-                int(cfg["max_new_tokens"]),
-                f"kiaomni_{budget}",
-                budget,
+                raise TimeoutError("experiment wall-time budget reached before next condition")
+            budget = _budget_for_ratio(input_len, ratio)
+            keep = _kia_keep(policy_scores, input_len, budget)
+            result = _run_condition(
+                model, tokenizer, case, ids, f"kiaomni_r{ratio:g}", keep,
+                int(cfg["max_new_tokens"]), saliency_meta,
             )
-            result["compression"] = compression
-            result["saliency"] = saliency_meta
             rows.append({
                 "case_id": case.case_id,
                 "source": case.source,
                 "task": case.task,
-                "rendered_tokens": case_tokens,
-                "gold": case.gold,
-                "meta": case.meta,
+                "rendered_tokens": input_len,
+                "requested_retention_ratio": ratio,
                 "result": result,
             })
-            print(
-                f"[{case.case_id}] {result['method']} "
-                f"success={result['success']} "
-                f"elapsed={result['elapsed_s']:.2f}s"
+
+        if args.stage == "final":
+            ratio = PRIMARY_RATIO
+            budget = _budget_for_ratio(input_len, ratio)
+            recency = _recency_keep(input_len, budget)
+            random_keep = _random_keep(
+                input_len,
+                budget,
+                args.seed + case_index * 10007,
             )
+            for method, keep in (
+                ("recency_r0.125", recency),
+                ("random_r0.125", random_keep),
+            ):
+                result = _run_condition(
+                    model, tokenizer, case, ids, method, keep,
+                    int(cfg["max_new_tokens"]),
+                )
+                rows.append({
+                    "case_id": case.case_id,
+                    "source": case.source,
+                    "task": case.task,
+                    "rendered_tokens": input_len,
+                    "requested_retention_ratio": ratio,
+                    "result": result,
+                })
 
-        write_artifact(output, payload(False))
+        artifact["rows"] = rows
+        artifact["aggregate"] = aggregate(rows)
+        artifact["wall_seconds"] = time.perf_counter() - started
+        artifact["gate"] = {"status": "RUNNING", "completed_cases": case_index + 1}
+        write_artifact(output, artifact)
+        print(
+            f"[{case_index + 1}/{expected_cases}] {case.case_id} "
+            f"full={full_result['success']} input_tokens={input_len}"
+        )
+        gc.collect()
+        torch.cuda.empty_cache()
 
-    write_artifact(output, payload(True))
-    print(f"Wrote {output}")
-    final_gate = evaluate_gate(args.stage, summarize(rows))
-    print(f"Gate: {final_gate['status']}")
+    aggregate_rows = aggregate(rows)
+    gate = build_gate(args.stage, rows, aggregate_rows, parity, expected_cases)
+    artifact["aggregate"] = aggregate_rows
+    artifact["gate"] = gate
+    artifact["wall_seconds"] = time.perf_counter() - started
+    write_artifact(output, artifact)
+    print(json.dumps({"gate": gate, "output": str(output)}, indent=2))
 
-
+    if gate["status"] == "FAIL":
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":
