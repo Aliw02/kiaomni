@@ -58,7 +58,7 @@ The large model and LongBench-v2 dataset are downloaded by a **CPU-only** Modal 
 | Stage | Work | Hard GPU ceiling |
 |---|---|---:|
 | preflight | load + probe + CPU/GPU saliency parity + 1 synthetic case | 20 min |
-| smoke | all 4 synthetic task families | 40 min |
+| smoke | all 4 synthetic task families + 2 LongBench-v2 cases | 40 min |
 | final | 8 synthetic + 6 naturally fitting LongBench-v2 cases | 90 min |
 
 One pass through all three stages therefore has a hard configured ceiling of **150 A100 GPU minutes**. At Modal's 2026-10-01 listed A100-80GB base rate of about $2.50/hour, the theoretical GPU ceiling is about **$6.25**, before comparatively small CPU/memory/storage charges. Re-running failed stages is outside the one-pass budget contract.
