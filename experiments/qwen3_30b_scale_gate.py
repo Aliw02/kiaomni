@@ -708,9 +708,43 @@ def build_gate(
         }
 
     if stage == "smoke":
+        method8 = "kiaomni_r0.125"
+        syn8 = _find_aggregate(aggregate_rows, "synthetic", method8)
+        real8 = _find_aggregate(aggregate_rows, "longbench_v2", method8)
+        records = [x for x in (syn8, real8) if x is not None]
+        conditioned_n = sum(int(x["full_context_solved_n"]) for x in records)
+        conditioned_successes = sum(
+            float(x["full_context_conditioned_accuracy"])
+            * int(x["full_context_solved_n"])
+            for x in records
+            if x["full_context_conditioned_accuracy"] is not None
+        )
+        if conditioned_n < 2:
+            return {
+                "status": "INCONCLUSIVE",
+                "reason": "Smoke FullContext solved fewer than two cases; refusing expensive final.",
+                "criteria": {
+                    "completed_cases": f"{completed}/{expected_cases}",
+                    "full_context_solved": conditioned_n,
+                },
+            }
+        if conditioned_successes < 0.5:
+            return {
+                "status": "FAIL",
+                "reason": "KiaOmni 8x solved zero FullContext-solvable smoke cases; catastrophic collapse.",
+                "criteria": {
+                    "completed_cases": f"{completed}/{expected_cases}",
+                    "full_context_solved": conditioned_n,
+                    "kiaomni_8x_conditioned_successes": conditioned_successes,
+                },
+            }
         return {
             "status": "PASS",
-            "criteria": {"completed_cases": f"{completed}/{expected_cases}"},
+            "criteria": {
+                "completed_cases": f"{completed}/{expected_cases}",
+                "full_context_solved": conditioned_n,
+                "kiaomni_8x_conditioned_successes": conditioned_successes,
+            },
         }
 
     method4 = "kiaomni_r0.25"
