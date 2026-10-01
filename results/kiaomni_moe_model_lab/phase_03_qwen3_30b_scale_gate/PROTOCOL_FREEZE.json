@@ -1,64 +1,85 @@
 {
-  "version": "KIAOMNI_QWEN3_30B_SCALE_GATE_V1",
+  "version": "KIAOMNI_QWEN3_30B_SCALE_GATE_V2",
   "date": "2026-10-01",
-  "claim_scope": "Prompt-side KiaOmni policy scaling on Qwen3-30B-A3B-Instruct-2507. This phase does not claim real past_key_values KV-cache eviction.",
-  "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
-  "precision": "BF16",
-  "attention_implementation": "sdpa",
-  "quantization": "none",
-  "cpu_offload": "forbidden",
-  "gpu_default": "A100-80GB",
-  "policy": "kiaomni_s8",
-  "protected_tokens": {
+  "claim_scope": "Prompt-side KiaOmni selection-policy scaling on Qwen3-30B-A3B-Instruct-2507. This phase does not claim real past_key_values KV-cache eviction or production KV-cache savings.",
+  "model": {
+    "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "b9b7053e66b5de60c03b1913dbc21e900ef7ded7",
+    "precision": "BF16",
+    "attention_implementation": "sdpa",
+    "quantization": "forbidden",
+    "cpu_or_disk_offload": "forbidden"
+  },
+  "real_benchmark": {
+    "dataset": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "selection": "deterministic seeded shuffle; naturally fitting rendered prompts only; no truncation",
+    "scoring": "exact multiple-choice letter"
+  },
+  "synthetic_tasks": ["single", "multi", "hard_multi", "reason"],
+  "prompt_target_tokens": 8192,
+  "kiaomni": {
+    "policy": "kiaomni_s8",
     "n_sink": 16,
-    "recency": 256
+    "recency": 32,
+    "budgets": [2048, 1024, 512],
+    "approximate_compression_ratios": [4, 8, 16],
+    "saliency_semantics": "one full-prompt saliency extraction per case, reused across all budgets",
+    "phase03_saliency_device": "GPU FP32",
+    "preflight_parity": "CPU-vs-GPU saliency must be allclose(rtol=1e-4, atol=2e-5) or Top-128 Jaccard >= 0.98"
   },
   "stages": {
     "preflight": {
-      "target_tokens": 2048,
+      "cases": "1 hard_multi synthetic",
       "budgets": [1024],
-      "synthetic_per_task": 1,
-      "real_cases": 0,
-      "gpu_timeout_minutes": 20
+      "hard_gpu_timeout_minutes": 30
     },
     "smoke": {
-      "target_tokens": 4096,
-      "budgets": [1024, 512],
-      "synthetic_per_task": 1,
-      "real_cases": 2,
-      "gpu_timeout_minutes": 40
+      "cases": "4 synthetic + 2 LongBench-v2",
+      "budgets": [2048, 1024],
+      "hard_gpu_timeout_minutes": 45
     },
     "final": {
-      "target_tokens": 8192,
+      "cases": "8 synthetic + 8 LongBench-v2",
       "budgets": [2048, 1024, 512],
-      "compression_ratios": [4, 8, 16],
-      "synthetic_per_task": 3,
-      "real_cases": 8,
-      "gpu_timeout_minutes": 180
+      "hard_gpu_timeout_minutes": 120
     }
   },
-  "quality_sources": {
-    "synthetic": ["single", "multi", "hard_multi", "reason"],
-    "real": "THUDM/LongBench QA subsets (qasper, hotpotqa, 2wikimqa, musique, multifieldqa_en), naturally fitting examples only; no context truncation"
+  "final_gate": {
+    "conditioning": "Only cases solved by FullContext enter retention thresholds; absolute accuracy is also recorded.",
+    "checks": {
+      "combined_4x": {"threshold": 0.9, "minimum_conditioned_n": 6},
+      "combined_8x": {"threshold": 0.8, "minimum_conditioned_n": 6},
+      "realistic_8x": {"threshold": 0.75, "minimum_conditioned_n": 4},
+      "synthetic_8x": {"threshold": 0.8, "minimum_conditioned_n": 4}
+    },
+    "16x_512_budget": "diagnostic stress condition only",
+    "possible_status": ["PASS", "FAIL", "INCONCLUSIVE"]
   },
   "cost_guard": {
-    "asset_download": "CPU-only Modal function into persistent volume",
-    "gpu_stages_run_separately": true,
+    "gpu_stage_timeouts_minutes": [30, 45, 120],
+    "one_pass_max_gpu_minutes": 195,
     "max_containers": 1,
-    "maximum_configured_gpu_minutes_across_one_run_of_all_stages": 240,
-    "note": "At the documented A100 rate around $2.50/hour, 240 GPU minutes is about $10 before CPU/storage costs. Re-running stages repeatedly is outside this one-pass cap."
+    "asset_download": "CPU-only Modal function into persistent volume before GPU allocation",
+    "checkpointing": "artifact checkpoint is written after every completed case",
+    "instruction": "Check current Modal rates before launch; repeated stages are outside the one-pass budget."
   },
   "fail_closed": [
+    "CUDA unavailable",
     "BF16 unsupported",
-    "post-load free VRAM below 7 GiB",
-    "Qwen architecture probe failure",
-    "offline model/dataset cache missing after prepare step",
-    "wall-time budget reached",
-    "synthetic prompt cannot reach requested target window"
+    "quantization detected",
+    "CPU/disk model offload detected",
+    "post-load free VRAM below 8 GiB",
+    "architecture probe failure",
+    "non-finite saliency",
+    "CPU/GPU saliency parity failure",
+    "pinned model or dataset cache missing",
+    "case exceeds 8192 rendered tokens",
+    "insufficient naturally fitting LongBench-v2 cases"
   ],
   "deferred": {
-    "real_kv_cache_eviction": "Phase 04",
-    "external_kv_baselines": "Phase 04 after cache-side KiaOmni exists",
-    "actual_expert_dispatch_intervention": "Not part of Phase 03"
+    "real_cache_side_eviction": "Phase 04",
+    "external_KV_cache_baselines": "Phase 04",
+    "actual_expert_dispatch_intervention": "not claimed in Phase 03"
   }
 }
