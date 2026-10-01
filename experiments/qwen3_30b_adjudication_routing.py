@@ -832,17 +832,47 @@ def aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         vals = [x["result"] for x in items]
         def mean(key: str) -> float:
             return float(np.mean([float(x[key]) for x in vals]))
+        routing_vals = [x["routing"] for x in vals if x.get("routing") is not None]
+        saliency_vals = [x["saliency"] for x in vals if x.get("saliency") is not None]
         out.append({
             "source": source,
             "method": method,
             "n": len(vals),
             "accuracy": mean("correct"),
             "parse_rate": float(np.mean([x["parsed_answer"] is not None for x in vals])),
+            "mean_gold_answer_nll": mean("gold_answer_nll"),
             "mean_gold_answer_ppl": mean("gold_answer_ppl"),
             "mean_output_tokens_per_second": mean("output_tokens_per_second"),
-            "mean_generation_peak_vram_gb": mean("generation_peak_allocated_vram_gb"),
+            "mean_generation_elapsed_seconds": mean("generation_elapsed_seconds"),
+            "mean_routing_teacher_elapsed_seconds": mean("routing_teacher_elapsed_seconds"),
+            "max_generation_peak_vram_gb": max(float(x["generation_peak_allocated_vram_gb"]) for x in vals),
+            "max_routing_teacher_peak_vram_gb": max(float(x["routing_teacher_peak_allocated_vram_gb"]) for x in vals),
+            "max_saliency_peak_vram_gb": (
+                max(float(x["saliency_peak_allocated_vram_gb"]) for x in saliency_vals)
+                if saliency_vals else None
+            ),
             "max_pipeline_peak_vram_gb": max(float(x["pipeline_peak_allocated_vram_gb"]) for x in vals),
             "token_limit_hit_rate": mean("hit_token_limit"),
+            "routing_mean_top1_expert_agreement": (
+                float(np.mean([x["top1_expert_agreement"] for x in routing_vals]))
+                if routing_vals else None
+            ),
+            "routing_mean_top8_set_jaccard": (
+                float(np.mean([x["top8_set_jaccard"] for x in routing_vals]))
+                if routing_vals else None
+            ),
+            "routing_mean_dispatch_weight_cosine": (
+                float(np.mean([x["dispatch_weight_cosine"] for x in routing_vals]))
+                if routing_vals else None
+            ),
+            "routing_mean_dispatch_entropy_delta": (
+                float(np.mean([x["dispatch_entropy_delta"] for x in routing_vals]))
+                if routing_vals else None
+            ),
+            "routing_mean_expert_load_jsd": (
+                float(np.mean([x["expert_load_jsd"] for x in routing_vals]))
+                if routing_vals else None
+            ),
         })
     return out
 
