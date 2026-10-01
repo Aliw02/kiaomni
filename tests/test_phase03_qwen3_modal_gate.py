@@ -4,6 +4,7 @@ import ast
 import importlib.util
 import inspect
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,7 @@ def _load_runner():
     spec = importlib.util.spec_from_file_location("phase03_runner", RUNNER)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)
     return mod
 
