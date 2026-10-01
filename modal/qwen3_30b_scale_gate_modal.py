@@ -16,12 +16,12 @@ DATASET_REVISION = "b0db4901b856522026b7353ab541b8535ff2a4b8"
 
 ASSET_VOLUME_NAME = "kiaomni-qwen3-assets"
 RESULTS_VOLUME_NAME = "kiaomni-qwen3-results"
-ASSET_ROOT = Path("/assets")
-MODEL_DIR = ASSET_ROOT / "models" / "qwen3-30b-a3b-instruct-2507_0d7cf23"
-DATASET_DIR = ASSET_ROOT / "datasets" / "longbench-v2_b0db4901"
-ASSET_MANIFEST = ASSET_ROOT / "PHASE03_ASSET_MANIFEST.json"
-RESULTS_ROOT = Path("/results") / "phase_03_qwen3_30b_scale_gate"
-REMOTE_REPO = Path("/root/kiaomni")
+ASSET_ROOT = "/assets"
+MODEL_DIR = "/assets/models/qwen3-30b-a3b-instruct-2507_0d7cf23"
+DATASET_DIR = "/assets/datasets/longbench-v2_b0db4901"
+ASSET_MANIFEST = "/assets/PHASE03_ASSET_MANIFEST.json"
+RESULTS_ROOT = "/results/phase_03_qwen3_30b_scale_gate"
+REMOTE_REPO = "/root/kiaomni"
 LOCAL_REPO = Path(__file__).resolve().parents[1]
 
 # Absolute GPU ceilings for a one-pass run.
@@ -51,17 +51,17 @@ image = (
     )
     .add_local_dir(
         LOCAL_REPO,
-        remote_path=str(REMOTE_REPO),
+        remote_path=REMOTE_REPO,
         copy=False,
         ignore=[".git/**", ".venv/**", "__pycache__/**", "*.pyc"],
     )
-    .workdir(str(REMOTE_REPO))
+    .workdir(REMOTE_REPO)
 )
 
 
 @app.function(
     image=image,
-    volumes={str(ASSET_ROOT): assets},
+    volumes={ASSET_ROOT: assets},
     cpu=4,
     memory=8192,
     timeout=3 * 60 * 60,
@@ -72,31 +72,35 @@ def prepare_assets() -> dict[str, str]:
     from datasets import load_dataset, load_from_disk
     from huggingface_hub import HfApi, snapshot_download
 
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    DATASET_DIR.parent.mkdir(parents=True, exist_ok=True)
+    model_dir = Path(MODEL_DIR)
+    dataset_dir = Path(DATASET_DIR)
+    asset_manifest = Path(ASSET_MANIFEST)
 
-    model_marker = MODEL_DIR / ".complete"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    dataset_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    model_marker = model_dir / ".complete"
     if not model_marker.exists():
         snapshot_download(
             repo_id=MODEL_ID,
             revision=MODEL_REVISION,
-            local_dir=str(MODEL_DIR),
+            local_dir=MODEL_DIR,
         )
         model_marker.write_text(MODEL_REVISION, encoding="utf-8")
         assets.commit()
 
-    dataset_marker = DATASET_DIR / ".complete"
+    dataset_marker = dataset_dir / ".complete"
     if not dataset_marker.exists():
         ds = load_dataset(
             DATASET_ID,
             split="train",
             revision=DATASET_REVISION,
         )
-        ds.save_to_disk(str(DATASET_DIR))
+        ds.save_to_disk(DATASET_DIR)
         dataset_marker.write_text(DATASET_REVISION, encoding="utf-8")
         assets.commit()
     else:
-        _ = load_from_disk(str(DATASET_DIR))
+        _ = load_from_disk(DATASET_DIR)
 
     api = HfApi()
     model_info = api.model_info(MODEL_ID, revision=MODEL_REVISION)
@@ -105,13 +109,13 @@ def prepare_assets() -> dict[str, str]:
         "model_repo": MODEL_ID,
         "model_revision_requested": MODEL_REVISION,
         "model_revision_resolved": model_info.sha,
-        "model_dir": str(MODEL_DIR),
+        "model_dir": MODEL_DIR,
         "dataset_repo": DATASET_ID,
         "dataset_revision": DATASET_REVISION,
         "dataset_revision_resolved": dataset_info.sha,
-        "dataset_dir": str(DATASET_DIR),
+        "dataset_dir": DATASET_DIR,
     }
-    ASSET_MANIFEST.write_text(
+    asset_manifest.write_text(
         json.dumps(manifest, indent=2),
         encoding="utf-8",
     )
@@ -119,17 +123,17 @@ def prepare_assets() -> dict[str, str]:
     return manifest
 
 
-def _dependency_path(stage: str) -> Path | None:
+def _dependency_path(stage: str) -> str | None:
     if stage == "smoke":
-        return RESULTS_ROOT / "preflight.json"
+        return f"{RESULTS_ROOT}/preflight.json"
     if stage == "final":
-        return RESULTS_ROOT / "smoke.json"
+        return f"{RESULTS_ROOT}/smoke.json"
     return None
 
 
 @app.function(
     image=image,
-    volumes={str(ASSET_ROOT): assets, "/results": results},
+    volumes={ASSET_ROOT: assets, "/results": results},
     cpu=4,
     memory=32768,
     timeout=GPU_STAGE_TIMEOUTS["final"],
@@ -140,11 +144,15 @@ def run_stage(stage: str) -> dict[str, object]:
     if stage not in GPU_STAGE_TIMEOUTS:
         raise ValueError(f"unknown stage: {stage}")
 
-    if not ASSET_MANIFEST.exists():
+    asset_manifest = Path(ASSET_MANIFEST)
+    results_root = Path(RESULTS_ROOT)
+
+    if not asset_manifest.exists():
         raise RuntimeError("Assets are missing. Run --prepare with preflight first.")
 
-    dep = _dependency_path(stage)
-    if dep is not None:
+    dep_raw = _dependency_path(stage)
+    if dep_raw is not None:
+        dep = Path(dep_raw)
         if not dep.exists():
             raise RuntimeError(f"Required previous-stage artifact is missing: {dep}")
         dep_payload = json.loads(dep.read_text(encoding="utf-8"))
@@ -154,29 +162,29 @@ def run_stage(stage: str) -> dict[str, object]:
                 f"Previous stage did not PASS ({dep.name}: {dep_status}); refusing {stage}."
             )
 
-    RESULTS_ROOT.mkdir(parents=True, exist_ok=True)
-    out_path = RESULTS_ROOT / f"{stage}.json"
+    results_root.mkdir(parents=True, exist_ok=True)
+    out_path = results_root / f"{stage}.json"
     cmd = [
         sys.executable,
-        str(REMOTE_REPO / "experiments" / "qwen3_30b_scale_gate.py"),
+        f"{REMOTE_REPO}/experiments/qwen3_30b_scale_gate.py",
         "--stage", stage,
         "--model", MODEL_ID,
         "--model-revision", MODEL_REVISION,
         "--dataset", DATASET_ID,
         "--dataset-revision", DATASET_REVISION,
-        "--model-dir", str(MODEL_DIR),
-        "--dataset-dir", str(DATASET_DIR),
-        "--asset-manifest", str(ASSET_MANIFEST),
+        "--model-dir", MODEL_DIR,
+        "--dataset-dir", DATASET_DIR,
+        "--asset-manifest", ASSET_MANIFEST,
         "--output", str(out_path),
         "--min-free-gb", "8",
     ]
 
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(REMOTE_REPO)
+    env["PYTHONPATH"] = REMOTE_REPO
     env["TOKENIZERS_PARALLELISM"] = "false"
     proc = subprocess.run(
         cmd,
-        cwd=str(REMOTE_REPO),
+        cwd=REMOTE_REPO,
         env=env,
         check=False,
     )
