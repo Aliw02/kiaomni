@@ -25,12 +25,20 @@
     "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
     "scoring": "multiple-choice exact A/B/C/D",
     "selection": "deterministic domain round-robin from naturally fitting examples only",
-    "token_window": [8192, 16384],
+    "token_window": [
+      8192,
+      16384
+    ],
     "truncation": false,
     "final_cases": 6
   },
   "synthetic_benchmark": {
-    "tasks": ["single", "multi", "hard_multi", "reason"],
+    "tasks": [
+      "single",
+      "multi",
+      "hard_multi",
+      "reason"
+    ],
     "final_target_rendered_tokens": 8192,
     "final_cases_per_task": 2
   },
@@ -51,30 +59,55 @@
     }
   },
   "retention": {
-    "ratios": [0.25, 0.125, 0.0625],
-    "approximate_compression": ["4x", "8x", "16x"],
+    "ratios": [
+      0.25,
+      0.125,
+      0.0625
+    ],
+    "approximate_compression": [
+      "4x",
+      "8x",
+      "16x"
+    ],
     "primary_ratio": 0.125,
     "stress_ratio": 0.0625,
-    "trivial_controls_at_primary_ratio": ["RecencyOnly", "RandomRetention"]
+    "trivial_controls_at_primary_ratio": [
+      "RecencyOnly",
+      "RandomRetention"
+    ]
   },
   "stages": {
     "preflight": {
       "synthetic_target_tokens": 2048,
-      "retention_ratios": [0.25],
+      "retention_ratios": [
+        0.25
+      ],
       "cases": 1,
       "hard_gpu_timeout_minutes": 20,
       "purpose": "Model load, architecture probe, memory headroom, and CPU-vs-GPU saliency parity."
     },
     "smoke": {
       "synthetic_target_tokens": 4096,
-      "retention_ratios": [0.25, 0.125],
-      "cases": 4,
+      "retention_ratios": [
+        0.25,
+        0.125
+      ],
+      "cases": 6,
       "hard_gpu_timeout_minutes": 40,
-      "purpose": "All four synthetic task families before any real benchmark spend."
+      "purpose": "All four synthetic task families plus two real LongBench-v2 cases before the expensive final stage.",
+      "real_cases": 2,
+      "real_token_window": [
+        4096,
+        8192
+      ]
     },
     "final": {
       "synthetic_target_tokens": 8192,
-      "retention_ratios": [0.25, 0.125, 0.0625],
+      "retention_ratios": [
+        0.25,
+        0.125,
+        0.0625
+      ],
       "synthetic_cases": 8,
       "real_cases": 6,
       "hard_gpu_timeout_minutes": 90
@@ -83,7 +116,11 @@
   "cost_guard": {
     "large_asset_download": "CPU-only Modal function into persistent Volume before GPU allocation",
     "max_containers": 1,
-    "gpu_stage_hard_timeouts_minutes": [20, 40, 90],
+    "gpu_stage_hard_timeouts_minutes": [
+      20,
+      40,
+      90
+    ],
     "one_pass_total_gpu_ceiling_minutes": 150,
     "note": "This is a hard time ceiling, not a dollar-meter. Check live Modal billing before execution; repeated failed reruns are outside the one-pass contract."
   },
@@ -93,9 +130,9 @@
       "real": 3
     },
     "pass_checks": {
-      "synthetic_4x_fullcontext_conditioned_accuracy_min": 0.80,
-      "synthetic_8x_fullcontext_conditioned_accuracy_min": 0.70,
-      "real_8x_fullcontext_conditioned_accuracy_min": 0.60,
+      "synthetic_4x_fullcontext_conditioned_accuracy_min": 0.8,
+      "synthetic_8x_fullcontext_conditioned_accuracy_min": 0.7,
+      "real_8x_fullcontext_conditioned_accuracy_min": 0.6,
       "kiaomni_8x_not_below_random_synthetic": true,
       "kiaomni_8x_not_below_recency_synthetic": true
     },
@@ -116,7 +153,11 @@
     "previous stage did not PASS",
     "stage wall-time ceiling reached"
   ],
-  "artifacts": ["preflight.json", "smoke.json", "final.json"],
+  "artifacts": [
+    "preflight.json",
+    "smoke.json",
+    "final.json"
+  ],
   "deferred": {
     "real_cache_side_kiaomni": "Phase 04",
     "external_kv_cache_baselines": "Phase 04 after cache-side KiaOmni exists",
