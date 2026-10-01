@@ -59,7 +59,7 @@ Large model and dataset downloads run in a CPU-only Modal function and are store
 | Stage | Work | Hard GPU ceiling |
 |---|---|---:|
 | preflight | load + probe + saliency parity + 1 synthetic case | 20 min |
-| smoke | 4 synthetic task families | 40 min |
+| smoke | 4 synthetic task families + 2 LongBench-v2 cases | 40 min |
 | final | 8 synthetic + 6 LongBench-v2 cases | 90 min |
 
 A one-pass run therefore has a hard configured ceiling of **150 A100 GPU minutes**. Re-running failed stages consumes additional credit and is outside this contract.
@@ -93,7 +93,7 @@ If FullContext itself solves fewer than 4 synthetic or 3 real frozen cases, the 
 Use the stages in order. The Modal launcher refuses to start the next stage unless the previous artifact says `PASS`.
 
 ```powershell
-python -m pip install -U "modal>=1.5,<2"
+python -m pip install -U "modal>=1.6,<2"
 modal setup
 
 modal run modal/qwen3_30b_scale_gate_modal.py --stage preflight --gpu A100-80GB --prepare
