@@ -81,7 +81,7 @@ modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_v1/preflight
 
 ```powershell
 python -m pip install matplotlib
-python analysis/phase03_ruler_niah_report.py --ruler .\ruler_final.json --outdir .\ruler_report
+python analysis/phase03_ruler_report.py --ruler .\ruler_final.json --outdir .\ruler_report
 ```
 
 Default heatmap uses:
@@ -93,20 +93,20 @@ kiaomni_s8_r0.125
 To render another method:
 
 ```powershell
-python analysis/phase03_ruler_niah_report.py --ruler .\ruler_final.json --outdir .\ruler_report_r25 --heatmap-method kiaomni_s8_r0.25
+python analysis/phase03_ruler_report.py --ruler .\ruler_final.json --outdir .\ruler_report_r25 --heatmap-method kiaomni_s8_r0.25
 ```
 
 ## Outputs
 
 ```text
-ruler_report/ruler_case_metrics.csv
-ruler_report/ruler_method_summary.csv
+ruler_report/ruler_cases.csv
+ruler_report/ruler_global_summary.csv
 ruler_report/ruler_depth_summary.csv
 ruler_report/ruler_plot_data.json
-ruler_report/ruler_score_vs_compression.png
-ruler_report/needle_survival_vs_compression.png
-ruler_report/ruler_depth_heatmap.png
-ruler_report/needle_survival_vs_answer_score.png
+ruler_report/ruler_quality_vs_compression.png
+ruler_report/ruler_needle_survival_vs_compression.png
+ruler_report/heatmap_score_kiaomni_s8_r0.125_8192.png (plus per-method/per-length heatmaps)
+ruler_report/ruler_survival_vs_quality_scatter.png
 ```
 
 ## Main metrics
