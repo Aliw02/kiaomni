@@ -1,0 +1,97 @@
+{
+  "version": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_V1",
+  "date": "2026-10-02",
+  "purpose": "Replay the exact frozen 27 LongBench-v2 cases with percentage retention budgets, preserving Phase-03 policies and measurement instrumentation for paired comparison against the frozen fixed-budget results.",
+  "parent_results_commit": "95cda0f",
+  "invariants": {
+    "policies": [
+      "kiaomni_s8",
+      "kiaomni_gaussian"
+    ],
+    "legacy_fixed_budgets_reference": [
+      512,
+      256,
+      128,
+      98
+    ],
+    "percentage_budgets": [
+      0.25,
+      0.125,
+      0.0625
+    ],
+    "percentage_labels": [
+      "25%",
+      "12.5%",
+      "6.25%"
+    ],
+    "n_sink": 16,
+    "recency": 32,
+    "max_new_tokens": 256,
+    "exact_same_27_longbench_ids": true,
+    "no_reselection": true,
+    "no_threshold_tuning_after_results": true,
+    "ratios_do_not_replace_fixed_budgets": true
+  },
+  "dataset": {
+    "repo": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8",
+    "index_asset": "/assets/indices/longbench_v2_official_adjudication_v1.json",
+    "expected_real_cases": 27,
+    "synthetic_cases": 0
+  },
+  "budget_semantics": {
+    "formula": "round(input_tokens * requested_retention_ratio), clamped to [N_SINK+RECENCY, input_tokens-1]",
+    "compatibility": "Matches the Phase-03 ratio runner semantics.",
+    "compare_against": "Frozen fixed-budget result commit 95cda0f"
+  },
+  "required_metrics": {
+    "quality": [
+      "accuracy",
+      "accuracy_ci95",
+      "parse_rate",
+      "gold_answer_nll",
+      "gold_answer_ppl"
+    ],
+    "paired": [
+      "fc_correct_preservation_rate",
+      "regression_rate_on_fc_correct",
+      "rescue_rate_on_fc_wrong",
+      "net_rescues_minus_regressions",
+      "mcnemar_exact_p"
+    ],
+    "compression": [
+      "requested_retention_pct",
+      "actual_retention_pct",
+      "kept_tokens",
+      "compression_ratio"
+    ],
+    "routing": [
+      "top1_expert_agreement",
+      "top8_set_jaccard",
+      "dispatch_weight_cosine",
+      "dispatch_entropy_delta",
+      "expert_load_jsd",
+      "median_layer_top1_expert_agreement",
+      "worst_layer_top1_expert_agreement",
+      "median_layer_top8_set_jaccard",
+      "worst_layer_top8_set_jaccard",
+      "per_layer"
+    ],
+    "systems": [
+      "generation_peak_allocated_vram_gb",
+      "saliency_peak_allocated_vram_gb",
+      "pipeline_peak_allocated_vram_gb",
+      "output_tokens_per_second",
+      "generation_elapsed_seconds",
+      "saliency_elapsed_seconds",
+      "inference_path_elapsed_seconds",
+      "measurement_pipeline_elapsed_seconds"
+    ]
+  },
+  "claim_boundary": [
+    "This remains prompt-side pruning, not runtime past_key_values eviction.",
+    "Fixed-budget results remain frozen historical evidence and are not overwritten.",
+    "Percentage replay is a paired comparison on the exact same 27 LongBench-v2 cases.",
+    "LongBench-v2 remains a difficult real-world reasoning stress benchmark, not the sole clean retention benchmark."
+  ]
+}
