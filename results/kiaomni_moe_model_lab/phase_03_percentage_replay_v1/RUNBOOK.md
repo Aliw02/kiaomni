@@ -122,6 +122,8 @@ Core outputs:
 ```text
 frontier_report/frontier_summary.csv
 frontier_report/frontier_pairwise.csv
+frontier_report/fullcontext_reproducibility.csv
+frontier_report/fullcontext_reproducibility.json
 frontier_report/frontier_plot_data.json
 frontier_report/quality_vs_compression.png
 frontier_report/routing_vs_compression.png
@@ -331,3 +333,19 @@ production end-to-end latency reduction
 ```
 
 The fixed-budget Phase-03 evidence remains frozen and is used only as the historical comparison track.
+
+
+## Baseline reproducibility audit
+
+Because the fixed-budget artifact and percentage artifact were produced in separate runs, the report explicitly compares the 27 FullContext rows case-by-case.
+
+It records:
+
+```text
+parsed-answer agreement
+correctness agreement
+old vs replay FullContext correct count
+gold-PPL absolute drift
+```
+
+Treat fixed-vs-percentage conclusions as clean only after inspecting this audit.
