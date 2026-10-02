@@ -153,3 +153,79 @@ Systems:
 ## Scientific boundary
 
 This run is a paired percentage-budget replay on the exact same 27 LongBench-v2 cases. It does not replace the fixed-budget evidence and it does not claim runtime KV-cache eviction.
+
+
+---
+
+# Fast official RULER NIAH frontier
+
+This is the second-stage controlled retention test. It is pinned to:
+
+```text
+NVIDIA/RULER
+revision c3f5e3b4f87f97e048793bb510a3a6b19a46bf3a
+```
+
+Fast same-day suite:
+
+```text
+tasks:
+  niah_single_1
+  niah_multikey_2
+  niah_multikey_3
+
+lengths:
+  8192
+  16384
+
+samples/task/length:
+  4
+
+ratios:
+  25%
+  12.5%
+  6.25%
+```
+
+The Modal preparation step uses upstream `scripts/data/prepare.py` with the frozen Qwen HF tokenizer and seed 42.
+
+## RULER preflight + official data generation
+
+Run this after launching the LongBench percentage final, or in parallel if your Modal concurrency/budget allows it:
+
+```powershell
+modal run modal/qwen3_30b_ruler_niah_modal.py --stage preflight --prepare-data
+```
+
+If the RULER assets were already prepared successfully, later preflights can omit `--prepare-data`.
+
+## RULER final
+
+```powershell
+modal run modal/qwen3_30b_ruler_niah_modal.py --stage final
+```
+
+## Download RULER results
+
+```powershell
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_frontier_v1/final.json .\ruler_niah_final.json
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_frontier_v1/final.log .\ruler_niah_final.log
+```
+
+RULER-specific metrics include:
+
+```text
+official-style string_match_all score
+all-reference accuracy
+gold/reference token recall after pruning
+complete-reference survival
+all-references-survived rate
+needle depth
+gold PPL
+actual MoE routing
+VRAM
+throughput
+latency components
+```
+
+The RULER fast suite is a same-day controlled validation, not the final paper-scale RULER sample count.
