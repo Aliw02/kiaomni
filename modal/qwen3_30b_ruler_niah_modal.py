@@ -22,6 +22,7 @@ RULER_TASKS = (
     "niah_multiquery",
 )
 RULER_LENGTHS = (8192, 16384)
+RULER_MIRROR_ROWS_PER_GROUP = 50
 SAMPLES_PER_GROUP = 5
 
 ASSET_VOLUME_NAME = "kiaomni-qwen3-assets"
@@ -233,20 +234,21 @@ def prepare_ruler_assets() -> dict[str, object]:
             key = (task, length)
             if key not in manifest_groups:
                 raise RuntimeError(f"Missing RULER manifest group: {task}/{length}")
-            entry = manifest_groups[key]
-            expected_sha = str(entry["sha256"])
-            output_path = str(entry["output_path"])
+            source_entry = manifest_groups[key]
+            source_rows = int(source_entry.get("rows", 0))
+            if source_rows != 500:
+                raise RuntimeError(
+                    f"Unexpected official-source row count for {task}/{length}: {source_rows}"
+                )
 
-            if output_path in repo_files:
-                filename = output_path
-            else:
-                suffix = f"/{task}/{length}.jsonl"
-                matches = sorted(x for x in repo_files if x.endswith(suffix))
-                if len(matches) != 1:
-                    raise RuntimeError(
-                        f"Could not uniquely resolve RULER file {task}/{length}: {matches}"
-                    )
-                filename = matches[0]
+            # The public RULER_50 mirror is a deterministic 50-row extraction
+            # from each official 500-row source group. Its repository layout is
+            # <task>/<context_length>.jsonl, not the original source output_path.
+            filename = f"{task}/{length}.jsonl"
+            if filename not in repo_files:
+                raise RuntimeError(
+                    f"Required RULER_50 mirror file is missing: {filename}"
+                )
 
             local_path = Path(
                 hf_hub_download(
@@ -258,18 +260,12 @@ def prepare_ruler_assets() -> dict[str, object]:
                 )
             )
             observed_sha = _sha256(local_path)
-            if observed_sha != expected_sha:
-                raise RuntimeError(
-                    f"RULER SHA mismatch {task}/{length}: "
-                    f"{observed_sha} != {expected_sha}"
-                )
 
             rows = _read_jsonl(local_path)
-            expected_rows = int(entry.get("rows", 500))
-            if len(rows) != expected_rows:
+            if len(rows) != RULER_MIRROR_ROWS_PER_GROUP:
                 raise RuntimeError(
-                    f"RULER row-count mismatch {task}/{length}: "
-                    f"{len(rows)} != {expected_rows}"
+                    f"RULER_50 mirror row-count mismatch {task}/{length}: "
+                    f"{len(rows)} != {RULER_MIRROR_ROWS_PER_GROUP}"
                 )
 
             selected = _select_depth_stratified(rows, SAMPLES_PER_GROUP)
@@ -278,8 +274,11 @@ def prepare_ruler_assets() -> dict[str, object]:
                 "context_length": length,
                 "repo_filename": filename,
                 "relative_path": str(local_path.relative_to(root)).replace("\\", "/"),
-                "sha256": observed_sha,
-                "rows": len(rows),
+                "mirror_sha256": observed_sha,
+                "mirror_rows": len(rows),
+                "official_source_output_path": str(source_entry.get("output_path", "")),
+                "official_source_sha256": str(source_entry.get("sha256", "")),
+                "official_source_rows": source_rows,
                 "selected": selected,
             })
 
@@ -296,7 +295,13 @@ def prepare_ruler_assets() -> dict[str, object]:
         "random_seed": manifest.get("random_seed"),
         "tasks": list(RULER_TASKS),
         "lengths": list(RULER_LENGTHS),
+        "mirror_rows_per_group": RULER_MIRROR_ROWS_PER_GROUP,
         "samples_per_group": SAMPLES_PER_GROUP,
+        "integrity_rule": (
+            "Dataset revision pins mirror bytes; each downloaded mirror file is hashed "
+            "and frozen in this index. Official-source provenance/500-row SHA is recorded "
+            "separately and is never compared to the 50-row mirror file."
+        ),
         "selection_rule": (
             "Five deterministic target-answer depth strata per task/length: "
             "closest unused sample to 10/30/50/70/90 percent, preferring its 20-point bin."
