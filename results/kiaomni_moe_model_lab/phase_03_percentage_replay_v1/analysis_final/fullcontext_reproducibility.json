@@ -1,0 +1,8 @@
+{
+  "matched_cases": 27,
+  "parsed_answer_agreement_rate": 1.0,
+  "correctness_agreement_rate": 1.0,
+  "fixed_correct": 8,
+  "replay_correct": 8,
+  "max_gold_ppl_abs_delta": 4.50197131574015e-07
+}

@@ -1,0 +1,15 @@
+track,method,n,preserved,regressions,rescues,both_wrong,preservation_rate,regression_rate,rescue_rate,net_rescues_minus_regressions
+fixed,kiaomni_gaussian_B128,27,1,7,2,17,0.125,0.875,0.10526315789473684,-5
+fixed,kiaomni_gaussian_B256,27,3,5,5,14,0.375,0.625,0.2631578947368421,0
+fixed,kiaomni_gaussian_B512,27,3,5,3,16,0.375,0.625,0.15789473684210525,-2
+fixed,kiaomni_gaussian_B98,27,2,6,4,15,0.25,0.75,0.21052631578947367,-2
+fixed,kiaomni_s8_B128,27,2,6,3,16,0.25,0.75,0.15789473684210525,-3
+fixed,kiaomni_s8_B256,27,3,5,6,13,0.375,0.625,0.3157894736842105,1
+fixed,kiaomni_s8_B512,27,2,6,3,16,0.25,0.75,0.15789473684210525,-3
+fixed,kiaomni_s8_B98,27,2,6,4,15,0.25,0.75,0.21052631578947367,-2
+percentage,kiaomni_gaussian_r0.0625,27,2,6,2,17,0.25,0.75,0.10526315789473684,-4
+percentage,kiaomni_gaussian_r0.125,27,5,3,5,14,0.625,0.375,0.2631578947368421,2
+percentage,kiaomni_gaussian_r0.25,27,4,4,2,17,0.5,0.5,0.10526315789473684,-2
+percentage,kiaomni_s8_r0.0625,27,4,4,3,16,0.5,0.5,0.15789473684210525,-1
+percentage,kiaomni_s8_r0.125,27,5,3,5,14,0.625,0.375,0.2631578947368421,2
+percentage,kiaomni_s8_r0.25,27,4,4,4,15,0.5,0.5,0.21052631578947367,0
