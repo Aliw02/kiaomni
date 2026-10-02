@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, exp/kiaomni-moe-model-lab, exp/kiaomni-qwen3-30b-modal-scale-gate, exp/kiaomni-qwen3-30b-adjudication-routing-v1]
+    branches: [main, exp/kiaomni-moe-model-lab, exp/kiaomni-qwen3-30b-modal-scale-gate, exp/kiaomni-qwen3-30b-adjudication-routing-v1, exp/kiaomni-qwen3-practical-budget-frontier-v1]
   pull_request:
     branches: [main]
 
@@ -25,7 +25,7 @@ jobs:
           pip install -e .[dev]
           pip install "modal==1.6.0"
       - name: Run pure-numpy + mocked-probe tests (no model download)
-        run: pytest tests/test_utils.py tests/test_policies.py tests/test_probe_mocked.py tests/test_hybrid_probe.py tests/test_moe_stability.py tests/test_saliency_strategy.py tests/test_remove_regression.py tests/test_moe_phase02_benchmark.py tests/test_blocksal.py tests/test_mobilemoe_snapkv_adapter.py tests/test_qwen3_scale_gate.py tests/test_phase03_qwen3_modal_gate.py tests/test_phase03_adjudication_routing.py -v
+        run: pytest tests/test_utils.py tests/test_policies.py tests/test_probe_mocked.py tests/test_hybrid_probe.py tests/test_moe_stability.py tests/test_saliency_strategy.py tests/test_remove_regression.py tests/test_moe_phase02_benchmark.py tests/test_blocksal.py tests/test_mobilemoe_snapkv_adapter.py tests/test_qwen3_scale_gate.py tests/test_phase03_qwen3_modal_gate.py tests/test_phase03_adjudication_routing.py tests/test_phase03_percentage_replay.py tests/test_phase03_ruler_niah.py -v
       - name: Cache Hugging Face hub (gpt2 weights)
         uses: actions/cache@v4
         with:
@@ -55,4 +55,4 @@ jobs:
           pip install -e ".[dev]"
           pip install "modal==1.6.0"
       - name: Validate Phase-03 launcher on Windows
-        run: pytest tests/test_qwen3_scale_gate.py tests/test_phase03_qwen3_modal_gate.py tests/test_phase03_adjudication_routing.py -v
+        run: pytest tests/test_qwen3_scale_gate.py tests/test_phase03_qwen3_modal_gate.py tests/test_phase03_adjudication_routing.py tests/test_phase03_percentage_replay.py tests/test_phase03_ruler_niah.py -v
