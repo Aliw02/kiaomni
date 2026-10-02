@@ -77,6 +77,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=SEED)
     p.add_argument("--min-free-gb", type=float, default=8.0)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--case-start", type=int, default=0)
     return p.parse_args()
 
 
@@ -1053,6 +1054,16 @@ def main() -> None:
         reason_count=int(cfg["reason_cases"]),
         seed=args.seed,
     )
+
+    if args.case_start < 0 or args.case_start >= len(cases):
+        raise ValueError(f"--case-start must be in [0, {len(cases) - 1}]")
+    if args.case_start:
+        print(
+            f"TAIL RECOVERY: running frozen cases {args.case_start + 1}-{len(cases)} "
+            f"of {len(cases)} only.",
+            flush=True,
+        )
+        cases = cases[args.case_start:]
 
     gpu_adapter = SaliencyAdapter(probe, offload_to_cpu=False)
     policy_fns = {name: get_policy(name) for name in POLICIES}
