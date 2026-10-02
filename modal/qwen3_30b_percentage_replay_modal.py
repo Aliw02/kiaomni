@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -239,8 +240,19 @@ def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
         if status != "PASS":
             raise RuntimeError(f"Preflight is not PASS: {status}")
         if previous_revision != repo_revision:
-            raise RuntimeError(
-                f"Preflight revision {previous_revision} != current {repo_revision}; refusing mixed revisions"
+            current_runner_sha = hashlib.sha256(
+                Path(REMOTE_RUNNER).read_bytes()
+            ).hexdigest()
+            previous_runner_sha = d.get("runner_sha256")
+            if previous_runner_sha != current_runner_sha:
+                raise RuntimeError(
+                    f"Preflight revision {previous_revision} != current {repo_revision} "
+                    "and runner SHA changed; refusing mixed revisions"
+                )
+            print(
+                "Preflight repo revision differs, but runner SHA256 is identical; "
+                "accepting the frozen preflight without rerunning it.",
+                flush=True,
             )
 
     root = Path(RESULTS_ROOT)
