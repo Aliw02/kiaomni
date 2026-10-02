@@ -1,0 +1,128 @@
+{
+  "version": "KIAOMNI_QWEN3_30B_RULER_NIAH_V1",
+  "date": "2026-10-02",
+  "purpose": "Controlled long-context retention audit using official-code-generated RULER NIAH data, paired with the same KiaOmni percentage budgets and verified actual MoE routing.",
+  "parent_results_commit": "95cda0f",
+  "data": {
+    "mirror_repo": "VenusChenyy/RULER_50",
+    "mirror_revision": "resolved and frozen into the Modal asset index at prepare time",
+    "official_repo": "NVIDIA/RULER",
+    "official_generation_commit": "38da79d79519ef87aa46ae804f838e1eab7f86d7",
+    "generation_method": "NVIDIA/RULER scripts/data/prepare.py with benchmark=synthetic",
+    "source_manifest": "source_official_generation_manifest.json",
+    "sha256_verification_required": true,
+    "answer_prefix_policy": "Reattach stored answer_prefix to input before applying the Qwen chat template."
+  },
+  "suite": {
+    "tasks": [
+      "niah_single_2",
+      "niah_multikey_1",
+      "niah_multivalue",
+      "niah_multiquery"
+    ],
+    "context_lengths": [
+      8192,
+      16384
+    ],
+    "samples_per_task_length": 5,
+    "total_cases": 40,
+    "selection": "Five deterministic target-answer depth strata per task/length, nearest unused sample to 10/30/50/70/90 percent, preferring its corresponding 20-point bin.",
+    "depth_bins": [
+      "0-20",
+      "20-40",
+      "40-60",
+      "60-80",
+      "80-100"
+    ],
+    "no_post_result_reselection": true
+  },
+  "invariants": {
+    "policies": [
+      "kiaomni_s8",
+      "kiaomni_gaussian"
+    ],
+    "percentage_budgets": [
+      0.25,
+      0.125,
+      0.0625
+    ],
+    "legacy_fixed_budgets_reference": [
+      512,
+      256,
+      128,
+      98
+    ],
+    "n_sink": 16,
+    "recency": 32,
+    "max_new_tokens": 64,
+    "actual_dispatch_verification_required": true
+  },
+  "scoring": {
+    "official_compatible_primary": "RULER NIAH string_match_all semantics: fraction of required gold outputs found as case-insensitive substrings of prediction.",
+    "additional_binary": "all required outputs found",
+    "ppl": "Teacher-forced PPL over a deterministic canonical join of required outputs; diagnostic, not the official RULER score.",
+    "needle_survival": [
+      "required_answer_token_recall",
+      "complete_required_answer_rate",
+      "all_required_answers_complete",
+      "per-answer token spans",
+      "required-answer depth"
+    ]
+  },
+  "required_metrics": {
+    "quality": [
+      "ruler_string_match_pct",
+      "all_correct_rate",
+      "95% bootstrap CI on all-correct rate",
+      "gold_answer_nll",
+      "gold_answer_ppl"
+    ],
+    "paired": [
+      "FullContext-success preservation",
+      "regressions",
+      "rescues",
+      "exact McNemar p-value",
+      "RULER score delta"
+    ],
+    "compression": [
+      "requested retention %",
+      "actual retention %",
+      "kept tokens",
+      "effective compression ratio"
+    ],
+    "routing": [
+      "top1 expert agreement",
+      "top8 set Jaccard",
+      "dispatch-weight cosine",
+      "entropy delta",
+      "expert-load JSD",
+      "median/worst layer top1",
+      "median/worst layer top8",
+      "per-layer values"
+    ],
+    "systems": [
+      "generation peak VRAM",
+      "saliency peak VRAM",
+      "pipeline peak VRAM",
+      "output tokens/s",
+      "generation time",
+      "time to first token",
+      "decode after first token",
+      "saliency time",
+      "inference-path time",
+      "measurement-pipeline time"
+    ]
+  },
+  "outputs": [
+    "preflight.json",
+    "preflight.log",
+    "final.json",
+    "final.log"
+  ],
+  "claim_boundary": [
+    "This remains prompt-side pruning, not runtime past_key_values eviction.",
+    "RULER is a controlled retention benchmark and is reported separately from LongBench-v2 reasoning stress results.",
+    "Percentage-budget RULER results do not replace the frozen fixed-budget LongBench evidence.",
+    "Needle-survival metrics diagnose whether required evidence survived selection; answer accuracy can still fail after evidence survives."
+  ]
+}
