@@ -21,7 +21,7 @@ Frozen suite:
   - 12.5%
   - 6.25%
 
-The RULER source data is mirrored from `VenusChenyy/RULER_50`, but every source file is checked against the SHA256 recorded in its official-generation manifest. That manifest pins NVIDIA/RULER generation commit:
+The RULER data is taken from `VenusChenyy/RULER_50`, a deterministic 50-row extraction from each official 500-row source group. The mirror revision is pinned and each downloaded mirror file is SHA256-hashed into our frozen index; the official 500-row source SHA256 is recorded separately as provenance. That manifest pins NVIDIA/RULER generation commit:
 
 ```text
 38da79d79519ef87aa46ae804f838e1eab7f86d7
@@ -43,7 +43,7 @@ python -m pytest tests/test_phase03_percentage_replay.py tests/test_phase03_rule
 
 ## Prepare RULER assets + preflight
 
-This downloads only the eight required 8K/16K task files, verifies their manifest SHA256 values, freezes the 40-case depth-stratified index, then runs one GPU case.
+This downloads only the eight required 8K/16K mirror files, pins/hashes those exact bytes, records the corresponding official-source provenance, freezes the 40-case depth-stratified index, then runs one GPU case.
 
 ```powershell
 modal run modal/qwen3_30b_ruler_niah_modal.py --stage preflight --prepare-ruler
