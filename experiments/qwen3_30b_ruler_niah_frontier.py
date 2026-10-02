@@ -153,8 +153,18 @@ def reference_spans(tokenizer, ids: torch.Tensor, outputs: list[str]) -> list[li
     seq = [int(x) for x in ids[0].detach().cpu().tolist()]
     spans = []
     for ref in outputs:
-        ref_ids = tokenizer(ref, add_special_tokens=False).input_ids
-        hits = find_subsequence_positions(seq, [int(x) for x in ref_ids])
+        # Byte/BPE tokenizers can encode a value differently when it is preceded by
+        # whitespace in the source sentence. Try both exact and leading-space forms.
+        candidates = []
+        for text in (ref, " " + ref):
+            token_ids = [int(x) for x in tokenizer(text, add_special_tokens=False).input_ids]
+            if token_ids and token_ids not in candidates:
+                candidates.append(token_ids)
+        hits: list[list[int]] = []
+        for candidate in candidates:
+            hits = find_subsequence_positions(seq, candidate)
+            if hits:
+                break
         if not hits:
             spans.append([])
             continue
