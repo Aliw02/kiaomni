@@ -84,17 +84,7 @@ python -m pip install matplotlib
 python analysis/phase03_ruler_report.py --ruler .\ruler_final.json --outdir .\ruler_report
 ```
 
-Default heatmap uses:
-
-```text
-kiaomni_s8_r0.125
-```
-
-To render another method:
-
-```powershell
-python analysis/phase03_ruler_report.py --ruler .\ruler_final.json --outdir .\ruler_report_r25 --heatmap-method kiaomni_s8_r0.25
-```
+The report automatically renders heatmaps for every evaluated method and both context lengths.
 
 ## Outputs
 
