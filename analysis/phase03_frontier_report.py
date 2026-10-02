@@ -114,15 +114,16 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     except ImportError as exc:
         raise SystemExit("matplotlib is required for plots: pip install matplotlib") from exc
 
-    compressed = [r for r in summary if r["method"] != "full_context" and r["mean_compression_ratio"]]
+    plottable = [r for r in summary if r["mean_compression_ratio"]]
+    compressed = [r for r in plottable if r["method"] != "full_context"]
     by_method = {(r["track"], r["method"]): r for r in compressed}
 
     def ordered(rows):
         return sorted(rows, key=lambda r: float(r["mean_compression_ratio"]))
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    for track in sorted({r["track"] for r in compressed}):
-        rs = ordered([r for r in compressed if r["track"] == track])
+    for track in sorted({r["track"] for r in plottable}):
+        rs = ordered([r for r in plottable if r["track"] == track])
         ax.plot([r["mean_compression_ratio"] for r in rs], [100*r["accuracy"] for r in rs], marker="o", label=track)
     ax.set_xscale("log")
     ax.set_xlabel("Mean compression ratio (x)")
@@ -135,8 +136,10 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    for track in sorted({r["track"] for r in compressed}):
-        rs = ordered([r for r in compressed if r["track"] == track and r["routing_top8_jaccard"] is not None])
+    for track in sorted({r["track"] for r in plottable}):
+        rs = ordered([r for r in plottable if r["track"] == track and (r["method"] == "full_context" or r["routing_top8_jaccard"] is not None)])
+        # FullContext has no self-routing comparison; keep the routing curve compressed-only.
+        rs = [r for r in rs if r["routing_top8_jaccard"] is not None]
         if rs:
             ax.plot([r["mean_compression_ratio"] for r in rs], [100*r["routing_top8_jaccard"] for r in rs], marker="o", label=track)
     ax.set_xscale("log")
@@ -150,8 +153,8 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    for track in sorted({r["track"] for r in compressed}):
-        rs = ordered([r for r in compressed if r["track"] == track])
+    for track in sorted({r["track"] for r in plottable}):
+        rs = ordered([r for r in plottable if r["track"] == track])
         ax.plot([r["mean_compression_ratio"] for r in rs], [r["max_generation_peak_vram_gb"] for r in rs], marker="o", label=track)
     ax.set_xscale("log")
     ax.set_xlabel("Mean compression ratio (x)")
@@ -164,9 +167,9 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    for track in sorted({r["track"] for r in compressed}):
+    for track in sorted({r["track"] for r in plottable}):
         rs = ordered([
-            r for r in compressed
+            r for r in plottable
             if r["track"] == track and r["mean_time_to_first_token_seconds"] is not None
         ])
         if rs:
