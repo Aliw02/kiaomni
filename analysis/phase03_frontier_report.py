@@ -101,6 +101,70 @@ def paired_summaries(artifacts: list[tuple[str, dict[str, Any]]]) -> list[dict[s
     return out
 
 
+
+def baseline_reproducibility(
+    fixed: dict[str, Any],
+    percentage: dict[str, Any],
+) -> list[dict[str, Any]]:
+    def collect(artifact: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        out: dict[str, dict[str, Any]] = {}
+        for row in artifact.get("rows", []):
+            if row.get("source") != "longbench_v2":
+                continue
+            result = row.get("result", {})
+            if result.get("method") == "full_context":
+                out[row["case_id"]] = result
+        return out
+
+    old = collect(fixed)
+    new = collect(percentage)
+    case_ids = sorted(set(old) & set(new))
+    rows = []
+    for case_id in case_ids:
+        a = old[case_id]
+        b = new[case_id]
+        rows.append({
+            "case_id": case_id,
+            "fixed_parsed_answer": a.get("parsed_answer"),
+            "replay_parsed_answer": b.get("parsed_answer"),
+            "parsed_answer_same": a.get("parsed_answer") == b.get("parsed_answer"),
+            "fixed_correct": bool(a.get("correct")),
+            "replay_correct": bool(b.get("correct")),
+            "correctness_same": bool(a.get("correct")) == bool(b.get("correct")),
+            "fixed_gold_ppl": a.get("gold_answer_ppl"),
+            "replay_gold_ppl": b.get("gold_answer_ppl"),
+            "gold_ppl_abs_delta": (
+                abs(float(a["gold_answer_ppl"]) - float(b["gold_answer_ppl"]))
+                if a.get("gold_answer_ppl") is not None and b.get("gold_answer_ppl") is not None
+                else None
+            ),
+        })
+    return rows
+
+
+def baseline_repro_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    n = len(rows)
+    return {
+        "matched_cases": n,
+        "parsed_answer_agreement_rate": (
+            sum(bool(x["parsed_answer_same"]) for x in rows) / n if n else None
+        ),
+        "correctness_agreement_rate": (
+            sum(bool(x["correctness_same"]) for x in rows) / n if n else None
+        ),
+        "fixed_correct": sum(bool(x["fixed_correct"]) for x in rows),
+        "replay_correct": sum(bool(x["replay_correct"]) for x in rows),
+        "max_gold_ppl_abs_delta": (
+            max(
+                float(x["gold_ppl_abs_delta"])
+                for x in rows
+                if x["gold_ppl_abs_delta"] is not None
+            )
+            if any(x["gold_ppl_abs_delta"] is not None for x in rows)
+            else None
+        ),
+    }
+
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -254,11 +318,25 @@ def main() -> None:
     artifacts = [("fixed", fixed), ("percentage", percentage)]
     summary = method_summaries(artifacts)
     paired = paired_summaries(artifacts)
+    baseline_rows = baseline_reproducibility(fixed, percentage)
+    baseline_summary = baseline_repro_summary(baseline_rows)
 
     write_csv(outdir / "frontier_summary.csv", summary)
     write_csv(outdir / "frontier_pairwise.csv", paired)
+    write_csv(outdir / "fullcontext_reproducibility.csv", baseline_rows)
+    (outdir / "fullcontext_reproducibility.json").write_text(
+        json.dumps(baseline_summary, indent=2),
+        encoding="utf-8",
+    )
     (outdir / "frontier_plot_data.json").write_text(
-        json.dumps({"summary": summary, "paired": paired}, indent=2),
+        json.dumps(
+            {
+                "summary": summary,
+                "paired": paired,
+                "fullcontext_reproducibility": baseline_summary,
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
     make_plots(outdir, summary, paired)
@@ -268,6 +346,8 @@ def main() -> None:
         "files": [
             "frontier_summary.csv",
             "frontier_pairwise.csv",
+            "fullcontext_reproducibility.csv",
+            "fullcontext_reproducibility.json",
             "frontier_plot_data.json",
             "quality_vs_compression.png",
             "routing_vs_compression.png",
