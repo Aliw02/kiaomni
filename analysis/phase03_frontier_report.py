@@ -32,6 +32,10 @@ def method_summaries(artifacts: list[tuple[str, dict[str, Any]]]) -> list[dict[s
         def rmean(key: str) -> float | None:
             xs = [float(v[key]) for v in routing if v.get(key) is not None]
             return sum(xs) / len(xs) if xs else None
+        retention_values = [
+            100.0 * float(v.get("actual_retention_ratio", float(v["kept_tokens"]) / float(v["input_tokens"])))
+            for v in vals
+        ]
         output.append({
             "track": track,
             "method": method,
@@ -40,7 +44,7 @@ def method_summaries(artifacts: list[tuple[str, dict[str, Any]]]) -> list[dict[s
             "accuracy": mean("correct"),
             "mean_input_tokens": mean("input_tokens"),
             "mean_kept_tokens": mean("kept_tokens"),
-            "mean_retention_pct": (100.0 * mean("actual_retention_ratio") if mean("actual_retention_ratio") is not None else None),
+            "mean_retention_pct": sum(retention_values) / len(retention_values),
             "mean_compression_ratio": mean("compression_ratio"),
             "mean_gold_answer_ppl": mean("gold_answer_ppl"),
             "mean_output_tokens_per_second": mean("output_tokens_per_second"),
@@ -170,6 +174,30 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     for track in sorted({r["track"] for r in plottable}):
         rs = ordered([
             r for r in plottable
+            if r["track"] == track and r["mean_gold_answer_ppl"] is not None
+        ])
+        if rs:
+            ax.plot(
+                [r["mean_compression_ratio"] for r in rs],
+                [r["mean_gold_answer_ppl"] for r in rs],
+                marker="o",
+                label=track,
+            )
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Mean compression ratio (x)")
+    ax.set_ylabel("Gold-answer PPL")
+    ax.set_title("Gold-answer likelihood vs compression")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(outdir / "ppl_vs_compression.png", dpi=220)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for track in sorted({r["track"] for r in plottable}):
+        rs = ordered([
+            r for r in plottable
             if r["track"] == track and r["mean_time_to_first_token_seconds"] is not None
         ])
         if rs:
@@ -244,6 +272,7 @@ def main() -> None:
             "quality_vs_compression.png",
             "routing_vs_compression.png",
             "memory_vs_compression.png",
+            "ppl_vs_compression.png",
             "ttft_vs_compression.png",
             "preservation_vs_compression.png",
         ],
