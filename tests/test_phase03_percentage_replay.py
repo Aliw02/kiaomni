@@ -55,6 +55,8 @@ def test_protocol_freezes_same_27_cases_and_no_reselection():
     assert data["invariants"]["no_reselection"] is True
     assert data["invariants"]["ratios_do_not_replace_fixed_budgets"] is True
     assert data["dataset"]["expected_real_cases"] == 27
+    assert "time_to_first_token_seconds" in data["required_metrics"]["systems"]
+    assert "decode_after_first_token_seconds" in data["required_metrics"]["systems"]
 
 
 def test_paper_company_metrics_are_recorded():
@@ -75,6 +77,8 @@ def test_paper_company_metrics_are_recorded():
         "worst_layer_top8_set_jaccard",
         "generation_peak_allocated_vram_gb",
         "pipeline_peak_allocated_vram_gb",
+        "time_to_first_token_seconds",
+        "decode_after_first_token_seconds",
         "inference_path_elapsed_seconds",
         "output_tokens_per_second",
     ):
