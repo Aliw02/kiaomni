@@ -273,7 +273,7 @@ def prepare_ruler_assets() -> dict[str, object]:
                 "task": task,
                 "context_length": length,
                 "repo_filename": filename,
-                "relative_path": str(local_path.relative_to(root)).replace("\\", "/"),
+                "relative_path": filename,
                 "sha256": observed_sha,
                 "rows": len(rows),
                 "mirror_sha256": observed_sha,
