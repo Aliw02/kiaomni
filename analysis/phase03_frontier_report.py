@@ -44,6 +44,8 @@ def method_summaries(artifacts: list[tuple[str, dict[str, Any]]]) -> list[dict[s
             "mean_compression_ratio": mean("compression_ratio"),
             "mean_gold_answer_ppl": mean("gold_answer_ppl"),
             "mean_output_tokens_per_second": mean("output_tokens_per_second"),
+            "mean_time_to_first_token_seconds": mean("time_to_first_token_seconds"),
+            "mean_decode_after_first_token_seconds": mean("decode_after_first_token_seconds"),
             "max_generation_peak_vram_gb": max(float(v["generation_peak_allocated_vram_gb"]) for v in vals),
             "max_pipeline_peak_vram_gb": max(float(v["pipeline_peak_allocated_vram_gb"]) for v in vals),
             "mean_inference_path_elapsed_seconds": mean("inference_path_elapsed_seconds"),
@@ -161,6 +163,29 @@ def make_plots(outdir: Path, summary: list[dict[str, Any]], paired: list[dict[st
     fig.savefig(outdir / "memory_vs_compression.png", dpi=220)
     plt.close(fig)
 
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for track in sorted({r["track"] for r in compressed}):
+        rs = ordered([
+            r for r in compressed
+            if r["track"] == track and r["mean_time_to_first_token_seconds"] is not None
+        ])
+        if rs:
+            ax.plot(
+                [r["mean_compression_ratio"] for r in rs],
+                [r["mean_time_to_first_token_seconds"] for r in rs],
+                marker="o",
+                label=track,
+            )
+    ax.set_xscale("log")
+    ax.set_xlabel("Mean compression ratio (x)")
+    ax.set_ylabel("Time to first token (s)")
+    ax.set_title("TTFT vs compression")
+    ax.grid(True, alpha=0.25)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(outdir / "ttft_vs_compression.png", dpi=220)
+    plt.close(fig)
+
     pmap = {(r["track"], r["method"]): r for r in paired}
     fig, ax = plt.subplots(figsize=(8, 5))
     for track in sorted({r["track"] for r in compressed}):
@@ -216,6 +241,7 @@ def main() -> None:
             "quality_vs_compression.png",
             "routing_vs_compression.png",
             "memory_vs_compression.png",
+            "ttft_vs_compression.png",
             "preservation_vs_compression.png",
         ],
     }, indent=2))
