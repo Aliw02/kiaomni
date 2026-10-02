@@ -1,0 +1,111 @@
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:55,  3.68s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:07<00:49,  3.52s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:10<00:46,  3.60s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:17<00:59,  4.93s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:24<01:00,  5.53s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:31<01:01,  6.16s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:41<01:05,  7.26s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:47<00:55,  6.95s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:55<00:50,  7.20s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [01:05<00:48,  8.07s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [01:12<00:38,  7.66s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [01:21<00:33,  8.28s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [01:30<00:25,  8.51s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [01:43<00:19,  9.79s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [01:48<00:08,  8.27s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:49<00:00,  6.05s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:49<00:00,  6.82s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+ROUTING_PREFLIGHT={"passed": true, "logits_exact_equal": true, "logits_allclose_rtol_1e-4_atol_1e-5": true, "max_abs_logit_error": 0.0, "dispatch_verified": true, "dispatch_count_mismatches": [], "captured_sparse_layers": 48}
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=full_context GOLD=B
+TOKENS=15209/15209 COMPRESSION=1.000x
+--- RAW ANSWER ---
+The correct answer is (C) It believes that Israel's war with Hezbollah can only be achieved through diplomacy to make the borders sufficiently secure.
+
+Explanation: The text indicates that the U.S. has consistently advocated for a diplomatic solution to the Israel-Hezbollah conflict, emphasizing that full-scale war is not in anyone’s interest. Despite Israel’s military actions, including the pager attacks and subsequent airstrikes, the U.S. continues to push for diplomacy, as evidenced by efforts by envoy Amos Hochstein and the White House’s insistence on pursuing a ceasefire deal. The U.S. opposes an Israeli ground invasion of Lebanon and rejects the strategy of “de-escalation by escalation,” reaffirming that only diplomacy can lead to lasting security. This aligns with option (C). While the U.S. supports Israel’s right to self-defense (which may imply continued support like (A)), the central theme of the article is the U.S. prioritizing diplomacy over military escalation, making (C) the most accurate reflection of the shift in attitude after the pager attacks.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=214 HIT_LIMIT=False
+PPL=1.996849 NLL=0.691570 OUT_TOK_S=6.241 GEN_PEAK_VRAM_GB=59.011 PIPELINE_PEAK_VRAM_GB=59.011 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.25 GOLD=B
+TOKENS=3802/15209 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (B) It believes that the current situation has exceeded expectations and is committed to mediating the conflict.
+
+Explanation: The text indicates that the U.S. is actively engaged in behind-the-scenes diplomacy, presenting allies with potential plans to resolve the crisis between Israel and Hezbollah. It emphasizes that the U.S. opposes an Israeli ground invasion of Lebanon and rejects the strategy of "de-escalation by escalation." The White House denies that it is giving up on diplomacy and insists that President Biden is still working to avert a full-scale war. This shows a shift from passive support to active mediation, especially after the pager attacks escalated tensions. While the U.S. continues to support Israel, its primary focus has now become diplomatic efforts to prevent wider war, indicating that the situation has exceeded expectations and requires more proactive engagement. Therefore, (B) best captures the change in attitude.
+--- SCORES ---
+PARSED=B CORRECT=True PARSE=explicit GENERATED=180 HIT_LIMIT=False
+PPL=1.000592 NLL=0.000592 OUT_TOK_S=6.410 GEN_PEAK_VRAM_GB=57.417 PIPELINE_PEAK_VRAM_GB=61.242 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.041 SALIENCY_PEAK_VRAM_GB=61.242
+ROUTING_ACTUAL TOP1=0.727430 TOP8_JACCARD=0.765480 WEIGHT_COS=0.892831 ENTROPY_DELTA=0.000564 LOAD_JSD=0.006745
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.25 GOLD=B
+TOKENS=3802/15209 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (C) It believes that Israel's war with Hezbollah can only be achieved through diplomacy to make the borders sufficiently secure.
+
+Explanation: The text indicates that the U.S. is actively trying to prevent escalation and is pushing for a diplomatic solution. It emphasizes that "full-scale war is not in anyone's interest" and that the U.S. is presenting allies with potential plans to avert an all-out war. The White House supports Israel’s right to self-defense but opposes a ground invasion of Lebanon and rejects the strategy of "de-escalation by escalation." The U.S. insists that only diplomacy can make the border safe enough, aligning with choice (C). While the U.S. continues to support Israel militarily (which might suggest (A)), the key point in the question is about how the U.S. attitude has changed *after* the pager bombing attack—specifically, its increased focus on diplomacy and restraint, making (C) the most accurate reflection of the shift in approach.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=206 HIT_LIMIT=False
+PPL=1.600309 NLL=0.470196 OUT_TOK_S=7.754 GEN_PEAK_VRAM_GB=57.417 PIPELINE_PEAK_VRAM_GB=61.242 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.041 SALIENCY_PEAK_VRAM_GB=61.242
+ROUTING_ACTUAL TOP1=0.727424 TOP8_JACCARD=0.766442 WEIGHT_COS=0.895288 ENTROPY_DELTA=0.001019 LOAD_JSD=0.006903
+========================================================================================
+
+FINAL EXECUTION GATE
+{
+  "status": "PASS",
+  "completed_cases": 1,
+  "expected_rows": 3,
+  "actual_rows": 3,
+  "actual_dispatch_verified": true,
+  "note": "PASS means execution/measurement integrity only; quality is adjudicated from the recorded metrics."
+}
+
+PAIRWISE SUMMARY
+[
+  {
+    "method": "kiaomni_gaussian_r0.25",
+    "n": 1,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 1,
+    "fc_correct_preservation_rate": null,
+    "regression_rate_on_fc_correct": null,
+    "rescue_rate_on_fc_wrong": 0.0,
+    "net_rescues_minus_regressions": 0,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 1.0,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.0
+  },
+  {
+    "method": "kiaomni_s8_r0.25",
+    "n": 1,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 1,
+    "fc_wrong_to_kia_wrong": 0,
+    "fc_correct_preservation_rate": null,
+    "regression_rate_on_fc_correct": null,
+    "rescue_rate_on_fc_wrong": 1.0,
+    "net_rescues_minus_regressions": 1,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.0,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.0
+  }
+]

@@ -1,0 +1,681 @@
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:55,  3.72s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:07<00:49,  3.55s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:10<00:46,  3.57s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:16<00:51,  4.32s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:22<00:55,  5.01s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:26<00:45,  4.56s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:29<00:37,  4.15s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:32<00:30,  3.85s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:35<00:25,  3.67s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [00:39<00:20,  3.49s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [00:42<00:17,  3.40s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [00:45<00:13,  3.35s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [00:48<00:10,  3.36s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [00:51<00:06,  3.26s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [00:54<00:03,  3.19s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:55<00:00,  2.48s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [00:55<00:00,  3.48s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+ROUTING_PREFLIGHT={"passed": true, "logits_exact_equal": true, "logits_allclose_rtol_1e-4_atol_1e-5": true, "max_abs_logit_error": 0.0, "dispatch_verified": true, "dispatch_count_mismatches": [], "captured_sparse_layers": 48}
+TAIL RECOVERY: running frozen cases 24-27 of 27 only.
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=full_context GOLD=C
+TOKENS=13762/13762 COMPRESSION=1.000x
+--- RAW ANSWER ---
+To determine which duration has the worst situation in terms of Palestinians deaths per day and injuries per day, we need to calculate the average daily deaths and injuries for each duration using the data provided in the Humanitarian Situation Updates.
+
+---
+
+### **Duration A: 28 June 2024 to 29 July 2024 (31 days)**
+
+From the **28 June 2024** update:
+- Between 24 and 27 June: 139 killed, 331 injured.
+- No further data for 28–29 June, but the next update (29 July) includes:
+  - Between 25 and 29 July: 188 killed, 520 injured.
+
+We assume the 188 deaths and 520 injuries from 25–29 July are the only new data for July. But we need to cover **28 June to 29 July**, which is 31 days.
+
+Let’s break it down:
+- **28 June to 27 July**: We have data from 24–27 June (4 days): 139 deaths, 331 injuries.
+
+--- SCORES ---
+PARSED=None CORRECT=False PARSE=unparsed GENERATED=256 HIT_LIMIT=True
+PPL=3.530588 NLL=1.261464 OUT_TOK_S=3.971 GEN_PEAK_VRAM_GB=58.813 PIPELINE_PEAK_VRAM_GB=58.813 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.25 GOLD=C
+TOKENS=3440/13762 COMPRESSION=4.001x
+--- RAW ANSWER ---
+To determine which duration has the worst situation in terms of Palestinians deaths per day and injuries per day, we need to calculate the average daily deaths and injuries for each duration using the data provided in the Humanitarian Situation Updates.
+
+---
+
+### **Duration A: 28 June 2024 to 29 July 2024 (31 days)**  
+From the **28 June 2024** update (Update #184):  
+- Between 24 and 27 June: 108 killed, 331 injured  
+- No data for 28 June to 29 July 2024 is provided in that update.  
+But the **29 July 2024** update (Update #197) states:  
+- Between 25 and 29 July: 18 killed, 520 injured  
+
+So, total for **28 June to 29 July 2024**:
+- We can only use the data from **25–29 July 2024** (5 days): 18 killed, 520 injured  
+- No data is available for 28 June to
+--- SCORES ---
+PARSED=None CORRECT=False PARSE=unparsed GENERATED=256 HIT_LIMIT=True
+PPL=9.350905 NLL=2.235473 OUT_TOK_S=3.987 GEN_PEAK_VRAM_GB=57.362 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.719616 TOP8_JACCARD=0.734069 WEIGHT_COS=0.873519 ENTROPY_DELTA=0.000661 LOAD_JSD=0.007896
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.125 GOLD=C
+TOKENS=1720/13762 COMPRESSION=8.001x
+--- RAW ANSWER ---
+To determine which duration has the worst situation in terms of Palestinians deaths per day and injuries per day, we need to analyze the data provided in the three Humanitarian Situation Updates for the specified periods.
+
+---
+
+### **Step 1: Extract total deaths and injuries for each duration**
+
+We will use the cumulative figures from the Ministry of Health (MoH) in Gaza as reported in the updates.
+
+---
+
+#### **Duration A: 28 June 2024 to 29 July 2024**
+
+- **Update dated 29 July 2024 (Update #197)**:
+  - "Between 7 October 2023 and 29 July 2024, at least 35,000 Palestinians were killed and 80,000 were injured."
+  - But we need the **increase during June 28 to July 29**, so we must subtract the figures from the previous update.
+
+- **Update dated 28 June 2024 (Update #184)**:
+  - "Between 7 October 2023 and 24 June 2024, at least 30,000 Palestinians were
+--- SCORES ---
+PARSED=None CORRECT=False PARSE=unparsed GENERATED=256 HIT_LIMIT=True
+PPL=9.695647 NLL=2.271677 OUT_TOK_S=4.120 GEN_PEAK_VRAM_GB=57.121 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.689390 TOP8_JACCARD=0.709711 WEIGHT_COS=0.857692 ENTROPY_DELTA=0.000662 LOAD_JSD=0.009237
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.0625 GOLD=C
+TOKENS=860/13762 COMPRESSION=16.002x
+--- RAW ANSWER ---
+The correct answer is (D) duration C has the largest number of deaths per day, duration B has the largest number of injuries per day.
+
+Explanation:
+
+We need to compare the three durations in terms of deaths per day and injuries per day.
+
+From the text:
+
+- On 23 September 2024, the Ministry of Health (MoH) in Gaza reported that between 7 October 2023 and 22 September 2024, at least 4,818 people were killed and 267 were injured. However, this is cumulative data from 7 October 2023 to 22 September 2024, so we need to isolate the deaths and injuries during the specific durations.
+
+But the text provides specific data only for August 2024 and the period up to 22 September 2024.
+
+Let’s analyze each duration:
+
+Duration A: 28 June 2024 – 29 July 2024 (32 days)
+- The 28 June 2024 update mentions: “At least 60 directly through the Humanitarian Fund.” This is unclear and likely incomplete or corrupted. No specific
+--- SCORES ---
+PARSED=D CORRECT=False PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=5.482797 NLL=1.701615 OUT_TOK_S=4.095 GEN_PEAK_VRAM_GB=57.000 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.695058 TOP8_JACCARD=0.707571 WEIGHT_COS=0.861189 ENTROPY_DELTA=-0.000044 LOAD_JSD=0.008291
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.25 GOLD=C
+TOKENS=3440/13762 COMPRESSION=4.001x
+--- RAW ANSWER ---
+To determine which duration has the worst situation in terms of Palestinians deaths per day and injuries per day, we need to calculate the average daily deaths and injuries for each duration using the data provided in the Humanitarian Situation Updates.
+
+---
+
+### **Duration A: 28 June 2024 to 29 July 2024 (31 days)**  
+From the **28 June 2024** update (Update #184):  
+- Between 24 and 27 June: 167 killed, 31 injured (but this is only 4 days).  
+- The update does **not** provide total deaths/injuries for the full duration of June 28 to July 29.  
+- However, the **29 July 2024** update (Update #197) states:  
+  > "Between the afternoons of 25 and 29 July, according to the Ministry of Health (MoH) in Gaza, 188 Palestinians were killed and 520 were injured."
+
+So, we can only use the **25–29 July** period (5 days) for deaths and injuries in July.  
+We have
+--- SCORES ---
+PARSED=None CORRECT=False PARSE=unparsed GENERATED=256 HIT_LIMIT=True
+PPL=11.564735 NLL=2.447960 OUT_TOK_S=4.011 GEN_PEAK_VRAM_GB=57.362 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.724752 TOP8_JACCARD=0.737324 WEIGHT_COS=0.876586 ENTROPY_DELTA=0.000548 LOAD_JSD=0.007508
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.125 GOLD=C
+TOKENS=1720/13762 COMPRESSION=8.001x
+--- RAW ANSWER ---
+To determine which duration has the worst situation in terms of Palestinians deaths per day and injuries per day, we need to analyze the data provided in the three Humanitarian Situation Updates for the specified periods.
+
+---
+
+### **Step 1: Extract cumulative death and injury data from the updates**
+
+We will use the cumulative numbers reported at the end of each period and calculate daily averages.
+
+---
+
+#### **Duration A: 28 June 2024 to 29 July 2024 (32 days)**
+
+From **Update #184 (28 Jun 2024)**:
+- No specific death/injury numbers are given for this period.
+- But from **Update #197 (29 Jul 2024)**:
+  - "Between 7 October 2023 and 29 July 2024, at least 37,000 Palestinians were killed and 85,000 were injured" (approximate, based on the text: "at least 37,000" and "85,000" — though the exact number is not fully visible, the update says "at least 37,000" and
+--- SCORES ---
+PARSED=None CORRECT=False PARSE=unparsed GENERATED=256 HIT_LIMIT=True
+PPL=9.683071 NLL=2.270379 OUT_TOK_S=4.098 GEN_PEAK_VRAM_GB=57.121 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.684641 TOP8_JACCARD=0.703771 WEIGHT_COS=0.854597 ENTROPY_DELTA=0.000388 LOAD_JSD=0.009846
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f8c6b4bb02136c067c4480 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.0625 GOLD=C
+TOKENS=860/13762 COMPRESSION=16.002x
+--- RAW ANSWER ---
+The correct answer is (D) duration C has the largest number of deaths per day, duration B has the largest number of injuries per day.
+
+Explanation:
+
+We need to analyze the data provided in the text to determine which duration had the highest number of deaths per day and injuries per day.
+
+1. **Duration A: 28 June 2024 to 29 July 2024 (32 days)**  
+   - From the 28 June 2024 update: "At least 10,000 Palestinians have been killed" (implied from context, though not explicitly stated, but the 29 July update says "at least 10,000" as of 31 July).  
+   - So, approximately 10,000 deaths in 32 days → ~312.5 deaths per day.
+
+2. **Duration B: 30 July 2024 to 29 August 2024 (31 days)**  
+   - The 31 July update says "at least 10,000" killed by 31 July.  
+   - The 30 August update does not give
+--- SCORES ---
+PARSED=D CORRECT=False PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=5.567531 NLL=1.716952 OUT_TOK_S=4.118 GEN_PEAK_VRAM_GB=57.000 PIPELINE_PEAK_VRAM_GB=60.826 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.524 SALIENCY_PEAK_VRAM_GB=60.826
+ROUTING_ACTUAL TOP1=0.678343 TOP8_JACCARD=0.694068 WEIGHT_COS=0.853107 ENTROPY_DELTA=-0.000118 LOAD_JSD=0.009591
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=full_context GOLD=C
+TOKENS=10150/10150 COMPRESSION=1.000x
+--- RAW ANSWER ---
+The correct answer is (B).
+--- SCORES ---
+PARSED=B CORRECT=False PARSE=explicit GENERATED=8 HIT_LIMIT=False
+PPL=2.743101 NLL=1.009089 OUT_TOK_S=1.602 GEN_PEAK_VRAM_GB=58.302 PIPELINE_PEAK_VRAM_GB=58.302 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.25 GOLD=C
+TOKENS=2538/10150 COMPRESSION=3.999x
+--- RAW ANSWER ---
+The correct answer is (B).
+--- SCORES ---
+PARSED=B CORRECT=False PARSE=explicit GENERATED=8 HIT_LIMIT=False
+PPL=1.361026 NLL=0.308239 OUT_TOK_S=1.897 GEN_PEAK_VRAM_GB=57.237 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.750484 TOP8_JACCARD=0.787934 WEIGHT_COS=0.911187 ENTROPY_DELTA=0.001699 LOAD_JSD=0.005103
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.125 GOLD=C
+TOKENS=1269/10150 COMPRESSION=7.998x
+--- RAW ANSWER ---
+The correct answer is (C) Between 2012 and 2017, negative review rate on Yelp could be abnormally low.
+
+Explanation:  
+- The text mentions that Yelp faced allegations of filtering good reviews and posting bad ones, and that there were lawsuits alleging Yelp hurt small businesses by manipulating reviews.  
+- It also notes that the Consumer Review Fairness Act (CRFA) was passed in response to reports that negative reviews were being suppressed or that businesses were pressured to remove them.  
+- The CRFA was enacted in 2017, and prior to that, there were concerns about Yelp’s transparency and potential manipulation of reviews.  
+- Given the allegations of review manipulation and the fact that the CRFA was introduced to protect honest reviews, it is plausible that between 2012 and 2017, Yelp’s negative review rate could have been abnormally low due to such practices.  
+- The other options are not supported:  
+  - (A) is false — the CRFA does not prevent Yelp from filtering reviews; it prohibits contracts that ban honest reviews.  
+  - (B) is speculative — there's no evidence that businesses would lose interest in ads due to better fake review detection.  
+  -
+--- SCORES ---
+PARSED=C CORRECT=True PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=1.003766 NLL=0.003759 OUT_TOK_S=4.110 GEN_PEAK_VRAM_GB=57.058 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.713390 TOP8_JACCARD=0.761201 WEIGHT_COS=0.894967 ENTROPY_DELTA=0.001776 LOAD_JSD=0.005665
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_r0.0625 GOLD=C
+TOKENS=634/10150 COMPRESSION=16.009x
+--- RAW ANSWER ---
+The correct answer is (B).
+--- SCORES ---
+PARSED=B CORRECT=False PARSE=explicit GENERATED=8 HIT_LIMIT=False
+PPL=1.540566 NLL=0.432150 OUT_TOK_S=1.945 GEN_PEAK_VRAM_GB=56.968 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.694171 TOP8_JACCARD=0.743354 WEIGHT_COS=0.882134 ENTROPY_DELTA=0.000182 LOAD_JSD=0.006629
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.25 GOLD=C
+TOKENS=2538/10150 COMPRESSION=3.999x
+--- RAW ANSWER ---
+The correct answer is (B) As Yelp stepped up its efforts to control fake reviews, businesses might lose interest in buying AD services because they would be affected by fake reviews less.
+
+Explanation:
+- The text indicates that Yelp has been actively working to detect and filter fake reviews, especially after 2012, when it began alerting users about fake reviews (News II, October 2012).
+- The company has also made changes to improve transparency and fairness, such as showing which reviews are filtered (News I, April 2010), and has faced lawsuits and criticism over allegations of manipulating reviews for advertisers.
+- If Yelp successfully reduces fake or misleading reviews, the overall quality and reliability of reviews improve. This could mean that businesses no longer feel the need to pay for advertising services to counteract unfair or fake negative reviews, as the review ecosystem becomes more trustworthy.
+- Therefore, businesses might see less value in advertising on Yelp if the organic review system is perceived as fairer and more accurate.
+
+Other choices:
+- (A) is false: The Consumer Review Fairness Act (CRFA) does not prevent Yelp from filtering reviews; it only prohibits businesses from banning honest reviews. Yelp still filters fake reviews.
+- (C) is unsupported: There
+--- SCORES ---
+PARSED=B CORRECT=False PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=2.723547 NLL=1.001935 OUT_TOK_S=3.708 GEN_PEAK_VRAM_GB=57.237 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.749031 TOP8_JACCARD=0.789331 WEIGHT_COS=0.912140 ENTROPY_DELTA=0.001402 LOAD_JSD=0.004966
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.125 GOLD=C
+TOKENS=1269/10150 COMPRESSION=7.998x
+--- RAW ANSWER ---
+The correct answer is (C) Between 2012 and 2017, negative review rate on Yelp could be abnormally low.
+
+Explanation:  
+- The text mentions in News II (October 2012) that Yelp began alerting consumers about fake reviews, indicating a growing concern about review integrity.  
+- The article from March 2009 highlights allegations that Yelp filters good reviews and posts bad ones, especially under pressure from advertisers, and that businesses have sued Yelp for allegedly hurting their reputations.  
+- The Consumer Review Fairness Act (CRFA), passed in 2016 (implied by the 2017 opportunity to comment), protects honest reviews and prohibits contracts that restrict them. This law likely increased scrutiny on platforms like Yelp to avoid manipulating reviews.  
+- Given that Yelp was accused of filtering reviews (especially negative ones) to favor advertisers, and that it began taking steps to detect fake reviews around 2012, it is plausible that between 2012 and 2017, Yelp’s efforts to control fake or negative reviews led to a lower rate of negative reviews appearing—possibly abnormally low—due to algorithmic filtering or suppression.  
+- Option (A
+--- SCORES ---
+PARSED=C CORRECT=True PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=1.104720 NLL=0.099592 OUT_TOK_S=3.698 GEN_PEAK_VRAM_GB=57.058 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.705362 TOP8_JACCARD=0.753784 WEIGHT_COS=0.889686 ENTROPY_DELTA=0.001853 LOAD_JSD=0.006771
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f245cc821e116aacb28698 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_r0.0625 GOLD=C
+TOKENS=634/10150 COMPRESSION=16.009x
+--- RAW ANSWER ---
+The correct answer is (B) As Yelp stepped up its efforts to control fake reviews, businesses might lose interest in buying AD services because they would be affected by fake reviews less.
+
+Explanation: The text discusses Yelp's efforts to build trust with businesses by addressing fake reviews, which is important because businesses are a major source of Yelp’s revenue through advertising. The article also mentions the Consumer Review Fairness Act, which protects consumers’ rights to post honest reviews, implying that Yelp must be cautious about filtering or removing reviews. However, the text does not suggest that Yelp can no longer filter reviews (eliminating A), nor does it indicate a shift in business focus from reviews to advertising (eliminating D). While the text mentions the law’s protection of honest reviews, it does not provide evidence that negative review rates were abnormally low between 2012 and 2017 (eliminating C). Instead, the logical inference is that by reducing fake reviews, Yelp improves the credibility of its platform, which could make advertising less appealing to businesses if fake reviews are no longer a problem—since the perceived need for advertising to counteract negative reviews diminishes. Thus, (B) is the most supported by the information given.
+--- SCORES ---
+PARSED=B CORRECT=False PARSE=explicit GENERATED=248 HIT_LIMIT=False
+PPL=3.251127 NLL=1.179002 OUT_TOK_S=3.948 GEN_PEAK_VRAM_GB=56.968 PIPELINE_PEAK_VRAM_GB=59.791 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=4.385 SALIENCY_PEAK_VRAM_GB=59.791
+ROUTING_ACTUAL TOP1=0.691377 TOP8_JACCARD=0.742306 WEIGHT_COS=0.883481 ENTROPY_DELTA=0.001077 LOAD_JSD=0.006513
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=full_context GOLD=B
+TOKENS=15896/15896 COMPRESSION=1.000x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to Section 6.2, Error Code E03: Sensor Failure, the recommended actions are:
+- Restart the robot (which is implied in the calibration process),
+- Clean the sensors (as per Section 5.3.3),
+- Check connections,
+- And if the issue persists, contact customer support.
+
+The manual does not suggest disabling obstacle avoidance (A), switching modes (B), or updating firmware as a primary solution for E03 (D). Instead, cleaning and recalibrating sensors are the first-line troubleshooting steps. Since the robot is already in Wheeled Mode and the issue is sensor-related, continuing with obstacle avoidance enabled after cleaning and calibration is safe and appropriate, as long as the sensors are functioning correctly. Therefore, (C) is the most accurate and safe course of action.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=198 HIT_LIMIT=False
+PPL=11.346107 NLL=2.428875 OUT_TOK_S=3.963 GEN_PEAK_VRAM_GB=59.106 PIPELINE_PEAK_VRAM_GB=59.106 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_s8_r0.25 GOLD=B
+TOKENS=3974/15896 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a "Sensor Failure." The recommended actions are to restart the robot, clean the sensors (as per Section 5.3.3), and check connections. If the issue persists, professional service is advised. However, the first step is cleaning and recalibration. Option (C) directly aligns with these steps and allows continued operation in Wheeled Mode with obstacle avoidance enabled, which is consistent with operational requirements. Option (B) and (D) introduce unnecessary changes like switching modes or lowering speed, which are not required by the manual. Option (A) disables a critical safety feature (obstacle avoidance), which compromises safety and is not recommended. Therefore, (C) is the most appropriate and safe resolution.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=190 HIT_LIMIT=False
+PPL=7.004925 NLL=1.946613 OUT_TOK_S=4.022 GEN_PEAK_VRAM_GB=57.439 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.695364 TOP8_JACCARD=0.723671 WEIGHT_COS=0.867700 ENTROPY_DELTA=-0.000487 LOAD_JSD=0.010779
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_s8_r0.125 GOLD=B
+TOKENS=1987/15896 COMPRESSION=8.000x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a "Sensor Failure." The recommended action is to "Restart the Robot" and, if the issue persists, "Contact customer support." However, prior to contacting support, the manual advises checking for physical obstructions or dirt on sensors and performing recalibration. Section 5.3 (Cleaning Sensor Surfaces) and Section 4.5 (Calibration) support this approach. Option (C) aligns with these steps: cleaning the sensors and recalibrating them, which directly addresses the root cause of sensor failure without unnecessarily reducing speed or disabling safety features like obstacle avoidance. This maintains operational requirements while resolving the issue.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=171 HIT_LIMIT=False
+PPL=5.654818 NLL=1.732508 OUT_TOK_S=3.995 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.671186 TOP8_JACCARD=0.701834 WEIGHT_COS=0.856172 ENTROPY_DELTA=-0.001870 LOAD_JSD=0.012417
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_s8_r0.0625 GOLD=B
+TOKENS=994/15896 COMPRESSION=15.992x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a "Sensor Failure," and the recommended action is to "Restart" the robot. However, in the troubleshooting section for Issue 6: Inaccurate Sensor Readings, the manual suggests cleaning the sensors and recalibrating them. Since the robot is experiencing frequent sensor-related errors (E03), the appropriate corrective action is to clean the sensors and recalibrate them. This maintains operational requirements, including high-speed operation in Wheeled Mode and obstacle avoidance, without unnecessary mode changes or speed reductions. Option (C) aligns directly with these recommended steps.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=158 HIT_LIMIT=False
+PPL=19.385040 NLL=2.964502 OUT_TOK_S=4.005 GEN_PEAK_VRAM_GB=57.020 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.634997 TOP8_JACCARD=0.672488 WEIGHT_COS=0.832081 ENTROPY_DELTA=-0.002531 LOAD_JSD=0.016041
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_gaussian_r0.25 GOLD=B
+TOKENS=3974/15896 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a "Sensor Failure." The recommended actions in Section 6.2 are: (1) Restart the robot to reset sensors, (2) Clean the sensors as per Section 5.3.3, and (3) Check connections. If the issue persists, professional service is advised. However, the most immediate and appropriate step to resolve the issue without compromising operational requirements is to clean the sensors and recalibrate them, which directly addresses the root cause of sensor failure. Option (C) aligns with these steps and allows continued operation in Wheeled Mode with obstacle avoidance enabled, which is safe and efficient when sensors are functioning properly. Options (A), (B), and (D) either disable safety features, switch modes unnecessarily, or introduce changes not directly linked to resolving sensor failure as described in the manual.
+
+"The correct answer is (C)"
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=217 HIT_LIMIT=False
+PPL=5.358848 NLL=1.678749 OUT_TOK_S=4.106 GEN_PEAK_VRAM_GB=57.439 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.698535 TOP8_JACCARD=0.725679 WEIGHT_COS=0.871025 ENTROPY_DELTA=-0.000539 LOAD_JSD=0.010349
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_gaussian_r0.125 GOLD=B
+TOKENS=1987/15896 COMPRESSION=8.000x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a "Sensor Failure," and the recommended action is to "Restart the robot" and "Clean Sensors" followed by "support" (which implies recalibration or verification). Section 4.5 on Sensor Calibration confirms that recalibration is necessary if sensor accuracy is affected. The manual also states that obstacle avoidance is essential for safety and is enabled by default in autonomous modes. Therefore, cleaning the sensors and recalibrating them—without switching modes or reducing speed—aligns with resolving the issue while maintaining operational requirements. Option (C) directly follows these steps and preserves the robot’s intended functionality.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=165 HIT_LIMIT=False
+PPL=21.577713 NLL=3.071661 OUT_TOK_S=4.088 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.661026 TOP8_JACCARD=0.694469 WEIGHT_COS=0.849174 ENTROPY_DELTA=-0.001840 LOAD_JSD=0.013642
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f2aac2821e116aacb2a9de SOURCE=longbench_v2 TASK=User guide QA
+METHOD=kiaomni_gaussian_r0.0625 GOLD=B
+TOKENS=994/15896 COMPRESSION=15.992x
+--- RAW ANSWER ---
+The correct answer is (C) Clean the sensors, perform a sensor calibration, and continue operating in Wheeled Mode at high speed with obstacle avoidance enabled.
+
+Explanation: According to the user manual, Error Code E03 indicates a Sensor Failure. The troubleshooting section for Issue 6: Inaccurate Sensor Readings lists "Sensors are miscalibrated" and "Physical damage to sensors" as possible causes. The recommended solution includes cleaning the sensors and recalibrating them. Option (C) directly addresses these steps while maintaining the operational mode (Wheeled Mode) and keeping obstacle avoidance enabled, which is essential for safety and performance. Disabling obstacle avoidance (A) compromises safety, switching modes (B) is unnecessary, and updating firmware (D) is not specifically linked to E03 in the manual. Thus, (C) is the most appropriate and safe resolution.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=179 HIT_LIMIT=False
+PPL=21.576011 NLL=3.071582 OUT_TOK_S=4.057 GEN_PEAK_VRAM_GB=57.020 PIPELINE_PEAK_VRAM_GB=61.438 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.278 SALIENCY_PEAK_VRAM_GB=61.438
+ROUTING_ACTUAL TOP1=0.629988 TOP8_JACCARD=0.670023 WEIGHT_COS=0.828948 ENTROPY_DELTA=-0.002113 LOAD_JSD=0.017699
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=full_context GOLD=C
+TOKENS=16231/16231 COMPRESSION=1.000x
+--- RAW ANSWER ---
+The correct answer is (C) Parameter a and parameter 2.
+
+Explanation:  
+In the text, the parameter identification process for Cell A is described in Section 4.2.1. The calibration process for Cell A includes:
+- OCV calibration (used to obtain parameters for Table 3),
+- Constant current discharge calibration (used to obtain parameters for Table 4, resulting in parameter set 'a'),
+- DST calibration (resulting in parameter set 'b').
+
+Then, in Section 4.2.2(4) Aging Calibration Results, it is stated that for Cell A, parameters 1 and 2 were calibrated after 200 and 400 cycles, respectively, based on parameter a (from constant current calibration). This means parameter a is the base model parameter set for Cell A, and parameter 2 is the updated aging parameter set after 400 cycles.
+
+The case verification in Section 4.2.2(1) Voltage Response Simulation Cases shows that using parameter a (constant current calibration) for Cell B in Case 1 (RMSE = 21 mV) and parameter b (DST calibration) in Case 2 (RMSE = 34 mV) provides good results. However
+--- SCORES ---
+PARSED=C CORRECT=True PARSE=explicit GENERATED=256 HIT_LIMIT=True
+PPL=1.014046 NLL=0.013948 OUT_TOK_S=4.141 GEN_PEAK_VRAM_GB=59.155 PIPELINE_PEAK_VRAM_GB=59.155 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_s8_r0.25 GOLD=C
+TOKENS=4058/16231 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation:  
+In Section 4.2.1, the text describes that for Cell A, parameter set 'a' is formed by combining OCV calibration with constant current calibration, and parameter set 'b' is formed by combining OCV calibration with DST calibration. These two parameter sets (a and b) are used for different types of calibration (constant current and DST) and are part of the complete model parameter set for Cell A. The results in Figures 11 and 13 show that both parameter sets a and b yield good calibration accuracy (RMSE of 10 mV and 12 mV, respectively), and they are used in subsequent case studies for validation. The case studies (Case 1 and Case 2) use these parameters to validate the model on Cell B, demonstrating good generalizability and accuracy.
+
+Thus, the complete model parameter set for Cell A includes both parameter a and parameter b, and the results are better in subsequent case verification.
+
+"The correct answer is (A)"
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=221 HIT_LIMIT=False
+PPL=3.026299 NLL=1.107341 OUT_TOK_S=4.191 GEN_PEAK_VRAM_GB=57.453 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.719130 TOP8_JACCARD=0.740492 WEIGHT_COS=0.875768 ENTROPY_DELTA=-0.000497 LOAD_JSD=0.006389
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_s8_r0.125 GOLD=C
+TOKENS=2029/16231 COMPRESSION=8.000x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation: According to the text, for Cell A, parameter set 'a' is formed by combining OCV calibration with constant current calibration, and parameter set 'b' is formed by combining OCV calibration with DST calibration. These two parameter sets are used in the case studies for validation. The results show that the simulation results using parameter sets a and b closely match the experimental results, indicating accurate and effective calibration. Furthermore, the case studies demonstrate good cross-validation between Cell A and Cell B, confirming the reliability of these parameter sets in subsequent case verification.
+
+Thus, the correct answer is (A) Parameter a and parameter b.
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=140 HIT_LIMIT=False
+PPL=1.257275 NLL=0.228947 OUT_TOK_S=4.096 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.667293 TOP8_JACCARD=0.700711 WEIGHT_COS=0.857065 ENTROPY_DELTA=-0.001695 LOAD_JSD=0.009510
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_s8_r0.0625 GOLD=C
+TOKENS=1014/16231 COMPRESSION=16.007x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation:  
+- Parameter a for Cell A is derived from OCV calibration combined with constant current calibration, which is used for the initial model parameter set.  
+- Parameter b for Cell A is derived from OCV calibration combined with DST calibration, which is also part of the calibration process and used in case studies.  
+- The text states that simulation results using parameter sets a and b closely match experimental results, indicating they are valid and effective for subsequent case validation.  
+- Furthermore, both parameters are part of the calibration process for Cell A and are used in different case studies (Case 1 and Case 2), showing their reliability in verification.  
+
+Thus, the complete model parameter set for Cell A calibration includes parameters a and b, and they yield better results in subsequent case verification.
+
+"The correct answer is (A)"
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=179 HIT_LIMIT=False
+PPL=3.027029 NLL=1.107581 OUT_TOK_S=3.771 GEN_PEAK_VRAM_GB=57.022 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.615549 TOP8_JACCARD=0.649564 WEIGHT_COS=0.822247 ENTROPY_DELTA=-0.002856 LOAD_JSD=0.015099
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_gaussian_r0.25 GOLD=C
+TOKENS=4058/16231 COMPRESSION=4.000x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation:  
+In Section 4.2.1, the text states that for Cell A, parameter set 'a' is formed by combining OCV calibration with constant current calibration, and parameter set 'b' is formed by combining OCV calibration with DST calibration. These two parameter sets (a and b) are used for different types of calibration (constant current and DST) and are part of the complete model parameter set for Cell A. The results of these calibrations are validated in the case studies (Case 1 and Case 2), where parameter a is used for constant current validation and parameter b for DST validation, both showing good agreement with experimental data (RMSE values of 21 mV and 34 mV, respectively). This indicates that the complete model parameter set derived from both parameter a and b leads to better results in subsequent case verification.
+
+Thus, the correct answer is (A) Parameter a and parameter b.
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=206 HIT_LIMIT=False
+PPL=3.026242 NLL=1.107322 OUT_TOK_S=4.084 GEN_PEAK_VRAM_GB=57.453 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.716424 TOP8_JACCARD=0.738057 WEIGHT_COS=0.876057 ENTROPY_DELTA=0.000434 LOAD_JSD=0.006428
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_gaussian_r0.125 GOLD=C
+TOKENS=2029/16231 COMPRESSION=8.000x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation: According to the text, for Cell A, parameter set 'a' is formed by combining OCV calibration with constant current calibration, and parameter set 'b' is formed by combining OCV calibration with DST calibration. These two parameter sets are used in the case studies for validation. The results show that the simulation results using parameter sets a and b closely match the experimental results, indicating accuracy and effectiveness in subsequent case verification. Therefore, the correct answer is (A).
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=109 HIT_LIMIT=False
+PPL=5.170631 NLL=1.642995 OUT_TOK_S=3.989 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.669028 TOP8_JACCARD=0.698700 WEIGHT_COS=0.857808 ENTROPY_DELTA=-0.001159 LOAD_JSD=0.009469
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f58d6c821e116aacb33e76 SOURCE=longbench_v2 TASK=Academic
+METHOD=kiaomni_gaussian_r0.0625 GOLD=C
+TOKENS=1014/16231 COMPRESSION=16.007x
+--- RAW ANSWER ---
+The correct answer is (A) Parameter a and parameter b.
+
+Explanation: According to the text, for Cell A, parameter set 'a' is obtained by combining OCV calibration with constant current calibration, and parameter set 'b' is obtained by combining OCV calibration with DST calibration. The text states that simulation results using parameter sets a/b/c/d closely match experimental results, indicating good calibration. Furthermore, in the case studies, Case 1 uses parameter a (constant current calibration) for validation on Cell B, and Case 2 uses parameter b (DST calibration) for validation on Cell B. The results show that both parameter sets a and b lead to good agreement with experimental data, and the text implies that these calibrated parameters perform well in subsequent validation. Therefore, the complete model parameter set for Cell A that leads to better results in subsequent case verification includes both parameter a and parameter b.
+
+"The correct answer is (A)"
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=189 HIT_LIMIT=False
+PPL=3.885475 NLL=1.357245 OUT_TOK_S=4.095 GEN_PEAK_VRAM_GB=57.022 PIPELINE_PEAK_VRAM_GB=61.535 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=6.465 SALIENCY_PEAK_VRAM_GB=61.535
+ROUTING_ACTUAL TOP1=0.618261 TOP8_JACCARD=0.653254 WEIGHT_COS=0.828184 ENTROPY_DELTA=-0.002085 LOAD_JSD=0.013235
+========================================================================================
+
+FINAL EXECUTION GATE
+{
+  "status": "PASS",
+  "completed_cases": 4,
+  "expected_rows": 28,
+  "actual_rows": 28,
+  "actual_dispatch_verified": true,
+  "note": "PASS means execution/measurement integrity only; quality is adjudicated from the recorded metrics."
+}
+
+PAIRWISE SUMMARY
+[
+  {
+    "method": "kiaomni_gaussian_r0.0625",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 3,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.0,
+    "net_rescues_minus_regressions": -1,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.5,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.25
+  },
+  {
+    "method": "kiaomni_gaussian_r0.125",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 1,
+    "fc_wrong_to_kia_wrong": 2,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.3333333333333333,
+    "net_rescues_minus_regressions": 0,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.25,
+    "parse_rate": 0.75,
+    "token_limit_hit_rate": 0.5
+  },
+  {
+    "method": "kiaomni_gaussian_r0.25",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 3,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.0,
+    "net_rescues_minus_regressions": -1,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.5,
+    "parse_rate": 0.75,
+    "token_limit_hit_rate": 0.5
+  },
+  {
+    "method": "kiaomni_s8_r0.0625",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 3,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.0,
+    "net_rescues_minus_regressions": -1,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.5,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.25
+  },
+  {
+    "method": "kiaomni_s8_r0.125",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 1,
+    "fc_wrong_to_kia_wrong": 2,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.3333333333333333,
+    "net_rescues_minus_regressions": 0,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.25,
+    "parse_rate": 0.75,
+    "token_limit_hit_rate": 0.5
+  },
+  {
+    "method": "kiaomni_s8_r0.25",
+    "n": 4,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 1,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 3,
+    "fc_correct_preservation_rate": 0.0,
+    "regression_rate_on_fc_correct": 1.0,
+    "rescue_rate_on_fc_wrong": 0.0,
+    "net_rescues_minus_regressions": -1,
+    "mcnemar_exact_p": 1.0,
+    "parsed_answer_agreement": 0.5,
+    "parse_rate": 0.75,
+    "token_limit_hit_rate": 0.25
+  }
+]

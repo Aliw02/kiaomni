@@ -1,0 +1,11 @@
+{
+  "schema": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_ERROR_V1",
+  "stage": "final",
+  "repo_revision": "46c7f80e86638d1dbd2944be8507c2719e476fb8",
+  "execution_gate": {
+    "status": "ERROR",
+    "exception_type": "TimeoutError",
+    "reason": "Stage wall-time ceiling reached before next condition"
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/root/kiaomni/experiments/qwen3_30b_percentage_replay.py\", line 1190, in <module>\n    main()\n  File \"/root/kiaomni/experiments/qwen3_30b_percentage_replay.py\", line 1122, in main\n    raise TimeoutError(\"Stage wall-time ceiling reached before next condition\")\nTimeoutError: Stage wall-time ceiling reached before next condition\n"
+}
