@@ -1,0 +1,1273 @@
+{
+  "schema": "KIAOMNI_QWEN3_30B_RULER_NIAH_V1",
+  "stage": "preflight",
+  "repo_revision": "46c7f80e86638d1dbd2944be8507c2719e476fb8",
+  "runner_sha256": "2a2a64a997d68a1adcb15e639729b211c355579670a8b95abf733a25c1edc697",
+  "model": {
+    "repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23"
+  },
+  "ruler": {
+    "mirror_repo": "VenusChenyy/RULER_50",
+    "official_repo": "NVIDIA/RULER",
+    "official_generation_commit": "38da79d79519ef87aa46ae804f838e1eab7f86d7",
+    "tasks": [
+      "niah_single_2",
+      "niah_multikey_1",
+      "niah_multivalue",
+      "niah_multiquery"
+    ],
+    "lengths": [
+      8192,
+      16384
+    ],
+    "samples_per_group": 5
+  },
+  "policies": [
+    "kiaomni_s8",
+    "kiaomni_gaussian"
+  ],
+  "percentage_budgets": [
+    0.25
+  ],
+  "legacy_fixed_budgets_reference": [
+    512,
+    256,
+    128,
+    98
+  ],
+  "max_new_tokens": 64,
+  "environment": {
+    "model_config": {
+      "model_type": "qwen3_moe",
+      "num_hidden_layers": 48,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 4,
+      "num_experts": 128,
+      "num_experts_per_tok": 8,
+      "head_dim": 128
+    },
+    "free_gb": 21.93939208984375,
+    "total_gb": 79.250732421875,
+    "dtype": "torch.bfloat16",
+    "gpu": "NVIDIA A100-SXM4-80GB"
+  },
+  "routing_preflight": {
+    "passed": true,
+    "logits_exact_equal": true,
+    "logits_allclose_rtol_1e-4_atol_1e-5": true,
+    "max_abs_logit_error": 0.0,
+    "dispatch_verified": true,
+    "dispatch_count_mismatches": [],
+    "captured_sparse_layers": 48
+  },
+  "cases": [
+    {
+      "case_id": "ruler-niah_single_2-8192-line9",
+      "source": "ruler_niah",
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "user_text": "<omitted-from-artifact>",
+      "gold": [
+        "7217147"
+      ],
+      "source_line": 9,
+      "declared_length": 8192,
+      "declared_length_with_template": 8192,
+      "official_token_position_answer": 830,
+      "official_depth_pct": 10.1318359375,
+      "meta": {
+        "mirror_repo": "VenusChenyy/RULER_50",
+        "mirror_revision": "ea0db7c3a6486b65ba5ff836f909c1c7dbffabaf",
+        "official_repo": "NVIDIA/RULER",
+        "official_generation_commit": "38da79d79519ef87aa46ae804f838e1eab7f86d7",
+        "rendered_tokens": 8072,
+        "answer_prefix_present": true,
+        "depth_bin": "0-20"
+      }
+    }
+  ],
+  "rows": [
+    {
+      "case_id": "ruler-niah_single_2-8192-line9",
+      "source": "ruler_niah",
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "depth_bin": "0-20",
+      "official_depth_pct": 10.1318359375,
+      "result": {
+        "method": "full_context",
+        "input_tokens": 8072,
+        "kept_tokens": 8072,
+        "compression_ratio": 1.0,
+        "actual_retention_ratio": 1.0,
+        "actual_retention_pct": 100.0,
+        "answer": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "correct": true,
+        "ruler_string_match_fraction": 1.0,
+        "ruler_string_match_pct": 100.0,
+        "gold_outputs_found": [
+          true
+        ],
+        "gold_outputs_found_count": 1,
+        "gold_outputs_total": 1,
+        "prediction": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "required_answer_token_recall": 1.0,
+        "complete_required_answers": 1,
+        "required_answers_total": 1,
+        "complete_required_answer_rate": 1.0,
+        "all_required_answers_complete": true,
+        "mean_required_answer_depth_pct": 10.319623389494549,
+        "min_required_answer_depth_pct": 10.319623389494549,
+        "max_required_answer_depth_pct": 10.319623389494549,
+        "per_answer": [
+          {
+            "token_start": 833,
+            "token_end": 839,
+            "token_count": 7,
+            "retained_tokens": 7,
+            "token_recall": 1.0,
+            "complete": true,
+            "depth_pct": 10.319623389494549
+          }
+        ],
+        "generation_elapsed_seconds": 8.85499753800002,
+        "time_to_first_token_seconds": 3.143923999000009,
+        "decode_after_first_token_seconds": 5.711073539000012,
+        "generated_tokens": 25,
+        "output_tokens_per_second": 2.8232644777952665,
+        "generation_peak_allocated_vram_gb": 58.01183557510376,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "7217147",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 0.6444355249404907,
+        "gold_answer_ppl": 1.9049114507273415,
+        "routing_teacher_elapsed_seconds": 3.7098901379999916,
+        "routing_teacher_peak_allocated_vram_gb": 57.28746271133423,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "inference_path_elapsed_seconds": 8.85499753800002,
+        "measurement_pipeline_elapsed_seconds": 12.564887676000012,
+        "pipeline_peak_allocated_vram_gb": 58.01183557510376,
+        "saliency": null,
+        "routing": null
+      }
+    },
+    {
+      "case_id": "ruler-niah_single_2-8192-line9",
+      "source": "ruler_niah",
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "depth_bin": "0-20",
+      "official_depth_pct": 10.1318359375,
+      "policy": "kiaomni_s8",
+      "requested_retention_ratio": 0.25,
+      "requested_retention_pct": 25.0,
+      "derived_budget": 2018,
+      "keep_positions_sha256": "4c948d7b6d57683fdd0a83ece7a9ccd11fa64f9295888000e6d9bc8866f25a8e",
+      "result": {
+        "method": "kiaomni_s8_r0.25",
+        "input_tokens": 8072,
+        "kept_tokens": 2018,
+        "compression_ratio": 4.0,
+        "actual_retention_ratio": 0.25,
+        "actual_retention_pct": 25.0,
+        "answer": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "correct": true,
+        "ruler_string_match_fraction": 1.0,
+        "ruler_string_match_pct": 100.0,
+        "gold_outputs_found": [
+          true
+        ],
+        "gold_outputs_found_count": 1,
+        "gold_outputs_total": 1,
+        "prediction": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "required_answer_token_recall": 1.0,
+        "complete_required_answers": 1,
+        "required_answers_total": 1,
+        "complete_required_answer_rate": 1.0,
+        "all_required_answers_complete": true,
+        "mean_required_answer_depth_pct": 10.319623389494549,
+        "min_required_answer_depth_pct": 10.319623389494549,
+        "max_required_answer_depth_pct": 10.319623389494549,
+        "per_answer": [
+          {
+            "token_start": 833,
+            "token_end": 839,
+            "token_count": 7,
+            "retained_tokens": 7,
+            "token_recall": 1.0,
+            "complete": true,
+            "depth_pct": 10.319623389494549
+          }
+        ],
+        "generation_elapsed_seconds": 8.254335921999996,
+        "time_to_first_token_seconds": 2.66584961800001,
+        "decode_after_first_token_seconds": 5.588486303999986,
+        "generated_tokens": 25,
+        "output_tokens_per_second": 3.028711241732768,
+        "generation_peak_allocated_vram_gb": 57.16624879837036,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "7217147",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 2.0357143878936768,
+        "gold_answer_ppl": 7.657720754885189,
+        "routing_teacher_elapsed_seconds": 2.6926538749999906,
+        "routing_teacher_peak_allocated_vram_gb": 56.98256206512451,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "inference_path_elapsed_seconds": 12.242993154000004,
+        "measurement_pipeline_elapsed_seconds": 14.935647028999995,
+        "pipeline_peak_allocated_vram_gb": 59.194965839385986,
+        "saliency": {
+          "saliency_elapsed_seconds": 3.9886572320000084,
+          "saliency_peak_allocated_vram_gb": 59.194965839385986
+        },
+        "routing": {
+          "matched_tokens": 2018,
+          "layers": 48,
+          "top1_expert_agreement": 0.7290324568748474,
+          "top8_set_jaccard": 0.7692830165227255,
+          "dispatch_weight_cosine": 0.8956467906634012,
+          "dispatch_entropy_delta": 0.002298703177681697,
+          "expert_load_jsd": 0.006799469806234508,
+          "median_layer_top1_expert_agreement": 0.7324083149433136,
+          "worst_layer_top1_expert_agreement": 0.5545094013214111,
+          "median_layer_top8_set_jaccard": 0.7641673982143402,
+          "worst_layer_top8_set_jaccard": 0.6847015619277954,
+          "per_layer": [
+            {
+              "layer": 0,
+              "top1_expert_agreement": 0.9440039396286011,
+              "topk_set_jaccard": 0.9456213712692261,
+              "dispatch_weight_cosine": 0.989677369594574,
+              "dispatch_entropy_delta": 0.0016243766294792295,
+              "expert_load_jsd": 0.00025681720580905676
+            },
+            {
+              "layer": 1,
+              "top1_expert_agreement": 0.9043607711791992,
+              "topk_set_jaccard": 0.884348452091217,
+              "dispatch_weight_cosine": 0.9688102006912231,
+              "dispatch_entropy_delta": -0.001954534789547324,
+              "expert_load_jsd": 0.0007385279750451446
+            },
+            {
+              "layer": 2,
+              "top1_expert_agreement": 0.8503468632698059,
+              "topk_set_jaccard": 0.8551722764968872,
+              "dispatch_weight_cosine": 0.9691872000694275,
+              "dispatch_entropy_delta": 0.005916111636906862,
+              "expert_load_jsd": 0.006144206039607525
+            },
+            {
+              "layer": 3,
+              "top1_expert_agreement": 0.8483647108078003,
+              "topk_set_jaccard": 0.8551927208900452,
+              "dispatch_weight_cosine": 0.9504056572914124,
+              "dispatch_entropy_delta": 0.0021934097167104483,
+              "expert_load_jsd": 0.0016423431225121021
+            },
+            {
+              "layer": 4,
+              "top1_expert_agreement": 0.7893954515457153,
+              "topk_set_jaccard": 0.8209198117256165,
+              "dispatch_weight_cosine": 0.9349837303161621,
+              "dispatch_entropy_delta": 0.010229560546576977,
+              "expert_load_jsd": 0.008850004523992538
+            },
+            {
+              "layer": 5,
+              "top1_expert_agreement": 0.7908820509910583,
+              "topk_set_jaccard": 0.8367284536361694,
+              "dispatch_weight_cosine": 0.9406477808952332,
+              "dispatch_entropy_delta": 0.00759890116751194,
+              "expert_load_jsd": 0.002686168532818556
+            },
+            {
+              "layer": 6,
+              "top1_expert_agreement": 0.7720515131950378,
+              "topk_set_jaccard": 0.7772377133369446,
+              "dispatch_weight_cosine": 0.9095664620399475,
+              "dispatch_entropy_delta": 0.0032121206168085337,
+              "expert_load_jsd": 0.013717720285058022
+            },
+            {
+              "layer": 7,
+              "top1_expert_agreement": 0.7775024771690369,
+              "topk_set_jaccard": 0.8071330189704895,
+              "dispatch_weight_cosine": 0.9279289841651917,
+              "dispatch_entropy_delta": 0.003330586478114128,
+              "expert_load_jsd": 0.0017958112293854356
+            },
+            {
+              "layer": 8,
+              "top1_expert_agreement": 0.7710604667663574,
+              "topk_set_jaccard": 0.8090354204177856,
+              "dispatch_weight_cosine": 0.9254647493362427,
+              "dispatch_entropy_delta": 0.0016018194146454334,
+              "expert_load_jsd": 0.0034006708301603794
+            },
+            {
+              "layer": 9,
+              "top1_expert_agreement": 0.7750247716903687,
+              "topk_set_jaccard": 0.8203310370445251,
+              "dispatch_weight_cosine": 0.931902289390564,
+              "dispatch_entropy_delta": 0.002856100909411907,
+              "expert_load_jsd": 0.0017782188951969147
+            },
+            {
+              "layer": 10,
+              "top1_expert_agreement": 0.7472745180130005,
+              "topk_set_jaccard": 0.781783938407898,
+              "dispatch_weight_cosine": 0.9039804339408875,
+              "dispatch_entropy_delta": 0.002539423992857337,
+              "expert_load_jsd": 0.011259899474680424
+            },
+            {
+              "layer": 11,
+              "top1_expert_agreement": 0.7185332179069519,
+              "topk_set_jaccard": 0.7815146446228027,
+              "dispatch_weight_cosine": 0.8911667466163635,
+              "dispatch_entropy_delta": -0.0008491288172081113,
+              "expert_load_jsd": 0.008322461508214474
+            },
+            {
+              "layer": 12,
+              "top1_expert_agreement": 0.6997026801109314,
+              "topk_set_jaccard": 0.7595265507698059,
+              "dispatch_weight_cosine": 0.8823632001876831,
+              "dispatch_entropy_delta": 0.0018169049872085452,
+              "expert_load_jsd": 0.00806400179862976
+            },
+            {
+              "layer": 13,
+              "top1_expert_agreement": 0.7195242643356323,
+              "topk_set_jaccard": 0.7924359440803528,
+              "dispatch_weight_cosine": 0.9056084156036377,
+              "dispatch_entropy_delta": 0.0021370835602283478,
+              "expert_load_jsd": 0.005475154612213373
+            },
+            {
+              "layer": 14,
+              "top1_expert_agreement": 0.733894944190979,
+              "topk_set_jaccard": 0.764498770236969,
+              "dispatch_weight_cosine": 0.9018520712852478,
+              "dispatch_entropy_delta": 0.008063606917858124,
+              "expert_load_jsd": 0.01231358665972948
+            },
+            {
+              "layer": 15,
+              "top1_expert_agreement": 0.7363726496696472,
+              "topk_set_jaccard": 0.7769944667816162,
+              "dispatch_weight_cosine": 0.9044584631919861,
+              "dispatch_entropy_delta": 0.003853787435218692,
+              "expert_load_jsd": 0.0059100063517689705
+            },
+            {
+              "layer": 16,
+              "top1_expert_agreement": 0.7289395332336426,
+              "topk_set_jaccard": 0.7822033762931824,
+              "dispatch_weight_cosine": 0.9102767705917358,
+              "dispatch_entropy_delta": 0.0015503769973292947,
+              "expert_load_jsd": 0.002521364949643612
+            },
+            {
+              "layer": 17,
+              "top1_expert_agreement": 0.7309216856956482,
+              "topk_set_jaccard": 0.7867596745491028,
+              "dispatch_weight_cosine": 0.9140431880950928,
+              "dispatch_entropy_delta": 0.0016568175051361322,
+              "expert_load_jsd": 0.006984286941587925
+            },
+            {
+              "layer": 18,
+              "top1_expert_agreement": 0.6665014624595642,
+              "topk_set_jaccard": 0.7330405712127686,
+              "dispatch_weight_cosine": 0.8586657047271729,
+              "dispatch_entropy_delta": -0.004572090692818165,
+              "expert_load_jsd": 0.012334739789366722
+            },
+            {
+              "layer": 19,
+              "top1_expert_agreement": 0.6729435324668884,
+              "topk_set_jaccard": 0.7416585683822632,
+              "dispatch_weight_cosine": 0.8774106502532959,
+              "dispatch_entropy_delta": 0.00036360681406222284,
+              "expert_load_jsd": 0.003443622961640358
+            },
+            {
+              "layer": 20,
+              "top1_expert_agreement": 0.6630327105522156,
+              "topk_set_jaccard": 0.7240287661552429,
+              "dispatch_weight_cosine": 0.8540494441986084,
+              "dispatch_entropy_delta": -0.000887166999746114,
+              "expert_load_jsd": 0.010482998564839363
+            },
+            {
+              "layer": 21,
+              "top1_expert_agreement": 0.6560951471328735,
+              "topk_set_jaccard": 0.7429410219192505,
+              "dispatch_weight_cosine": 0.8669861555099487,
+              "dispatch_entropy_delta": 0.002357244025915861,
+              "expert_load_jsd": 0.005157763604074717
+            },
+            {
+              "layer": 22,
+              "top1_expert_agreement": 0.6258671879768372,
+              "topk_set_jaccard": 0.701366662979126,
+              "dispatch_weight_cosine": 0.8334734439849854,
+              "dispatch_entropy_delta": -0.003933526109904051,
+              "expert_load_jsd": 0.014335617423057556
+            },
+            {
+              "layer": 23,
+              "top1_expert_agreement": 0.6228939294815063,
+              "topk_set_jaccard": 0.6985759735107422,
+              "dispatch_weight_cosine": 0.8243194222450256,
+              "dispatch_entropy_delta": -0.007412570528686047,
+              "expert_load_jsd": 0.01389959454536438
+            },
+            {
+              "layer": 24,
+              "top1_expert_agreement": 0.6223984360694885,
+              "topk_set_jaccard": 0.6847015619277954,
+              "dispatch_weight_cosine": 0.8226058483123779,
+              "dispatch_entropy_delta": -0.0028811488300561905,
+              "expert_load_jsd": 0.010919773951172829
+            },
+            {
+              "layer": 25,
+              "top1_expert_agreement": 0.6461843252182007,
+              "topk_set_jaccard": 0.7103149890899658,
+              "dispatch_weight_cosine": 0.8407287001609802,
+              "dispatch_entropy_delta": -0.0001907532277982682,
+              "expert_load_jsd": 0.012764079496264458
+            },
+            {
+              "layer": 26,
+              "top1_expert_agreement": 0.662537157535553,
+              "topk_set_jaccard": 0.7351599335670471,
+              "dispatch_weight_cosine": 0.870699942111969,
+              "dispatch_entropy_delta": 0.00028464963543228805,
+              "expert_load_jsd": 0.00854265782982111
+            },
+            {
+              "layer": 27,
+              "top1_expert_agreement": 0.6724479794502258,
+              "topk_set_jaccard": 0.7427681088447571,
+              "dispatch_weight_cosine": 0.875919759273529,
+              "dispatch_entropy_delta": 0.002510200720280409,
+              "expert_load_jsd": 0.0045785680413246155
+            },
+            {
+              "layer": 28,
+              "top1_expert_agreement": 0.6977205276489258,
+              "topk_set_jaccard": 0.7394601702690125,
+              "dispatch_weight_cosine": 0.8809433579444885,
+              "dispatch_entropy_delta": 0.0013106947299093008,
+              "expert_load_jsd": 0.0035949507728219032
+            },
+            {
+              "layer": 29,
+              "top1_expert_agreement": 0.6902874112129211,
+              "topk_set_jaccard": 0.7589738368988037,
+              "dispatch_weight_cosine": 0.8905020356178284,
+              "dispatch_entropy_delta": 0.001701745786704123,
+              "expert_load_jsd": 0.0063533359207212925
+            },
+            {
+              "layer": 30,
+              "top1_expert_agreement": 0.6660059690475464,
+              "topk_set_jaccard": 0.7098867893218994,
+              "dispatch_weight_cosine": 0.851575493812561,
+              "dispatch_entropy_delta": -0.0010825138306245208,
+              "expert_load_jsd": 0.011553676798939705
+            },
+            {
+              "layer": 31,
+              "top1_expert_agreement": 0.6788899898529053,
+              "topk_set_jaccard": 0.7154035568237305,
+              "dispatch_weight_cosine": 0.863383948802948,
+              "dispatch_entropy_delta": -0.0003806796157732606,
+              "expert_load_jsd": 0.0024625530932098627
+            },
+            {
+              "layer": 32,
+              "top1_expert_agreement": 0.6774033904075623,
+              "topk_set_jaccard": 0.7243296504020691,
+              "dispatch_weight_cosine": 0.864958643913269,
+              "dispatch_entropy_delta": 0.002186416881158948,
+              "expert_load_jsd": 0.00642891600728035
+            },
+            {
+              "layer": 33,
+              "top1_expert_agreement": 0.6987115740776062,
+              "topk_set_jaccard": 0.7428300380706787,
+              "dispatch_weight_cosine": 0.879523754119873,
+              "dispatch_entropy_delta": 0.000604268629103899,
+              "expert_load_jsd": 0.00344453495927155
+            },
+            {
+              "layer": 34,
+              "top1_expert_agreement": 0.5545094013214111,
+              "topk_set_jaccard": 0.7145988941192627,
+              "dispatch_weight_cosine": 0.8292022943496704,
+              "dispatch_entropy_delta": -0.019762564450502396,
+              "expert_load_jsd": 0.007425568997859955
+            },
+            {
+              "layer": 35,
+              "top1_expert_agreement": 0.664023756980896,
+              "topk_set_jaccard": 0.7195072174072266,
+              "dispatch_weight_cosine": 0.8524043560028076,
+              "dispatch_entropy_delta": -0.010436905547976494,
+              "expert_load_jsd": 0.00769438873976469
+            },
+            {
+              "layer": 36,
+              "top1_expert_agreement": 0.6432111263275146,
+              "topk_set_jaccard": 0.7169600129127502,
+              "dispatch_weight_cosine": 0.850488007068634,
+              "dispatch_entropy_delta": -0.002786387223750353,
+              "expert_load_jsd": 0.008382195606827736
+            },
+            {
+              "layer": 37,
+              "top1_expert_agreement": 0.7566897869110107,
+              "topk_set_jaccard": 0.7588639259338379,
+              "dispatch_weight_cosine": 0.9014179706573486,
+              "dispatch_entropy_delta": 0.00427545141428709,
+              "expert_load_jsd": 0.009052524343132973
+            },
+            {
+              "layer": 38,
+              "top1_expert_agreement": 0.7755203247070312,
+              "topk_set_jaccard": 0.7473737597465515,
+              "dispatch_weight_cosine": 0.8938164710998535,
+              "dispatch_entropy_delta": 0.013650472275912762,
+              "expert_load_jsd": 0.00627920962870121
+            },
+            {
+              "layer": 39,
+              "top1_expert_agreement": 0.7487611770629883,
+              "topk_set_jaccard": 0.7638360261917114,
+              "dispatch_weight_cosine": 0.9037096500396729,
+              "dispatch_entropy_delta": 0.003860976081341505,
+              "expert_load_jsd": 0.007303635124117136
+            },
+            {
+              "layer": 40,
+              "top1_expert_agreement": 0.7556987404823303,
+              "topk_set_jaccard": 0.7548471093177795,
+              "dispatch_weight_cosine": 0.9032689332962036,
+              "dispatch_entropy_delta": 0.01134114433079958,
+              "expert_load_jsd": 0.009728508070111275
+            },
+            {
+              "layer": 41,
+              "top1_expert_agreement": 0.7651139497756958,
+              "topk_set_jaccard": 0.7915201187133789,
+              "dispatch_weight_cosine": 0.9233854413032532,
+              "dispatch_entropy_delta": 0.009021613746881485,
+              "expert_load_jsd": 0.015028737485408783
+            },
+            {
+              "layer": 42,
+              "top1_expert_agreement": 0.8012884259223938,
+              "topk_set_jaccard": 0.815263569355011,
+              "dispatch_weight_cosine": 0.9320716857910156,
+              "dispatch_entropy_delta": 0.00534762442111969,
+              "expert_load_jsd": 0.0011783833615481853
+            },
+            {
+              "layer": 43,
+              "top1_expert_agreement": 0.8062437772750854,
+              "topk_set_jaccard": 0.7830306887626648,
+              "dispatch_weight_cosine": 0.9202865362167358,
+              "dispatch_entropy_delta": 0.0071197072975337505,
+              "expert_load_jsd": 0.002928202971816063
+            },
+            {
+              "layer": 44,
+              "top1_expert_agreement": 0.767591655254364,
+              "topk_set_jaccard": 0.7852585315704346,
+              "dispatch_weight_cosine": 0.924764096736908,
+              "dispatch_entropy_delta": 0.009553047828376293,
+              "expert_load_jsd": 0.0023581339046359062
+            },
+            {
+              "layer": 45,
+              "top1_expert_agreement": 0.7571853399276733,
+              "topk_set_jaccard": 0.7649168968200684,
+              "dispatch_weight_cosine": 0.9096933603286743,
+              "dispatch_entropy_delta": 0.008976723067462444,
+              "expert_load_jsd": 0.0035155336372554302
+            },
+            {
+              "layer": 46,
+              "top1_expert_agreement": 0.77155601978302,
+              "topk_set_jaccard": 0.766966700553894,
+              "dispatch_weight_cosine": 0.904466450214386,
+              "dispatch_entropy_delta": 0.008294500410556793,
+              "expert_load_jsd": 0.006487918086349964
+            },
+            {
+              "layer": 47,
+              "top1_expert_agreement": 0.7680872082710266,
+              "topk_set_jaccard": 0.7997635006904602,
+              "dispatch_weight_cosine": 0.9240006804466248,
+              "dispatch_entropy_delta": 0.014526646584272385,
+              "expert_load_jsd": 0.00685297604650259
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "ruler-niah_single_2-8192-line9",
+      "source": "ruler_niah",
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "depth_bin": "0-20",
+      "official_depth_pct": 10.1318359375,
+      "policy": "kiaomni_gaussian",
+      "requested_retention_ratio": 0.25,
+      "requested_retention_pct": 25.0,
+      "derived_budget": 2018,
+      "keep_positions_sha256": "29c06daff89c461ef0744210f928cd450be2b2520d8f2f73b17aeaf0f4909bbe",
+      "result": {
+        "method": "kiaomni_gaussian_r0.25",
+        "input_tokens": 8072,
+        "kept_tokens": 2018,
+        "compression_ratio": 4.0,
+        "actual_retention_ratio": 0.25,
+        "actual_retention_pct": 25.0,
+        "answer": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "correct": true,
+        "ruler_string_match_fraction": 1.0,
+        "ruler_string_match_pct": 100.0,
+        "gold_outputs_found": [
+          true
+        ],
+        "gold_outputs_found_count": 1,
+        "gold_outputs_total": 1,
+        "prediction": "The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.",
+        "required_answer_token_recall": 1.0,
+        "complete_required_answers": 1,
+        "required_answers_total": 1,
+        "complete_required_answer_rate": 1.0,
+        "all_required_answers_complete": true,
+        "mean_required_answer_depth_pct": 10.319623389494549,
+        "min_required_answer_depth_pct": 10.319623389494549,
+        "max_required_answer_depth_pct": 10.319623389494549,
+        "per_answer": [
+          {
+            "token_start": 833,
+            "token_end": 839,
+            "token_count": 7,
+            "retained_tokens": 7,
+            "token_recall": 1.0,
+            "complete": true,
+            "depth_pct": 10.319623389494549
+          }
+        ],
+        "generation_elapsed_seconds": 8.389443586999988,
+        "time_to_first_token_seconds": 2.8017290100000025,
+        "decode_after_first_token_seconds": 5.587714576999986,
+        "generated_tokens": 25,
+        "output_tokens_per_second": 2.9799354082002765,
+        "generation_peak_allocated_vram_gb": 57.16624879837036,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "7217147",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 2.0714285373687744,
+        "gold_answer_ppl": 7.936152113834712,
+        "routing_teacher_elapsed_seconds": 2.8448656440000093,
+        "routing_teacher_peak_allocated_vram_gb": 56.98256206512451,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "inference_path_elapsed_seconds": 12.378100818999997,
+        "measurement_pipeline_elapsed_seconds": 15.222966463000006,
+        "pipeline_peak_allocated_vram_gb": 59.194965839385986,
+        "saliency": {
+          "saliency_elapsed_seconds": 3.9886572320000084,
+          "saliency_peak_allocated_vram_gb": 59.194965839385986
+        },
+        "routing": {
+          "matched_tokens": 2018,
+          "layers": 48,
+          "top1_expert_agreement": 0.7304984306295713,
+          "top8_set_jaccard": 0.7684600601593653,
+          "dispatch_weight_cosine": 0.8967651166021824,
+          "dispatch_entropy_delta": 0.002111196101547345,
+          "expert_load_jsd": 0.007247165476049607,
+          "median_layer_top1_expert_agreement": 0.7333993911743164,
+          "worst_layer_top1_expert_agreement": 0.5302279591560364,
+          "median_layer_top8_set_jaccard": 0.7631356120109558,
+          "worst_layer_top8_set_jaccard": 0.6860672235488892,
+          "per_layer": [
+            {
+              "layer": 0,
+              "top1_expert_agreement": 0.9479683041572571,
+              "topk_set_jaccard": 0.9416047930717468,
+              "dispatch_weight_cosine": 0.9896036386489868,
+              "dispatch_entropy_delta": 0.001514412579126656,
+              "expert_load_jsd": 0.00025340274441987276
+            },
+            {
+              "layer": 1,
+              "top1_expert_agreement": 0.8929633498191833,
+              "topk_set_jaccard": 0.8801064491271973,
+              "dispatch_weight_cosine": 0.9686976075172424,
+              "dispatch_entropy_delta": -0.0001629296748433262,
+              "expert_load_jsd": 0.000914450385607779
+            },
+            {
+              "layer": 2,
+              "top1_expert_agreement": 0.8587710857391357,
+              "topk_set_jaccard": 0.8568236231803894,
+              "dispatch_weight_cosine": 0.969910204410553,
+              "dispatch_entropy_delta": 0.004024522379040718,
+              "expert_load_jsd": 0.005691790021955967
+            },
+            {
+              "layer": 3,
+              "top1_expert_agreement": 0.8533201217651367,
+              "topk_set_jaccard": 0.8543092608451843,
+              "dispatch_weight_cosine": 0.9505813121795654,
+              "dispatch_entropy_delta": -0.00011130791972391307,
+              "expert_load_jsd": 0.001598689123056829
+            },
+            {
+              "layer": 4,
+              "top1_expert_agreement": 0.8116947412490845,
+              "topk_set_jaccard": 0.8245959877967834,
+              "dispatch_weight_cosine": 0.9401744604110718,
+              "dispatch_entropy_delta": 0.006798043847084045,
+              "expert_load_jsd": 0.007119891699403524
+            },
+            {
+              "layer": 5,
+              "top1_expert_agreement": 0.79682856798172,
+              "topk_set_jaccard": 0.8449090719223022,
+              "dispatch_weight_cosine": 0.9440644383430481,
+              "dispatch_entropy_delta": 0.006355984602123499,
+              "expert_load_jsd": 0.0021824713330715895
+            },
+            {
+              "layer": 6,
+              "top1_expert_agreement": 0.8032705783843994,
+              "topk_set_jaccard": 0.7865746021270752,
+              "dispatch_weight_cosine": 0.9194116592407227,
+              "dispatch_entropy_delta": 0.002237881300970912,
+              "expert_load_jsd": 0.011559490114450455
+            },
+            {
+              "layer": 7,
+              "top1_expert_agreement": 0.7948463559150696,
+              "topk_set_jaccard": 0.809149980545044,
+              "dispatch_weight_cosine": 0.9296489357948303,
+              "dispatch_entropy_delta": 0.0009002253646031022,
+              "expert_load_jsd": 0.0016394539270550013
+            },
+            {
+              "layer": 8,
+              "top1_expert_agreement": 0.7819623351097107,
+              "topk_set_jaccard": 0.8145459294319153,
+              "dispatch_weight_cosine": 0.9292923212051392,
+              "dispatch_entropy_delta": 0.0012909771176055074,
+              "expert_load_jsd": 0.003821092192083597
+            },
+            {
+              "layer": 9,
+              "top1_expert_agreement": 0.7581763863563538,
+              "topk_set_jaccard": 0.8302813172340393,
+              "dispatch_weight_cosine": 0.9354898929595947,
+              "dispatch_entropy_delta": 0.002900088671594858,
+              "expert_load_jsd": 0.0017659206641837955
+            },
+            {
+              "layer": 10,
+              "top1_expert_agreement": 0.7472745180130005,
+              "topk_set_jaccard": 0.783003032207489,
+              "dispatch_weight_cosine": 0.904782772064209,
+              "dispatch_entropy_delta": 0.0018943740287795663,
+              "expert_load_jsd": 0.010923361405730247
+            },
+            {
+              "layer": 11,
+              "top1_expert_agreement": 0.7229930758476257,
+              "topk_set_jaccard": 0.7855780720710754,
+              "dispatch_weight_cosine": 0.895832896232605,
+              "dispatch_entropy_delta": -3.064818884013221e-05,
+              "expert_load_jsd": 0.008613631129264832
+            },
+            {
+              "layer": 12,
+              "top1_expert_agreement": 0.7096135020256042,
+              "topk_set_jaccard": 0.7616406083106995,
+              "dispatch_weight_cosine": 0.885737419128418,
+              "dispatch_entropy_delta": 0.002126531209796667,
+              "expert_load_jsd": 0.007628523278981447
+            },
+            {
+              "layer": 13,
+              "top1_expert_agreement": 0.7210109233856201,
+              "topk_set_jaccard": 0.7951579093933105,
+              "dispatch_weight_cosine": 0.9080181121826172,
+              "dispatch_entropy_delta": 0.002145117148756981,
+              "expert_load_jsd": 0.005389534868299961
+            },
+            {
+              "layer": 14,
+              "top1_expert_agreement": 0.7239841222763062,
+              "topk_set_jaccard": 0.7554329633712769,
+              "dispatch_weight_cosine": 0.8953698873519897,
+              "dispatch_entropy_delta": 0.005942084360867739,
+              "expert_load_jsd": 0.014627950266003609
+            },
+            {
+              "layer": 15,
+              "top1_expert_agreement": 0.7492566704750061,
+              "topk_set_jaccard": 0.7777421474456787,
+              "dispatch_weight_cosine": 0.9092780947685242,
+              "dispatch_entropy_delta": 0.0033972742967307568,
+              "expert_load_jsd": 0.006244008895009756
+            },
+            {
+              "layer": 16,
+              "top1_expert_agreement": 0.7333993911743164,
+              "topk_set_jaccard": 0.7760936617851257,
+              "dispatch_weight_cosine": 0.9088179469108582,
+              "dispatch_entropy_delta": 0.0006405754247680306,
+              "expert_load_jsd": 0.002756883390247822
+            },
+            {
+              "layer": 17,
+              "top1_expert_agreement": 0.7333993911743164,
+              "topk_set_jaccard": 0.7836874723434448,
+              "dispatch_weight_cosine": 0.9126386642456055,
+              "dispatch_entropy_delta": 0.0018716704798862338,
+              "expert_load_jsd": 0.007728155702352524
+            },
+            {
+              "layer": 18,
+              "top1_expert_agreement": 0.6724479794502258,
+              "topk_set_jaccard": 0.7278309464454651,
+              "dispatch_weight_cosine": 0.8566891551017761,
+              "dispatch_entropy_delta": -0.0037970487028360367,
+              "expert_load_jsd": 0.014491601847112179
+            },
+            {
+              "layer": 19,
+              "top1_expert_agreement": 0.6833498477935791,
+              "topk_set_jaccard": 0.7385914921760559,
+              "dispatch_weight_cosine": 0.8788728713989258,
+              "dispatch_entropy_delta": 0.0007863315986469388,
+              "expert_load_jsd": 0.004299049731343985
+            },
+            {
+              "layer": 20,
+              "top1_expert_agreement": 0.6704658269882202,
+              "topk_set_jaccard": 0.7210201621055603,
+              "dispatch_weight_cosine": 0.8537217378616333,
+              "dispatch_entropy_delta": -0.0009133752901107073,
+              "expert_load_jsd": 0.013246767222881317
+            },
+            {
+              "layer": 21,
+              "top1_expert_agreement": 0.6506441831588745,
+              "topk_set_jaccard": 0.7336264848709106,
+              "dispatch_weight_cosine": 0.8669338226318359,
+              "dispatch_entropy_delta": 0.0036452319473028183,
+              "expert_load_jsd": 0.0071225897409021854
+            },
+            {
+              "layer": 22,
+              "top1_expert_agreement": 0.6268582940101624,
+              "topk_set_jaccard": 0.6973212957382202,
+              "dispatch_weight_cosine": 0.8330485224723816,
+              "dispatch_entropy_delta": -0.002114342525601387,
+              "expert_load_jsd": 0.015962237492203712
+            },
+            {
+              "layer": 23,
+              "top1_expert_agreement": 0.6179385781288147,
+              "topk_set_jaccard": 0.6925669312477112,
+              "dispatch_weight_cosine": 0.8239707946777344,
+              "dispatch_entropy_delta": -0.006111161783337593,
+              "expert_load_jsd": 0.015271039679646492
+            },
+            {
+              "layer": 24,
+              "top1_expert_agreement": 0.6085233092308044,
+              "topk_set_jaccard": 0.6860672235488892,
+              "dispatch_weight_cosine": 0.822995662689209,
+              "dispatch_entropy_delta": -0.0023123808205127716,
+              "expert_load_jsd": 0.011408230289816856
+            },
+            {
+              "layer": 25,
+              "top1_expert_agreement": 0.6461843252182007,
+              "topk_set_jaccard": 0.7053173184394836,
+              "dispatch_weight_cosine": 0.8421617150306702,
+              "dispatch_entropy_delta": 0.002093410585075617,
+              "expert_load_jsd": 0.014208275824785233
+            },
+            {
+              "layer": 26,
+              "top1_expert_agreement": 0.6674925684928894,
+              "topk_set_jaccard": 0.7233766317367554,
+              "dispatch_weight_cosine": 0.8677907586097717,
+              "dispatch_entropy_delta": -0.0003487582434900105,
+              "expert_load_jsd": 0.01090692263096571
+            },
+            {
+              "layer": 27,
+              "top1_expert_agreement": 0.6843409538269043,
+              "topk_set_jaccard": 0.739195704460144,
+              "dispatch_weight_cosine": 0.8806780576705933,
+              "dispatch_entropy_delta": 0.0023881157394498587,
+              "expert_load_jsd": 0.004548748955130577
+            },
+            {
+              "layer": 28,
+              "top1_expert_agreement": 0.696233868598938,
+              "topk_set_jaccard": 0.736312747001648,
+              "dispatch_weight_cosine": 0.8801032900810242,
+              "dispatch_entropy_delta": 0.002044167835265398,
+              "expert_load_jsd": 0.0037583778612315655
+            },
+            {
+              "layer": 29,
+              "top1_expert_agreement": 0.696233868598938,
+              "topk_set_jaccard": 0.7505737543106079,
+              "dispatch_weight_cosine": 0.8880829811096191,
+              "dispatch_entropy_delta": 0.001595449517481029,
+              "expert_load_jsd": 0.007093645632266998
+            },
+            {
+              "layer": 30,
+              "top1_expert_agreement": 0.6536174416542053,
+              "topk_set_jaccard": 0.7119836211204529,
+              "dispatch_weight_cosine": 0.8517547845840454,
+              "dispatch_entropy_delta": 0.000627439352683723,
+              "expert_load_jsd": 0.012446737848222256
+            },
+            {
+              "layer": 31,
+              "top1_expert_agreement": 0.6873141527175903,
+              "topk_set_jaccard": 0.7158090472221375,
+              "dispatch_weight_cosine": 0.8687210083007812,
+              "dispatch_entropy_delta": -0.00022421128232963383,
+              "expert_load_jsd": 0.0028605666011571884
+            },
+            {
+              "layer": 32,
+              "top1_expert_agreement": 0.6699702739715576,
+              "topk_set_jaccard": 0.7226857542991638,
+              "dispatch_weight_cosine": 0.8675739169120789,
+              "dispatch_entropy_delta": 0.00382222724147141,
+              "expert_load_jsd": 0.0076836030930280685
+            },
+            {
+              "layer": 33,
+              "top1_expert_agreement": 0.7190287709236145,
+              "topk_set_jaccard": 0.7384610772132874,
+              "dispatch_weight_cosine": 0.8816739320755005,
+              "dispatch_entropy_delta": 0.0016827398212626576,
+              "expert_load_jsd": 0.004272011108696461
+            },
+            {
+              "layer": 34,
+              "top1_expert_agreement": 0.5302279591560364,
+              "topk_set_jaccard": 0.7105829119682312,
+              "dispatch_weight_cosine": 0.824820339679718,
+              "dispatch_entropy_delta": -0.023228632286190987,
+              "expert_load_jsd": 0.00818658247590065
+            },
+            {
+              "layer": 35,
+              "top1_expert_agreement": 0.6456887722015381,
+              "topk_set_jaccard": 0.715924859046936,
+              "dispatch_weight_cosine": 0.8511196374893188,
+              "dispatch_entropy_delta": -0.009892317466437817,
+              "expert_load_jsd": 0.009001493453979492
+            },
+            {
+              "layer": 36,
+              "top1_expert_agreement": 0.6204162240028381,
+              "topk_set_jaccard": 0.7185962200164795,
+              "dispatch_weight_cosine": 0.8458213210105896,
+              "dispatch_entropy_delta": -0.0034461943432688713,
+              "expert_load_jsd": 0.008671052753925323
+            },
+            {
+              "layer": 37,
+              "top1_expert_agreement": 0.7601585984230042,
+              "topk_set_jaccard": 0.7550472021102905,
+              "dispatch_weight_cosine": 0.9006602764129639,
+              "dispatch_entropy_delta": 0.0056940773501992226,
+              "expert_load_jsd": 0.01045615691691637
+            },
+            {
+              "layer": 38,
+              "top1_expert_agreement": 0.7611496448516846,
+              "topk_set_jaccard": 0.7466569542884827,
+              "dispatch_weight_cosine": 0.8918315768241882,
+              "dispatch_entropy_delta": 0.012885915115475655,
+              "expert_load_jsd": 0.006481013260781765
+            },
+            {
+              "layer": 39,
+              "top1_expert_agreement": 0.7710604667663574,
+              "topk_set_jaccard": 0.7646306157112122,
+              "dispatch_weight_cosine": 0.9089875817298889,
+              "dispatch_entropy_delta": 0.0036664572544395924,
+              "expert_load_jsd": 0.0075038340874016285
+            },
+            {
+              "layer": 40,
+              "top1_expert_agreement": 0.7512388229370117,
+              "topk_set_jaccard": 0.7585932612419128,
+              "dispatch_weight_cosine": 0.9032958745956421,
+              "dispatch_entropy_delta": 0.01121966727077961,
+              "expert_load_jsd": 0.009904235601425171
+            },
+            {
+              "layer": 41,
+              "top1_expert_agreement": 0.7566897869110107,
+              "topk_set_jaccard": 0.7858630418777466,
+              "dispatch_weight_cosine": 0.9216145873069763,
+              "dispatch_entropy_delta": 0.008668102324008942,
+              "expert_load_jsd": 0.01669122651219368
+            },
+            {
+              "layer": 42,
+              "top1_expert_agreement": 0.799801766872406,
+              "topk_set_jaccard": 0.8155502676963806,
+              "dispatch_weight_cosine": 0.9359443187713623,
+              "dispatch_entropy_delta": 0.0058062030002474785,
+              "expert_load_jsd": 0.0011813966557383537
+            },
+            {
+              "layer": 43,
+              "top1_expert_agreement": 0.8151635527610779,
+              "topk_set_jaccard": 0.781667947769165,
+              "dispatch_weight_cosine": 0.9230496883392334,
+              "dispatch_entropy_delta": 0.007631996646523476,
+              "expert_load_jsd": 0.0028532841242849827
+            },
+            {
+              "layer": 44,
+              "top1_expert_agreement": 0.774529218673706,
+              "topk_set_jaccard": 0.7881471514701843,
+              "dispatch_weight_cosine": 0.9285376667976379,
+              "dispatch_entropy_delta": 0.009552977047860622,
+              "expert_load_jsd": 0.0023818695917725563
+            },
+            {
+              "layer": 45,
+              "top1_expert_agreement": 0.7522299289703369,
+              "topk_set_jaccard": 0.770224392414093,
+              "dispatch_weight_cosine": 0.9135528802871704,
+              "dispatch_entropy_delta": 0.007234292104840279,
+              "expert_load_jsd": 0.0033305841498076916
+            },
+            {
+              "layer": 46,
+              "top1_expert_agreement": 0.7666006088256836,
+              "topk_set_jaccard": 0.7691553235054016,
+              "dispatch_weight_cosine": 0.9053623676300049,
+              "dispatch_entropy_delta": 0.006614747457206249,
+              "expert_load_jsd": 0.005189896561205387
+            },
+            {
+              "layer": 47,
+              "top1_expert_agreement": 0.767591655254364,
+              "topk_set_jaccard": 0.8034656643867493,
+              "dispatch_weight_cosine": 0.9280042052268982,
+              "dispatch_entropy_delta": 0.012331409379839897,
+              "expert_load_jsd": 0.005992210004478693
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "aggregate": [
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "full_context",
+      "n": 1,
+      "ruler_score_pct": 100.0,
+      "all_correct_rate": 1.0,
+      "all_correct_ci95_low": 1.0,
+      "all_correct_ci95_high": 1.0,
+      "mean_required_answer_token_recall": 1.0,
+      "mean_complete_required_answer_rate": 1.0,
+      "all_required_answers_complete_rate": 1.0,
+      "mean_required_answer_depth_pct": 10.319623389494549,
+      "mean_kept_tokens": 8072.0,
+      "mean_actual_retention_pct": 100.0,
+      "mean_compression_ratio": 1.0,
+      "mean_gold_answer_ppl": 1.9049114507273415,
+      "mean_output_tokens_per_second": 2.8232644777952665,
+      "mean_generation_elapsed_seconds": 8.85499753800002,
+      "mean_time_to_first_token_seconds": 3.143923999000009,
+      "mean_decode_after_first_token_seconds": 5.711073539000012,
+      "mean_inference_path_elapsed_seconds": 8.85499753800002,
+      "max_generation_peak_vram_gb": 58.01183557510376,
+      "max_saliency_peak_vram_gb": null,
+      "max_pipeline_peak_vram_gb": 58.01183557510376,
+      "routing_mean_top1_expert_agreement": null,
+      "routing_mean_top8_set_jaccard": null,
+      "routing_mean_dispatch_weight_cosine": null,
+      "routing_mean_expert_load_jsd": null,
+      "routing_mean_worst_layer_top1": null,
+      "routing_mean_worst_layer_top8": null
+    },
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "kiaomni_gaussian_r0.25",
+      "n": 1,
+      "ruler_score_pct": 100.0,
+      "all_correct_rate": 1.0,
+      "all_correct_ci95_low": 1.0,
+      "all_correct_ci95_high": 1.0,
+      "mean_required_answer_token_recall": 1.0,
+      "mean_complete_required_answer_rate": 1.0,
+      "all_required_answers_complete_rate": 1.0,
+      "mean_required_answer_depth_pct": 10.319623389494549,
+      "mean_kept_tokens": 2018.0,
+      "mean_actual_retention_pct": 25.0,
+      "mean_compression_ratio": 4.0,
+      "mean_gold_answer_ppl": 7.936152113834712,
+      "mean_output_tokens_per_second": 2.9799354082002765,
+      "mean_generation_elapsed_seconds": 8.389443586999988,
+      "mean_time_to_first_token_seconds": 2.8017290100000025,
+      "mean_decode_after_first_token_seconds": 5.587714576999986,
+      "mean_inference_path_elapsed_seconds": 12.378100818999997,
+      "max_generation_peak_vram_gb": 57.16624879837036,
+      "max_saliency_peak_vram_gb": 59.194965839385986,
+      "max_pipeline_peak_vram_gb": 59.194965839385986,
+      "routing_mean_top1_expert_agreement": 0.7304984306295713,
+      "routing_mean_top8_set_jaccard": 0.7684600601593653,
+      "routing_mean_dispatch_weight_cosine": 0.8967651166021824,
+      "routing_mean_expert_load_jsd": 0.007247165476049607,
+      "routing_mean_worst_layer_top1": 0.5302279591560364,
+      "routing_mean_worst_layer_top8": 0.6860672235488892
+    },
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "kiaomni_s8_r0.25",
+      "n": 1,
+      "ruler_score_pct": 100.0,
+      "all_correct_rate": 1.0,
+      "all_correct_ci95_low": 1.0,
+      "all_correct_ci95_high": 1.0,
+      "mean_required_answer_token_recall": 1.0,
+      "mean_complete_required_answer_rate": 1.0,
+      "all_required_answers_complete_rate": 1.0,
+      "mean_required_answer_depth_pct": 10.319623389494549,
+      "mean_kept_tokens": 2018.0,
+      "mean_actual_retention_pct": 25.0,
+      "mean_compression_ratio": 4.0,
+      "mean_gold_answer_ppl": 7.657720754885189,
+      "mean_output_tokens_per_second": 3.028711241732768,
+      "mean_generation_elapsed_seconds": 8.254335921999996,
+      "mean_time_to_first_token_seconds": 2.66584961800001,
+      "mean_decode_after_first_token_seconds": 5.588486303999986,
+      "mean_inference_path_elapsed_seconds": 12.242993154000004,
+      "max_generation_peak_vram_gb": 57.16624879837036,
+      "max_saliency_peak_vram_gb": 59.194965839385986,
+      "max_pipeline_peak_vram_gb": 59.194965839385986,
+      "routing_mean_top1_expert_agreement": 0.7290324568748474,
+      "routing_mean_top8_set_jaccard": 0.7692830165227255,
+      "routing_mean_dispatch_weight_cosine": 0.8956467906634012,
+      "routing_mean_expert_load_jsd": 0.006799469806234508,
+      "routing_mean_worst_layer_top1": 0.5545094013214111,
+      "routing_mean_worst_layer_top8": 0.6847015619277954
+    }
+  ],
+  "pairwise": [
+    {
+      "method": "kiaomni_gaussian_r0.25",
+      "n": 1,
+      "fc_correct_to_kia_correct": 1,
+      "fc_correct_to_kia_wrong": 0,
+      "fc_wrong_to_kia_correct": 0,
+      "fc_wrong_to_kia_wrong": 0,
+      "fc_correct_preservation_rate": 1.0,
+      "regression_rate_on_fc_correct": 0.0,
+      "rescue_rate_on_fc_wrong": null,
+      "net_rescues_minus_regressions": 0,
+      "mcnemar_exact_p": 1.0,
+      "mean_ruler_score_delta_pp": 0.0,
+      "mean_required_answer_token_recall_delta": 0.0
+    },
+    {
+      "method": "kiaomni_s8_r0.25",
+      "n": 1,
+      "fc_correct_to_kia_correct": 1,
+      "fc_correct_to_kia_wrong": 0,
+      "fc_wrong_to_kia_correct": 0,
+      "fc_wrong_to_kia_wrong": 0,
+      "fc_correct_preservation_rate": 1.0,
+      "regression_rate_on_fc_correct": 0.0,
+      "rescue_rate_on_fc_wrong": null,
+      "net_rescues_minus_regressions": 0,
+      "mcnemar_exact_p": 1.0,
+      "mean_ruler_score_delta_pp": 0.0,
+      "mean_required_answer_token_recall_delta": 0.0
+    }
+  ],
+  "depth_summary": [
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "full_context",
+      "depth_bin": "0-20",
+      "n": 1,
+      "mean_ruler_score_pct": 100.0,
+      "mean_required_answer_token_recall": 1.0,
+      "all_correct_rate": 1.0
+    },
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "kiaomni_gaussian_r0.25",
+      "depth_bin": "0-20",
+      "n": 1,
+      "mean_ruler_score_pct": 100.0,
+      "mean_required_answer_token_recall": 1.0,
+      "all_correct_rate": 1.0
+    },
+    {
+      "task": "niah_single_2",
+      "target_context_length": 8192,
+      "method": "kiaomni_s8_r0.25",
+      "depth_bin": "0-20",
+      "n": 1,
+      "mean_ruler_score_pct": 100.0,
+      "mean_required_answer_token_recall": 1.0,
+      "all_correct_rate": 1.0
+    }
+  ],
+  "execution_gate": {
+    "status": "PASS",
+    "completed_cases": 1,
+    "expected_rows": 3,
+    "actual_rows": 3,
+    "actual_dispatch_verified": true,
+    "note": "PASS means execution/measurement integrity. RULER quality is reported through official string-match-compatible scores and needle-survival metrics."
+  },
+  "wall_seconds": 169.53365229599999
+}

@@ -1,0 +1,98 @@
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:06<01:43,  6.89s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:12<01:23,  5.97s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:19<01:26,  6.64s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:27<01:24,  7.07s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:33<01:14,  6.74s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:38<01:00,  6.03s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:47<01:02,  6.98s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:51<00:49,  6.21s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [01:02<00:52,  7.54s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [01:09<00:45,  7.56s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [01:14<00:34,  6.83s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [01:25<00:31,  7.82s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [01:32<00:22,  7.65s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [01:37<00:13,  6.99s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [01:46<00:07,  7.50s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:48<00:00,  5.74s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:48<00:00,  6.76s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+ROUTING_PREFLIGHT={"passed": true, "logits_exact_equal": true, "logits_allclose_rtol_1e-4_atol_1e-5": true, "max_abs_logit_error": 0.0, "dispatch_verified": true, "dispatch_count_mismatches": [], "captured_sparse_layers": 48}
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+========================================================================================
+CASE=ruler-niah_single_2-8192-line9 TASK=niah_single_2 TARGET_LEN=8192 DEPTH=10.13%
+METHOD=full_context SCORE=100.00 ALL_CORRECT=True
+TOKENS=8072/8072 RETENTION=100.000% COMPRESSION=1.000x
+NEEDLE_RECALL=1.000000 COMPLETE=1/1
+--- RAW ANSWER ---
+The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.
+PPL=1.904911 TTFT=3.143923999000009 OUT_TOK_S=2.823 GEN_PEAK_VRAM_GB=58.012 PIPELINE_PEAK_VRAM_GB=58.012
+========================================================================================
+
+========================================================================================
+CASE=ruler-niah_single_2-8192-line9 TASK=niah_single_2 TARGET_LEN=8192 DEPTH=10.13%
+METHOD=kiaomni_s8_r0.25 SCORE=100.00 ALL_CORRECT=True
+TOKENS=2018/8072 RETENTION=25.000% COMPRESSION=4.000x
+NEEDLE_RECALL=1.000000 COMPLETE=1/1
+--- RAW ANSWER ---
+The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.
+PPL=7.657721 TTFT=2.66584961800001 OUT_TOK_S=3.029 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=59.195
+ROUTING_ACTUAL TOP1=0.729032 TOP8=0.769283 WORST_TOP8=0.684702 COS=0.895647 LOAD_JSD=0.006799
+========================================================================================
+
+========================================================================================
+CASE=ruler-niah_single_2-8192-line9 TASK=niah_single_2 TARGET_LEN=8192 DEPTH=10.13%
+METHOD=kiaomni_gaussian_r0.25 SCORE=100.00 ALL_CORRECT=True
+TOKENS=2018/8072 RETENTION=25.000% COMPRESSION=4.000x
+NEEDLE_RECALL=1.000000 COMPLETE=1/1
+--- RAW ANSWER ---
+The special magic number for ubiquitous-cure mentioned in the provided text is **7217147**.
+PPL=7.936152 TTFT=2.8017290100000025 OUT_TOK_S=2.980 GEN_PEAK_VRAM_GB=57.166 PIPELINE_PEAK_VRAM_GB=59.195
+ROUTING_ACTUAL TOP1=0.730498 TOP8=0.768460 WORST_TOP8=0.686067 COS=0.896765 LOAD_JSD=0.007247
+========================================================================================
+
+FINAL EXECUTION GATE
+{
+  "status": "PASS",
+  "completed_cases": 1,
+  "expected_rows": 3,
+  "actual_rows": 3,
+  "actual_dispatch_verified": true,
+  "note": "PASS means execution/measurement integrity. RULER quality is reported through official string-match-compatible scores and needle-survival metrics."
+}
+
+PAIRWISE SUMMARY
+[
+  {
+    "method": "kiaomni_gaussian_r0.25",
+    "n": 1,
+    "fc_correct_to_kia_correct": 1,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 0,
+    "fc_correct_preservation_rate": 1.0,
+    "regression_rate_on_fc_correct": 0.0,
+    "rescue_rate_on_fc_wrong": null,
+    "net_rescues_minus_regressions": 0,
+    "mcnemar_exact_p": 1.0,
+    "mean_ruler_score_delta_pp": 0.0,
+    "mean_required_answer_token_recall_delta": 0.0
+  },
+  {
+    "method": "kiaomni_s8_r0.25",
+    "n": 1,
+    "fc_correct_to_kia_correct": 1,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 0,
+    "fc_correct_preservation_rate": 1.0,
+    "regression_rate_on_fc_correct": 0.0,
+    "rescue_rate_on_fc_wrong": null,
+    "net_rescues_minus_regressions": 0,
+    "mcnemar_exact_p": 1.0,
+    "mean_ruler_score_delta_pp": 0.0,
+    "mean_required_answer_token_recall_delta": 0.0
+  }
+]
