@@ -101,6 +101,8 @@ def test_modal_pins_source_integrity_and_depth_selection():
     assert "source_official_generation_manifest.json" in src
     assert 'RULER_MIRROR_ROWS_PER_GROUP = 50' in src
     assert 'filename = f"{task}/{length}.jsonl"' in src
+    assert '"relative_path": filename' in src
+    assert "relative_to(root)" not in src
     assert '"mirror_sha256": observed_sha' in src
     assert '"official_source_sha256": str(source_entry.get("sha256", ""))' in src
     assert "_select_depth_stratified" in src
