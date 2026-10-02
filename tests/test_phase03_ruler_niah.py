@@ -52,7 +52,7 @@ def test_required_ruler_tasks_are_controlled_niah_tasks():
     assert mod.SAMPLES_PER_GROUP == 5
 
 
-def test_ruler_scoring_matches_all-reference_fraction_semantics():
+def test_ruler_scoring_matches_all_reference_fraction_semantics():
     mod = _load_runner()
     out = mod.score_ruler("values are 111 and 222", ["111", "222"])
     assert out["correct"] is True
