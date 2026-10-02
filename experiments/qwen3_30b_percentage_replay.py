@@ -45,7 +45,7 @@ STAGES = {
         "ratios": (0.25,),
     },
     "final": {
-        "max_wall_seconds": 100 * 60,
+        "max_wall_seconds": 165 * 60,
         "real_cases": 27,
         "reason_cases": 0,
         "ratios": PERCENTAGE_BUDGETS,
@@ -76,6 +76,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output", required=True)
     p.add_argument("--seed", type=int, default=SEED)
     p.add_argument("--min-free-gb", type=float, default=8.0)
+    p.add_argument("--resume", action="store_true")
     return p.parse_args()
 
 
@@ -1055,41 +1056,76 @@ def main() -> None:
 
     gpu_adapter = SaliencyAdapter(probe, offload_to_cpu=False)
     policy_fns = {name: get_policy(name) for name in POLICIES}
+    conditions_per_case = 1 + len(POLICIES) * len(cfg["ratios"])
     rows: list[dict[str, Any]] = []
+    completed_case_ids: set[str] = set()
 
-    artifact: dict[str, Any] = {
-        "schema": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_V1",
-        "stage": args.stage,
-        "repo_revision": args.repo_revision,
-        "runner_sha256": file_sha256(__file__),
-        "model": {"repo": MODEL_ID, "revision": MODEL_REVISION},
-        "dataset": {"repo": DATASET_ID, "revision": DATASET_REVISION},
-        "policies": list(POLICIES),
-        "percentage_budgets": list(PERCENTAGE_BUDGETS),
-        "legacy_fixed_budgets_reference": list(LEGACY_FIXED_BUDGETS),
-        "max_new_tokens": MAX_NEW_TOKENS,
-        "environment": env,
-        "probe": {
-            "confidence": probe.confidence,
-            "num_layers": probe.num_layers,
-            "num_attention_heads": probe.num_attention_heads,
-            "num_key_value_heads": probe.num_key_value_heads,
-            "head_dim": probe.head_dim,
-        },
-        "routing_preflight": neutrality,
-        "cases": [
-            asdict(c) | {"context": "<omitted-from-artifact>", "question": "<omitted-from-artifact>"}
-            for c in cases
-        ],
-        "rows": rows,
-        "aggregate": [],
-        "pairwise": [],
-        "execution_gate": {"status": "RUNNING"},
-        "wall_seconds": 0.0,
-    }
+    if args.resume and output.exists():
+        artifact = json.loads(output.read_text(encoding="utf-8"))
+        if artifact.get("schema") != "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_V1":
+            raise RuntimeError("Resume artifact schema mismatch")
+        if artifact.get("stage") != args.stage:
+            raise RuntimeError("Resume artifact stage mismatch")
+        if artifact.get("repo_revision") != args.repo_revision:
+            raise RuntimeError("Resume artifact repo revision mismatch")
+        prior_rows = list(artifact.get("rows", []))
+        counts: dict[str, int] = {}
+        for row in prior_rows:
+            cid = str(row.get("case_id"))
+            counts[cid] = counts.get(cid, 0) + 1
+        completed_case_ids = {
+            cid for cid, count in counts.items() if count == conditions_per_case
+        }
+        rows = [row for row in prior_rows if str(row.get("case_id")) in completed_case_ids]
+        artifact["rows"] = rows
+        artifact["runner_sha256"] = file_sha256(__file__)
+        artifact["execution_gate"] = {
+            "status": "RUNNING",
+            "resume": True,
+            "completed_cases": len(completed_case_ids),
+            "total_cases": len(cases),
+        }
+        print(
+            f"RESUME: keeping {len(completed_case_ids)}/{len(cases)} complete cases "
+            f"({len(rows)} rows); incomplete case rows will be rerun.",
+            flush=True,
+        )
+    else:
+        artifact = {
+            "schema": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_V1",
+            "stage": args.stage,
+            "repo_revision": args.repo_revision,
+            "runner_sha256": file_sha256(__file__),
+            "model": {"repo": MODEL_ID, "revision": MODEL_REVISION},
+            "dataset": {"repo": DATASET_ID, "revision": DATASET_REVISION},
+            "policies": list(POLICIES),
+            "percentage_budgets": list(PERCENTAGE_BUDGETS),
+            "legacy_fixed_budgets_reference": list(LEGACY_FIXED_BUDGETS),
+            "max_new_tokens": MAX_NEW_TOKENS,
+            "environment": env,
+            "probe": {
+                "confidence": probe.confidence,
+                "num_layers": probe.num_layers,
+                "num_attention_heads": probe.num_attention_heads,
+                "num_key_value_heads": probe.num_key_value_heads,
+                "head_dim": probe.head_dim,
+            },
+            "routing_preflight": neutrality,
+            "cases": [
+                asdict(c) | {"context": "<omitted-from-artifact>", "question": "<omitted-from-artifact>"}
+                for c in cases
+            ],
+            "rows": rows,
+            "aggregate": [],
+            "pairwise": [],
+            "execution_gate": {"status": "RUNNING"},
+            "wall_seconds": 0.0,
+        }
     write_json(output, artifact)
 
     for case_i, case in enumerate(cases):
+        if case.case_id in completed_case_ids:
+            continue
         if time.perf_counter() >= deadline:
             raise TimeoutError("Stage wall-time ceiling reached before next case")
 
@@ -1145,9 +1181,10 @@ def main() -> None:
         artifact["aggregate"] = aggregate(rows)
         artifact["pairwise"] = pairwise_summary(rows)
         artifact["wall_seconds"] = time.perf_counter() - started
+        completed_case_ids.add(case.case_id)
         artifact["execution_gate"] = {
             "status": "RUNNING",
-            "completed_cases": case_i + 1,
+            "completed_cases": len(completed_case_ids),
             "total_cases": len(cases),
         }
         write_json(output, artifact)
@@ -1191,19 +1228,32 @@ if __name__ == "__main__":
     except Exception as exc:
         output_raw = _cli_value("--output")
         if output_raw:
-            payload = {
-                "schema": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_ERROR_V1",
-                "stage": _cli_value("--stage"),
-                "repo_revision": _cli_value("--repo-revision"),
-                "execution_gate": {
-                    "status": "ERROR",
-                    "exception_type": type(exc).__name__,
-                    "reason": str(exc),
-                },
-                "traceback": traceback.format_exc(),
-            }
+            out_path = Path(output_raw)
             try:
-                write_json(Path(output_raw), payload)
+                if out_path.exists():
+                    payload = json.loads(out_path.read_text(encoding="utf-8"))
+                    payload["execution_gate"] = {
+                        "status": "ERROR",
+                        "exception_type": type(exc).__name__,
+                        "reason": str(exc),
+                        "partial_rows_preserved": len(payload.get("rows", [])),
+                    }
+                    payload["traceback"] = traceback.format_exc()
+                else:
+                    payload = {
+                        "schema": "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_ERROR_V1",
+                        "stage": _cli_value("--stage"),
+                        "repo_revision": _cli_value("--repo-revision"),
+                        "rows": [],
+                        "execution_gate": {
+                            "status": "ERROR",
+                            "exception_type": type(exc).__name__,
+                            "reason": str(exc),
+                            "partial_rows_preserved": 0,
+                        },
+                        "traceback": traceback.format_exc(),
+                    }
+                write_json(out_path, payload)
             except Exception:
                 pass
         traceback.print_exc()
