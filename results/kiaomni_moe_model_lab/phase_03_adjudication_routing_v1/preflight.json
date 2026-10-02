@@ -1,0 +1,1078 @@
+{
+  "schema": "KIAOMNI_QWEN3_30B_ADJUDICATION_ROUTING_V1",
+  "stage": "preflight",
+  "repo_revision": "7422580cc6b930ac36be30e698b1ab8f5ed7edef",
+  "runner_sha256": "5045a81d09a98783496dc56d291c725a3fcaa0765ad2f050cb397a470842c2fc",
+  "model": {
+    "repo": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "revision": "0d7cf23"
+  },
+  "dataset": {
+    "repo": "THUDM/LongBench-v2",
+    "revision": "b0db4901b856522026b7353ab541b8535ff2a4b8"
+  },
+  "policies": [
+    "kiaomni_s8",
+    "kiaomni_gaussian"
+  ],
+  "fixed_budgets": [
+    512,
+    256,
+    128,
+    98
+  ],
+  "max_new_tokens": 256,
+  "environment": {
+    "model_config": {
+      "model_type": "qwen3_moe",
+      "num_hidden_layers": 48,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 4,
+      "num_experts": 128,
+      "num_experts_per_tok": 8,
+      "head_dim": 128
+    },
+    "free_gb": 21.93902587890625,
+    "total_gb": 79.250732421875,
+    "dtype": "torch.bfloat16",
+    "gpu": "NVIDIA A100-SXM4-80GB"
+  },
+  "probe": {
+    "confidence": "high",
+    "num_layers": 48,
+    "num_attention_heads": 32,
+    "num_key_value_heads": 4,
+    "head_dim": 128
+  },
+  "routing_preflight": {
+    "passed": true,
+    "logits_exact_equal": true,
+    "logits_allclose_rtol_1e-4_atol_1e-5": true,
+    "max_abs_logit_error": 0.0,
+    "dispatch_verified": true,
+    "dispatch_count_mismatches": [],
+    "captured_sparse_layers": 48
+  },
+  "cases": [
+    {
+      "case_id": "longbenchv2-66f78ecfbb02136c067c2f12",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "context": "<omitted-from-artifact>",
+      "question": "<omitted-from-artifact>",
+      "gold": [
+        "B"
+      ],
+      "distractors": [],
+      "meta": {
+        "domain": "Multi-Document QA",
+        "sub_domain": "Multi-news",
+        "difficulty": "easy",
+        "length": "short",
+        "rendered_tokens": 15209
+      }
+    }
+  ],
+  "rows": [
+    {
+      "case_id": "longbenchv2-66f78ecfbb02136c067c2f12",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "result": {
+        "method": "full_context",
+        "input_tokens": 15209,
+        "kept_tokens": 15209,
+        "compression_ratio": 1.0,
+        "answer": "The correct answer is (C) It believes that Israel's war with Hezbollah can only be achieved through diplomacy to make the borders sufficiently secure.\n\nExplanation: The text indicates that the U.S. has consistently advocated for a diplomatic solution to the Israel-Hezbollah conflict, emphasizing that full-scale war is not in anyone’s interest. Despite Israel’s military actions, including the pager attacks and subsequent airstrikes, the U.S. continues to push for diplomacy, as evidenced by efforts by envoy Amos Hochstein and the White House’s insistence on pursuing a ceasefire deal. The U.S. opposes an Israeli ground invasion of Lebanon and rejects the strategy of “de-escalation by escalation,” reaffirming that only diplomacy can lead to lasting security. This aligns with option (C). While the U.S. supports Israel’s right to self-defense (which may imply continued support like (A)), the central theme of the article is the U.S. prioritizing diplomacy over military escalation, making (C) the most accurate reflection of the shift in attitude after the pager attacks.",
+        "parsed_answer": "C",
+        "parse_status": "explicit",
+        "correct": false,
+        "prediction": "The correct answer is (C) It believes that Israel's war with Hezbollah can only be achieved through diplomacy to make the borders sufficiently secure.\n\nExplanation: The text indicates that the U.S. has consistently advocated for a diplomatic solution to the Israel-Hezbollah conflict, emphasizing that full-scale war is not in anyone’s interest. Despite Israel’s military actions, including the pager attacks and subsequent airstrikes, the U.S. continues to push for diplomacy, as evidenced by efforts by envoy Amos Hochstein and the White House’s insistence on pursuing a ceasefire deal. The U.S. opposes an Israeli ground invasion of Lebanon and rejects the strategy of “de-escalation by escalation,” reaffirming that only diplomacy can lead to lasting security. This aligns with option (C). While the U.S. supports Israel’s right to self-defense (which may imply continued support like (A)), the central theme of the article is the U.S. prioritizing diplomacy over military escalation, making (C) the most accurate reflection of the shift in attitude after the pager attacks.",
+        "generation_elapsed_seconds": 35.157850552,
+        "generated_tokens": 214,
+        "output_tokens_per_second": 6.086833996961351,
+        "generation_peak_allocated_vram_gb": 59.011085510253906,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "The correct answer is (B)",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 0.6915702819824219,
+        "gold_answer_ppl": 1.9968486881475487,
+        "routing_teacher_elapsed_seconds": 3.2912720209999975,
+        "routing_teacher_peak_allocated_vram_gb": 57.6458945274353,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "pipeline_peak_allocated_vram_gb": 59.011085510253906,
+        "saliency": null,
+        "routing": null
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f78ecfbb02136c067c2f12",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "policy": "kiaomni_s8",
+      "budget": 512,
+      "keep_positions_sha256": "9d9aeb7832919d11209f87dc4e8a80806b19124b35f6b75d99033f11df1d44f6",
+      "result": {
+        "method": "kiaomni_s8_B512",
+        "input_tokens": 15209,
+        "kept_tokens": 512,
+        "compression_ratio": 29.705078125,
+        "answer": "The correct answer is (B) It believes that the current situation has exceeded expectations and is committed to mediating the conflict.\n\nExplanation: The text indicates that the U.S. is concerned about the escalation of the conflict between Israel and Hezbollah, warning that it could lead to an all-out war and potentially draw Iran into a direct confrontation with Israel. The U.S. has opposed any Israeli ground invasion and is trying to prevent further escalation, which reflects a shift toward active mediation rather than unconditional support. The absence of a call between Biden and Netanyahu, despite the crisis, suggests a more cautious and diplomatic approach. While the U.S. has not abandoned Israel, its emphasis on preventing wider war and defusing tensions shows a commitment to mediation, aligning with option (B).",
+        "parsed_answer": "B",
+        "parse_status": "explicit",
+        "correct": true,
+        "prediction": "The correct answer is (B) It believes that the current situation has exceeded expectations and is committed to mediating the conflict.\n\nExplanation: The text indicates that the U.S. is concerned about the escalation of the conflict between Israel and Hezbollah, warning that it could lead to an all-out war and potentially draw Iran into a direct confrontation with Israel. The U.S. has opposed any Israeli ground invasion and is trying to prevent further escalation, which reflects a shift toward active mediation rather than unconditional support. The absence of a call between Biden and Netanyahu, despite the crisis, suggests a more cautious and diplomatic approach. While the U.S. has not abandoned Israel, its emphasis on preventing wider war and defusing tensions shows a commitment to mediation, aligning with option (B).",
+        "generation_elapsed_seconds": 26.11351106699999,
+        "generated_tokens": 155,
+        "output_tokens_per_second": 5.935624650485076,
+        "generation_peak_allocated_vram_gb": 56.95075035095215,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "The correct answer is (B)",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 0.0002219490270363167,
+        "gold_answer_ppl": 1.000221973659544,
+        "routing_teacher_elapsed_seconds": 1.7201628079999978,
+        "routing_teacher_peak_allocated_vram_gb": 56.905333518981934,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "pipeline_peak_allocated_vram_gb": 61.24177551269531,
+        "saliency": {
+          "saliency_elapsed_seconds": 5.186737996000005,
+          "saliency_peak_allocated_vram_gb": 61.24177551269531
+        },
+        "routing": {
+          "matched_tokens": 512,
+          "layers": 48,
+          "top1_expert_agreement": 0.7120768229166666,
+          "top8_set_jaccard": 0.7560827943185965,
+          "dispatch_weight_cosine": 0.8978682222465674,
+          "dispatch_entropy_delta": -0.0016492016899671096,
+          "expert_load_jsd": 0.0072247758410715806,
+          "per_layer": [
+            {
+              "layer": 0,
+              "top1_expert_agreement": 0.927734375,
+              "topk_set_jaccard": 0.9171322584152222,
+              "dispatch_weight_cosine": 0.9875098466873169,
+              "dispatch_entropy_delta": 4.125293344259262e-05,
+              "expert_load_jsd": 0.0011076426599174738
+            },
+            {
+              "layer": 1,
+              "top1_expert_agreement": 0.87890625,
+              "topk_set_jaccard": 0.8508811593055725,
+              "dispatch_weight_cosine": 0.9589341282844543,
+              "dispatch_entropy_delta": 0.0013376555871218443,
+              "expert_load_jsd": 0.0038926098495721817
+            },
+            {
+              "layer": 2,
+              "top1_expert_agreement": 0.853515625,
+              "topk_set_jaccard": 0.8462145924568176,
+              "dispatch_weight_cosine": 0.962929904460907,
+              "dispatch_entropy_delta": -0.002301969565451145,
+              "expert_load_jsd": 0.004610162228345871
+            },
+            {
+              "layer": 3,
+              "top1_expert_agreement": 0.796875,
+              "topk_set_jaccard": 0.8351068496704102,
+              "dispatch_weight_cosine": 0.9501780867576599,
+              "dispatch_entropy_delta": -0.0016216805670410395,
+              "expert_load_jsd": 0.0030776411294937134
+            },
+            {
+              "layer": 4,
+              "top1_expert_agreement": 0.765625,
+              "topk_set_jaccard": 0.8009679317474365,
+              "dispatch_weight_cosine": 0.936439573764801,
+              "dispatch_entropy_delta": 0.006571453530341387,
+              "expert_load_jsd": 0.006665266118943691
+            },
+            {
+              "layer": 5,
+              "top1_expert_agreement": 0.76953125,
+              "topk_set_jaccard": 0.7778701782226562,
+              "dispatch_weight_cosine": 0.9249122738838196,
+              "dispatch_entropy_delta": 0.005015236791223288,
+              "expert_load_jsd": 0.0066800774075090885
+            },
+            {
+              "layer": 6,
+              "top1_expert_agreement": 0.783203125,
+              "topk_set_jaccard": 0.7678329944610596,
+              "dispatch_weight_cosine": 0.9291021823883057,
+              "dispatch_entropy_delta": 0.003387607866898179,
+              "expert_load_jsd": 0.00902318861335516
+            },
+            {
+              "layer": 7,
+              "top1_expert_agreement": 0.80859375,
+              "topk_set_jaccard": 0.782344400882721,
+              "dispatch_weight_cosine": 0.9293206334114075,
+              "dispatch_entropy_delta": -0.0015427246689796448,
+              "expert_load_jsd": 0.004587413277477026
+            },
+            {
+              "layer": 8,
+              "top1_expert_agreement": 0.787109375,
+              "topk_set_jaccard": 0.8076627850532532,
+              "dispatch_weight_cosine": 0.9374551773071289,
+              "dispatch_entropy_delta": -0.009157858788967133,
+              "expert_load_jsd": 0.0028830701485276222
+            },
+            {
+              "layer": 9,
+              "top1_expert_agreement": 0.763671875,
+              "topk_set_jaccard": 0.7737657427787781,
+              "dispatch_weight_cosine": 0.9213464856147766,
+              "dispatch_entropy_delta": -0.001770418370142579,
+              "expert_load_jsd": 0.007862841710448265
+            },
+            {
+              "layer": 10,
+              "top1_expert_agreement": 0.7109375,
+              "topk_set_jaccard": 0.7519733309745789,
+              "dispatch_weight_cosine": 0.9034435749053955,
+              "dispatch_entropy_delta": -0.0014167418703436852,
+              "expert_load_jsd": 0.010203967802226543
+            },
+            {
+              "layer": 11,
+              "top1_expert_agreement": 0.7421875,
+              "topk_set_jaccard": 0.7329172492027283,
+              "dispatch_weight_cosine": 0.8808699250221252,
+              "dispatch_entropy_delta": -0.002701794495806098,
+              "expert_load_jsd": 0.008884729817509651
+            },
+            {
+              "layer": 12,
+              "top1_expert_agreement": 0.705078125,
+              "topk_set_jaccard": 0.7387392520904541,
+              "dispatch_weight_cosine": 0.8812853693962097,
+              "dispatch_entropy_delta": -0.0020059787202626467,
+              "expert_load_jsd": 0.011062734760344028
+            },
+            {
+              "layer": 13,
+              "top1_expert_agreement": 0.70703125,
+              "topk_set_jaccard": 0.7407645583152771,
+              "dispatch_weight_cosine": 0.8940393328666687,
+              "dispatch_entropy_delta": 0.0016698883846402168,
+              "expert_load_jsd": 0.0083756223320961
+            },
+            {
+              "layer": 14,
+              "top1_expert_agreement": 0.6796875,
+              "topk_set_jaccard": 0.7359530925750732,
+              "dispatch_weight_cosine": 0.8868266344070435,
+              "dispatch_entropy_delta": -0.0037774245720356703,
+              "expert_load_jsd": 0.010059783235192299
+            },
+            {
+              "layer": 15,
+              "top1_expert_agreement": 0.669921875,
+              "topk_set_jaccard": 0.7508825063705444,
+              "dispatch_weight_cosine": 0.8926945328712463,
+              "dispatch_entropy_delta": -0.00993153266608715,
+              "expert_load_jsd": 0.007683029863983393
+            },
+            {
+              "layer": 16,
+              "top1_expert_agreement": 0.685546875,
+              "topk_set_jaccard": 0.7409286499023438,
+              "dispatch_weight_cosine": 0.9016150832176208,
+              "dispatch_entropy_delta": -0.0063018593937158585,
+              "expert_load_jsd": 0.008337892591953278
+            },
+            {
+              "layer": 17,
+              "top1_expert_agreement": 0.65234375,
+              "topk_set_jaccard": 0.7177075743675232,
+              "dispatch_weight_cosine": 0.8748730421066284,
+              "dispatch_entropy_delta": 0.0007478008046746254,
+              "expert_load_jsd": 0.008878268301486969
+            },
+            {
+              "layer": 18,
+              "top1_expert_agreement": 0.650390625,
+              "topk_set_jaccard": 0.7341967225074768,
+              "dispatch_weight_cosine": 0.8832191228866577,
+              "dispatch_entropy_delta": -0.005932099185883999,
+              "expert_load_jsd": 0.00997818261384964
+            },
+            {
+              "layer": 19,
+              "top1_expert_agreement": 0.693359375,
+              "topk_set_jaccard": 0.7349061965942383,
+              "dispatch_weight_cosine": 0.8955426216125488,
+              "dispatch_entropy_delta": -0.008093887940049171,
+              "expert_load_jsd": 0.004317399114370346
+            },
+            {
+              "layer": 20,
+              "top1_expert_agreement": 0.697265625,
+              "topk_set_jaccard": 0.7193073630332947,
+              "dispatch_weight_cosine": 0.8727198839187622,
+              "dispatch_entropy_delta": -0.009781748987734318,
+              "expert_load_jsd": 0.007574001792818308
+            },
+            {
+              "layer": 21,
+              "top1_expert_agreement": 0.583984375,
+              "topk_set_jaccard": 0.7204890251159668,
+              "dispatch_weight_cosine": 0.8669643998146057,
+              "dispatch_entropy_delta": 0.0010171202011406422,
+              "expert_load_jsd": 0.010795850306749344
+            },
+            {
+              "layer": 22,
+              "top1_expert_agreement": 0.6484375,
+              "topk_set_jaccard": 0.6907457113265991,
+              "dispatch_weight_cosine": 0.8450382351875305,
+              "dispatch_entropy_delta": -0.0028882508631795645,
+              "expert_load_jsd": 0.015371992252767086
+            },
+            {
+              "layer": 23,
+              "top1_expert_agreement": 0.6171875,
+              "topk_set_jaccard": 0.65626060962677,
+              "dispatch_weight_cosine": 0.8149043321609497,
+              "dispatch_entropy_delta": -0.005294137634336948,
+              "expert_load_jsd": 0.011219911277294159
+            },
+            {
+              "layer": 24,
+              "top1_expert_agreement": 0.5859375,
+              "topk_set_jaccard": 0.6609453558921814,
+              "dispatch_weight_cosine": 0.8219432234764099,
+              "dispatch_entropy_delta": -0.0009994918946176767,
+              "expert_load_jsd": 0.01299157552421093
+            },
+            {
+              "layer": 25,
+              "top1_expert_agreement": 0.623046875,
+              "topk_set_jaccard": 0.6740782260894775,
+              "dispatch_weight_cosine": 0.8336674571037292,
+              "dispatch_entropy_delta": -0.0005271229892969131,
+              "expert_load_jsd": 0.013685802929103374
+            },
+            {
+              "layer": 26,
+              "top1_expert_agreement": 0.619140625,
+              "topk_set_jaccard": 0.6973621249198914,
+              "dispatch_weight_cosine": 0.8625950813293457,
+              "dispatch_entropy_delta": -0.006232667714357376,
+              "expert_load_jsd": 0.00998402014374733
+            },
+            {
+              "layer": 27,
+              "top1_expert_agreement": 0.66796875,
+              "topk_set_jaccard": 0.7455488443374634,
+              "dispatch_weight_cosine": 0.8899600505828857,
+              "dispatch_entropy_delta": -0.002181264106184244,
+              "expert_load_jsd": 0.006423695012927055
+            },
+            {
+              "layer": 28,
+              "top1_expert_agreement": 0.69140625,
+              "topk_set_jaccard": 0.7179242372512817,
+              "dispatch_weight_cosine": 0.8842663764953613,
+              "dispatch_entropy_delta": -0.002657987643033266,
+              "expert_load_jsd": 0.006576494313776493
+            },
+            {
+              "layer": 29,
+              "top1_expert_agreement": 0.62890625,
+              "topk_set_jaccard": 0.7094682455062866,
+              "dispatch_weight_cosine": 0.856669008731842,
+              "dispatch_entropy_delta": -0.003475636476650834,
+              "expert_load_jsd": 0.006348933093249798
+            },
+            {
+              "layer": 30,
+              "top1_expert_agreement": 0.662109375,
+              "topk_set_jaccard": 0.7235330939292908,
+              "dispatch_weight_cosine": 0.8888837099075317,
+              "dispatch_entropy_delta": -0.003514758311212063,
+              "expert_load_jsd": 0.0071219103410840034
+            },
+            {
+              "layer": 31,
+              "top1_expert_agreement": 0.7265625,
+              "topk_set_jaccard": 0.7309627532958984,
+              "dispatch_weight_cosine": 0.8982592821121216,
+              "dispatch_entropy_delta": -0.005004554521292448,
+              "expert_load_jsd": 0.004898732528090477
+            },
+            {
+              "layer": 32,
+              "top1_expert_agreement": 0.67578125,
+              "topk_set_jaccard": 0.7291435599327087,
+              "dispatch_weight_cosine": 0.8833577632904053,
+              "dispatch_entropy_delta": -0.004412289243191481,
+              "expert_load_jsd": 0.005047299899160862
+            },
+            {
+              "layer": 33,
+              "top1_expert_agreement": 0.71484375,
+              "topk_set_jaccard": 0.7185519933700562,
+              "dispatch_weight_cosine": 0.8825382590293884,
+              "dispatch_entropy_delta": -0.0011773178121075034,
+              "expert_load_jsd": 0.006956800352782011
+            },
+            {
+              "layer": 34,
+              "top1_expert_agreement": 0.58984375,
+              "topk_set_jaccard": 0.7094497680664062,
+              "dispatch_weight_cosine": 0.8461087942123413,
+              "dispatch_entropy_delta": -0.008096006698906422,
+              "expert_load_jsd": 0.008036699146032333
+            },
+            {
+              "layer": 35,
+              "top1_expert_agreement": 0.634765625,
+              "topk_set_jaccard": 0.6864429116249084,
+              "dispatch_weight_cosine": 0.8396167755126953,
+              "dispatch_entropy_delta": -0.011565025895833969,
+              "expert_load_jsd": 0.009584956802427769
+            },
+            {
+              "layer": 36,
+              "top1_expert_agreement": 0.615234375,
+              "topk_set_jaccard": 0.7041774392127991,
+              "dispatch_weight_cosine": 0.8452773094177246,
+              "dispatch_entropy_delta": -0.0074477181769907475,
+              "expert_load_jsd": 0.010599169880151749
+            },
+            {
+              "layer": 37,
+              "top1_expert_agreement": 0.6875,
+              "topk_set_jaccard": 0.7551032304763794,
+              "dispatch_weight_cosine": 0.9067652821540833,
+              "dispatch_entropy_delta": 0.003328719176352024,
+              "expert_load_jsd": 0.007125230506062508
+            },
+            {
+              "layer": 38,
+              "top1_expert_agreement": 0.69140625,
+              "topk_set_jaccard": 0.7742434740066528,
+              "dispatch_weight_cosine": 0.90334552526474,
+              "dispatch_entropy_delta": 0.0022810539230704308,
+              "expert_load_jsd": 0.0047240243293344975
+            },
+            {
+              "layer": 39,
+              "top1_expert_agreement": 0.69921875,
+              "topk_set_jaccard": 0.7750501036643982,
+              "dispatch_weight_cosine": 0.9124557971954346,
+              "dispatch_entropy_delta": -0.0008974941447377205,
+              "expert_load_jsd": 0.006660427898168564
+            },
+            {
+              "layer": 40,
+              "top1_expert_agreement": 0.69140625,
+              "topk_set_jaccard": 0.7684321403503418,
+              "dispatch_weight_cosine": 0.9067720174789429,
+              "dispatch_entropy_delta": 0.004747551865875721,
+              "expert_load_jsd": 0.008087864145636559
+            },
+            {
+              "layer": 41,
+              "top1_expert_agreement": 0.771484375,
+              "topk_set_jaccard": 0.8046128749847412,
+              "dispatch_weight_cosine": 0.9214422106742859,
+              "dispatch_entropy_delta": 0.001753025921061635,
+              "expert_load_jsd": 0.0038144802674651146
+            },
+            {
+              "layer": 42,
+              "top1_expert_agreement": 0.76953125,
+              "topk_set_jaccard": 0.8083562850952148,
+              "dispatch_weight_cosine": 0.9308090806007385,
+              "dispatch_entropy_delta": 0.0028963570948690176,
+              "expert_load_jsd": 0.0032760221511125565
+            },
+            {
+              "layer": 43,
+              "top1_expert_agreement": 0.732421875,
+              "topk_set_jaccard": 0.8342162370681763,
+              "dispatch_weight_cosine": 0.9377672076225281,
+              "dispatch_entropy_delta": 0.0014370160643011332,
+              "expert_load_jsd": 0.0032581447158008814
+            },
+            {
+              "layer": 44,
+              "top1_expert_agreement": 0.763671875,
+              "topk_set_jaccard": 0.8164252638816833,
+              "dispatch_weight_cosine": 0.9310228228569031,
+              "dispatch_entropy_delta": 0.005004317499697208,
+              "expert_load_jsd": 0.0040380749851465225
+            },
+            {
+              "layer": 45,
+              "top1_expert_agreement": 0.775390625,
+              "topk_set_jaccard": 0.8007824420928955,
+              "dispatch_weight_cosine": 0.9314879179000854,
+              "dispatch_entropy_delta": -0.0019511443097144365,
+              "expert_load_jsd": 0.004906272515654564
+            },
+            {
+              "layer": 46,
+              "top1_expert_agreement": 0.796875,
+              "topk_set_jaccard": 0.8020694851875305,
+              "dispatch_weight_cosine": 0.9215417504310608,
+              "dispatch_entropy_delta": 0.005444513633847237,
+              "expert_load_jsd": 0.004394741728901863
+            },
+            {
+              "layer": 47,
+              "top1_expert_agreement": 0.787109375,
+              "topk_set_jaccard": 0.8195433020591736,
+              "dispatch_weight_cosine": 0.9289575815200806,
+              "dispatch_entropy_delta": 0.008818335831165314,
+              "expert_load_jsd": 0.00511458795517683
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "longbenchv2-66f78ecfbb02136c067c2f12",
+      "source": "longbench_v2",
+      "task": "Multi-news",
+      "policy": "kiaomni_gaussian",
+      "budget": 512,
+      "keep_positions_sha256": "7d03d37f148e4ffd121f897dbf685ffbdb296c54c01214e47340c9a8148843d8",
+      "result": {
+        "method": "kiaomni_gaussian_B512",
+        "input_tokens": 15209,
+        "kept_tokens": 512,
+        "compression_ratio": 29.705078125,
+        "answer": "The correct answer is (A) It continues to provide Israel with military equipment and other support.\n\nExplanation: The text indicates that the U.S. has maintained its opposition to a ground invasion of Lebanon, which suggests a cautious stance, but there is no indication that the U.S. has changed its overall support for Israel. The U.S. is concerned about escalation and potential broader conflict, especially involving Iran, but the focus remains on preventing a wider war rather than altering its support for Israel. The text does not suggest a shift toward diplomacy as the primary approach (B or C), nor does it state that the U.S. will respond militarily to an Iranian attack on Israel (D), though it does mention U.S. concerns about such a scenario. Therefore, the most accurate inference based on the text is that U.S. support for Israel continues, making (A) the best choice.",
+        "parsed_answer": "A",
+        "parse_status": "explicit",
+        "correct": false,
+        "prediction": "The correct answer is (A) It continues to provide Israel with military equipment and other support.\n\nExplanation: The text indicates that the U.S. has maintained its opposition to a ground invasion of Lebanon, which suggests a cautious stance, but there is no indication that the U.S. has changed its overall support for Israel. The U.S. is concerned about escalation and potential broader conflict, especially involving Iran, but the focus remains on preventing a wider war rather than altering its support for Israel. The text does not suggest a shift toward diplomacy as the primary approach (B or C), nor does it state that the U.S. will respond militarily to an Iranian attack on Israel (D), though it does mention U.S. concerns about such a scenario. Therefore, the most accurate inference based on the text is that U.S. support for Israel continues, making (A) the best choice.",
+        "generation_elapsed_seconds": 29.988796099000012,
+        "generated_tokens": 180,
+        "output_tokens_per_second": 6.002241617361964,
+        "generation_peak_allocated_vram_gb": 56.95075035095215,
+        "eos_reached": true,
+        "hit_token_limit": false,
+        "gold_target": "The correct answer is (B)",
+        "gold_target_tokens": 7,
+        "gold_answer_nll": 0.2444167286157608,
+        "gold_answer_ppl": 1.2768763305376565,
+        "routing_teacher_elapsed_seconds": 1.7158309689999953,
+        "routing_teacher_peak_allocated_vram_gb": 56.905333518981934,
+        "dispatch_verified": true,
+        "dispatch_count_mismatches": [],
+        "pipeline_peak_allocated_vram_gb": 61.24177551269531,
+        "saliency": {
+          "saliency_elapsed_seconds": 5.186737996000005,
+          "saliency_peak_allocated_vram_gb": 61.24177551269531
+        },
+        "routing": {
+          "matched_tokens": 512,
+          "layers": 48,
+          "top1_expert_agreement": 0.701416015625,
+          "top8_set_jaccard": 0.7455490045249462,
+          "dispatch_weight_cosine": 0.8880694011847178,
+          "dispatch_entropy_delta": -0.0015597052552038804,
+          "expert_load_jsd": 0.00846723090702047,
+          "per_layer": [
+            {
+              "layer": 0,
+              "top1_expert_agreement": 0.90625,
+              "topk_set_jaccard": 0.9068260788917542,
+              "dispatch_weight_cosine": 0.9827073812484741,
+              "dispatch_entropy_delta": -0.0011866828426718712,
+              "expert_load_jsd": 0.0013576375786215067
+            },
+            {
+              "layer": 1,
+              "top1_expert_agreement": 0.857421875,
+              "topk_set_jaccard": 0.8447734117507935,
+              "dispatch_weight_cosine": 0.9542548656463623,
+              "dispatch_entropy_delta": -0.0012632496654987335,
+              "expert_load_jsd": 0.0031641959212720394
+            },
+            {
+              "layer": 2,
+              "top1_expert_agreement": 0.82421875,
+              "topk_set_jaccard": 0.8480857014656067,
+              "dispatch_weight_cosine": 0.9625311493873596,
+              "dispatch_entropy_delta": -0.0015743931289762259,
+              "expert_load_jsd": 0.004232275299727917
+            },
+            {
+              "layer": 3,
+              "top1_expert_agreement": 0.8046875,
+              "topk_set_jaccard": 0.831993579864502,
+              "dispatch_weight_cosine": 0.9465662837028503,
+              "dispatch_entropy_delta": -0.003969176672399044,
+              "expert_load_jsd": 0.002757412614300847
+            },
+            {
+              "layer": 4,
+              "top1_expert_agreement": 0.75,
+              "topk_set_jaccard": 0.774082362651825,
+              "dispatch_weight_cosine": 0.922012209892273,
+              "dispatch_entropy_delta": 0.00924241915345192,
+              "expert_load_jsd": 0.008195587433874607
+            },
+            {
+              "layer": 5,
+              "top1_expert_agreement": 0.755859375,
+              "topk_set_jaccard": 0.7534717321395874,
+              "dispatch_weight_cosine": 0.9146366119384766,
+              "dispatch_entropy_delta": 0.010142351500689983,
+              "expert_load_jsd": 0.008445406332612038
+            },
+            {
+              "layer": 6,
+              "top1_expert_agreement": 0.7578125,
+              "topk_set_jaccard": 0.7420170903205872,
+              "dispatch_weight_cosine": 0.9165088534355164,
+              "dispatch_entropy_delta": 0.006403639446943998,
+              "expert_load_jsd": 0.013324262574315071
+            },
+            {
+              "layer": 7,
+              "top1_expert_agreement": 0.794921875,
+              "topk_set_jaccard": 0.7631860375404358,
+              "dispatch_weight_cosine": 0.9232292771339417,
+              "dispatch_entropy_delta": 0.0010533167514950037,
+              "expert_load_jsd": 0.004899161867797375
+            },
+            {
+              "layer": 8,
+              "top1_expert_agreement": 0.75390625,
+              "topk_set_jaccard": 0.7920598983764648,
+              "dispatch_weight_cosine": 0.9235989451408386,
+              "dispatch_entropy_delta": -0.006955019198358059,
+              "expert_load_jsd": 0.004094230011105537
+            },
+            {
+              "layer": 9,
+              "top1_expert_agreement": 0.763671875,
+              "topk_set_jaccard": 0.7586698532104492,
+              "dispatch_weight_cosine": 0.9098983407020569,
+              "dispatch_entropy_delta": -0.004018537700176239,
+              "expert_load_jsd": 0.008588071912527084
+            },
+            {
+              "layer": 10,
+              "top1_expert_agreement": 0.712890625,
+              "topk_set_jaccard": 0.7261331081390381,
+              "dispatch_weight_cosine": 0.8838594555854797,
+              "dispatch_entropy_delta": -0.002804444869980216,
+              "expert_load_jsd": 0.013223009184002876
+            },
+            {
+              "layer": 11,
+              "top1_expert_agreement": 0.7109375,
+              "topk_set_jaccard": 0.7162065505981445,
+              "dispatch_weight_cosine": 0.8693905472755432,
+              "dispatch_entropy_delta": -0.0016069249249994755,
+              "expert_load_jsd": 0.0103989839553833
+            },
+            {
+              "layer": 12,
+              "top1_expert_agreement": 0.689453125,
+              "topk_set_jaccard": 0.7357171177864075,
+              "dispatch_weight_cosine": 0.8745907545089722,
+              "dispatch_entropy_delta": -0.00022090529091656208,
+              "expert_load_jsd": 0.01102382317185402
+            },
+            {
+              "layer": 13,
+              "top1_expert_agreement": 0.6953125,
+              "topk_set_jaccard": 0.7291118502616882,
+              "dispatch_weight_cosine": 0.8820385336875916,
+              "dispatch_entropy_delta": 0.0036806310527026653,
+              "expert_load_jsd": 0.00998334214091301
+            },
+            {
+              "layer": 14,
+              "top1_expert_agreement": 0.703125,
+              "topk_set_jaccard": 0.72086101770401,
+              "dispatch_weight_cosine": 0.8751088976860046,
+              "dispatch_entropy_delta": -0.00210860138759017,
+              "expert_load_jsd": 0.010290010832250118
+            },
+            {
+              "layer": 15,
+              "top1_expert_agreement": 0.646484375,
+              "topk_set_jaccard": 0.7416276931762695,
+              "dispatch_weight_cosine": 0.8835271596908569,
+              "dispatch_entropy_delta": -0.00860266201198101,
+              "expert_load_jsd": 0.00850924476981163
+            },
+            {
+              "layer": 16,
+              "top1_expert_agreement": 0.697265625,
+              "topk_set_jaccard": 0.7339950799942017,
+              "dispatch_weight_cosine": 0.8932141065597534,
+              "dispatch_entropy_delta": -0.003743055509403348,
+              "expert_load_jsd": 0.007519555278122425
+            },
+            {
+              "layer": 17,
+              "top1_expert_agreement": 0.671875,
+              "topk_set_jaccard": 0.7182149887084961,
+              "dispatch_weight_cosine": 0.868029773235321,
+              "dispatch_entropy_delta": 0.0013763140887022018,
+              "expert_load_jsd": 0.00966242142021656
+            },
+            {
+              "layer": 18,
+              "top1_expert_agreement": 0.626953125,
+              "topk_set_jaccard": 0.7324711680412292,
+              "dispatch_weight_cosine": 0.8679473400115967,
+              "dispatch_entropy_delta": -0.004569449461996555,
+              "expert_load_jsd": 0.011622115969657898
+            },
+            {
+              "layer": 19,
+              "top1_expert_agreement": 0.6796875,
+              "topk_set_jaccard": 0.7346550226211548,
+              "dispatch_weight_cosine": 0.8877015113830566,
+              "dispatch_entropy_delta": -0.009855294600129128,
+              "expert_load_jsd": 0.005640244577080011
+            },
+            {
+              "layer": 20,
+              "top1_expert_agreement": 0.703125,
+              "topk_set_jaccard": 0.7112960815429688,
+              "dispatch_weight_cosine": 0.8604725003242493,
+              "dispatch_entropy_delta": -0.010557513684034348,
+              "expert_load_jsd": 0.009241849184036255
+            },
+            {
+              "layer": 21,
+              "top1_expert_agreement": 0.6171875,
+              "topk_set_jaccard": 0.7130007743835449,
+              "dispatch_weight_cosine": 0.8568400740623474,
+              "dispatch_entropy_delta": 0.00010642362758517265,
+              "expert_load_jsd": 0.011221420019865036
+            },
+            {
+              "layer": 22,
+              "top1_expert_agreement": 0.625,
+              "topk_set_jaccard": 0.6757471561431885,
+              "dispatch_weight_cosine": 0.832107663154602,
+              "dispatch_entropy_delta": -0.0004208637401461601,
+              "expert_load_jsd": 0.017383189871907234
+            },
+            {
+              "layer": 23,
+              "top1_expert_agreement": 0.619140625,
+              "topk_set_jaccard": 0.6526206731796265,
+              "dispatch_weight_cosine": 0.8053073883056641,
+              "dispatch_entropy_delta": -0.005082353018224239,
+              "expert_load_jsd": 0.014631519094109535
+            },
+            {
+              "layer": 24,
+              "top1_expert_agreement": 0.5703125,
+              "topk_set_jaccard": 0.6637543439865112,
+              "dispatch_weight_cosine": 0.8155227899551392,
+              "dispatch_entropy_delta": -0.0027000955305993557,
+              "expert_load_jsd": 0.01348228007555008
+            },
+            {
+              "layer": 25,
+              "top1_expert_agreement": 0.599609375,
+              "topk_set_jaccard": 0.6639318466186523,
+              "dispatch_weight_cosine": 0.8234726190567017,
+              "dispatch_entropy_delta": -0.0028585526160895824,
+              "expert_load_jsd": 0.017661670222878456
+            },
+            {
+              "layer": 26,
+              "top1_expert_agreement": 0.646484375,
+              "topk_set_jaccard": 0.6838786602020264,
+              "dispatch_weight_cosine": 0.8529761433601379,
+              "dispatch_entropy_delta": -0.004372893832623959,
+              "expert_load_jsd": 0.011794403195381165
+            },
+            {
+              "layer": 27,
+              "top1_expert_agreement": 0.654296875,
+              "topk_set_jaccard": 0.7434899806976318,
+              "dispatch_weight_cosine": 0.8815413117408752,
+              "dispatch_entropy_delta": -0.0053618298843503,
+              "expert_load_jsd": 0.006331443786621094
+            },
+            {
+              "layer": 28,
+              "top1_expert_agreement": 0.65625,
+              "topk_set_jaccard": 0.7148141860961914,
+              "dispatch_weight_cosine": 0.8747698664665222,
+              "dispatch_entropy_delta": -0.001144803361967206,
+              "expert_load_jsd": 0.006977470591664314
+            },
+            {
+              "layer": 29,
+              "top1_expert_agreement": 0.611328125,
+              "topk_set_jaccard": 0.7045843601226807,
+              "dispatch_weight_cosine": 0.8535365462303162,
+              "dispatch_entropy_delta": -0.004373765550553799,
+              "expert_load_jsd": 0.007029402069747448
+            },
+            {
+              "layer": 30,
+              "top1_expert_agreement": 0.658203125,
+              "topk_set_jaccard": 0.7258726358413696,
+              "dispatch_weight_cosine": 0.8769545555114746,
+              "dispatch_entropy_delta": -0.004374598618596792,
+              "expert_load_jsd": 0.009211416356265545
+            },
+            {
+              "layer": 31,
+              "top1_expert_agreement": 0.724609375,
+              "topk_set_jaccard": 0.7229441404342651,
+              "dispatch_weight_cosine": 0.8885447978973389,
+              "dispatch_entropy_delta": -0.008181190118193626,
+              "expert_load_jsd": 0.0049871234223246574
+            },
+            {
+              "layer": 32,
+              "top1_expert_agreement": 0.697265625,
+              "topk_set_jaccard": 0.7202126979827881,
+              "dispatch_weight_cosine": 0.8733720779418945,
+              "dispatch_entropy_delta": -0.0060234577395021915,
+              "expert_load_jsd": 0.00632469542324543
+            },
+            {
+              "layer": 33,
+              "top1_expert_agreement": 0.69921875,
+              "topk_set_jaccard": 0.7148186564445496,
+              "dispatch_weight_cosine": 0.8693081736564636,
+              "dispatch_entropy_delta": -0.0005004261620342731,
+              "expert_load_jsd": 0.007330670021474361
+            },
+            {
+              "layer": 34,
+              "top1_expert_agreement": 0.546875,
+              "topk_set_jaccard": 0.696663498878479,
+              "dispatch_weight_cosine": 0.8257032632827759,
+              "dispatch_entropy_delta": -0.01138035673648119,
+              "expert_load_jsd": 0.009651534259319305
+            },
+            {
+              "layer": 35,
+              "top1_expert_agreement": 0.630859375,
+              "topk_set_jaccard": 0.676032304763794,
+              "dispatch_weight_cosine": 0.8281874656677246,
+              "dispatch_entropy_delta": -0.014771254733204842,
+              "expert_load_jsd": 0.012490897439420223
+            },
+            {
+              "layer": 36,
+              "top1_expert_agreement": 0.607421875,
+              "topk_set_jaccard": 0.6944481134414673,
+              "dispatch_weight_cosine": 0.8300281763076782,
+              "dispatch_entropy_delta": -0.010755980387330055,
+              "expert_load_jsd": 0.01225370541214943
+            },
+            {
+              "layer": 37,
+              "top1_expert_agreement": 0.658203125,
+              "topk_set_jaccard": 0.7356706261634827,
+              "dispatch_weight_cosine": 0.8915112614631653,
+              "dispatch_entropy_delta": 0.003673953702673316,
+              "expert_load_jsd": 0.010544516146183014
+            },
+            {
+              "layer": 38,
+              "top1_expert_agreement": 0.67578125,
+              "topk_set_jaccard": 0.7670872807502747,
+              "dispatch_weight_cosine": 0.8964534401893616,
+              "dispatch_entropy_delta": 9.393179789185524e-05,
+              "expert_load_jsd": 0.005233673378825188
+            },
+            {
+              "layer": 39,
+              "top1_expert_agreement": 0.689453125,
+              "topk_set_jaccard": 0.7662175893783569,
+              "dispatch_weight_cosine": 0.9075242280960083,
+              "dispatch_entropy_delta": -0.0045469412580132484,
+              "expert_load_jsd": 0.008420411497354507
+            },
+            {
+              "layer": 40,
+              "top1_expert_agreement": 0.69140625,
+              "topk_set_jaccard": 0.7570444345474243,
+              "dispatch_weight_cosine": 0.8978535532951355,
+              "dispatch_entropy_delta": 0.007593609858304262,
+              "expert_load_jsd": 0.009870433248579502
+            },
+            {
+              "layer": 41,
+              "top1_expert_agreement": 0.78515625,
+              "topk_set_jaccard": 0.791093111038208,
+              "dispatch_weight_cosine": 0.9172490835189819,
+              "dispatch_entropy_delta": 0.0034382992889732122,
+              "expert_load_jsd": 0.006251019425690174
+            },
+            {
+              "layer": 42,
+              "top1_expert_agreement": 0.724609375,
+              "topk_set_jaccard": 0.7934987545013428,
+              "dispatch_weight_cosine": 0.9227292537689209,
+              "dispatch_entropy_delta": 0.0010798354633152485,
+              "expert_load_jsd": 0.003084038384258747
+            },
+            {
+              "layer": 43,
+              "top1_expert_agreement": 0.73046875,
+              "topk_set_jaccard": 0.8250797986984253,
+              "dispatch_weight_cosine": 0.9328050017356873,
+              "dispatch_entropy_delta": 0.004144958220422268,
+              "expert_load_jsd": 0.002855666447430849
+            },
+            {
+              "layer": 44,
+              "top1_expert_agreement": 0.771484375,
+              "topk_set_jaccard": 0.8050267100334167,
+              "dispatch_weight_cosine": 0.924216091632843,
+              "dispatch_entropy_delta": 0.0059637753292918205,
+              "expert_load_jsd": 0.004249307326972485
+            },
+            {
+              "layer": 45,
+              "top1_expert_agreement": 0.763671875,
+              "topk_set_jaccard": 0.7904592752456665,
+              "dispatch_weight_cosine": 0.9248643517494202,
+              "dispatch_entropy_delta": -0.0014865396078675985,
+              "expert_load_jsd": 0.004734884947538376
+            },
+            {
+              "layer": 46,
+              "top1_expert_agreement": 0.767578125,
+              "topk_set_jaccard": 0.7788981199264526,
+              "dispatch_weight_cosine": 0.9105765223503113,
+              "dispatch_entropy_delta": 0.008792659267783165,
+              "expert_load_jsd": 0.008240033872425556
+            },
+            {
+              "layer": 47,
+              "top1_expert_agreement": 0.740234375,
+              "topk_set_jaccard": 0.7940070629119873,
+              "dispatch_weight_cosine": 0.9115510582923889,
+              "dispatch_entropy_delta": 0.009719843044877052,
+              "expert_load_jsd": 0.008007415570318699
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "aggregate": [
+    {
+      "source": "longbench_v2",
+      "method": "full_context",
+      "n": 1,
+      "accuracy": 0.0,
+      "parse_rate": 1.0,
+      "mean_gold_answer_nll": 0.6915702819824219,
+      "mean_gold_answer_ppl": 1.9968486881475487,
+      "mean_output_tokens_per_second": 6.086833996961351,
+      "mean_generation_elapsed_seconds": 35.157850552,
+      "mean_routing_teacher_elapsed_seconds": 3.2912720209999975,
+      "max_generation_peak_vram_gb": 59.011085510253906,
+      "max_routing_teacher_peak_vram_gb": 57.6458945274353,
+      "max_saliency_peak_vram_gb": null,
+      "max_pipeline_peak_vram_gb": 59.011085510253906,
+      "token_limit_hit_rate": 0.0,
+      "routing_mean_top1_expert_agreement": null,
+      "routing_mean_top8_set_jaccard": null,
+      "routing_mean_dispatch_weight_cosine": null,
+      "routing_mean_dispatch_entropy_delta": null,
+      "routing_mean_expert_load_jsd": null
+    },
+    {
+      "source": "longbench_v2",
+      "method": "kiaomni_gaussian_B512",
+      "n": 1,
+      "accuracy": 0.0,
+      "parse_rate": 1.0,
+      "mean_gold_answer_nll": 0.2444167286157608,
+      "mean_gold_answer_ppl": 1.2768763305376565,
+      "mean_output_tokens_per_second": 6.002241617361964,
+      "mean_generation_elapsed_seconds": 29.988796099000012,
+      "mean_routing_teacher_elapsed_seconds": 1.7158309689999953,
+      "max_generation_peak_vram_gb": 56.95075035095215,
+      "max_routing_teacher_peak_vram_gb": 56.905333518981934,
+      "max_saliency_peak_vram_gb": 61.24177551269531,
+      "max_pipeline_peak_vram_gb": 61.24177551269531,
+      "token_limit_hit_rate": 0.0,
+      "routing_mean_top1_expert_agreement": 0.701416015625,
+      "routing_mean_top8_set_jaccard": 0.7455490045249462,
+      "routing_mean_dispatch_weight_cosine": 0.8880694011847178,
+      "routing_mean_dispatch_entropy_delta": -0.0015597052552038804,
+      "routing_mean_expert_load_jsd": 0.00846723090702047
+    },
+    {
+      "source": "longbench_v2",
+      "method": "kiaomni_s8_B512",
+      "n": 1,
+      "accuracy": 1.0,
+      "parse_rate": 1.0,
+      "mean_gold_answer_nll": 0.0002219490270363167,
+      "mean_gold_answer_ppl": 1.000221973659544,
+      "mean_output_tokens_per_second": 5.935624650485076,
+      "mean_generation_elapsed_seconds": 26.11351106699999,
+      "mean_routing_teacher_elapsed_seconds": 1.7201628079999978,
+      "max_generation_peak_vram_gb": 56.95075035095215,
+      "max_routing_teacher_peak_vram_gb": 56.905333518981934,
+      "max_saliency_peak_vram_gb": 61.24177551269531,
+      "max_pipeline_peak_vram_gb": 61.24177551269531,
+      "token_limit_hit_rate": 0.0,
+      "routing_mean_top1_expert_agreement": 0.7120768229166666,
+      "routing_mean_top8_set_jaccard": 0.7560827943185965,
+      "routing_mean_dispatch_weight_cosine": 0.8978682222465674,
+      "routing_mean_dispatch_entropy_delta": -0.0016492016899671096,
+      "routing_mean_expert_load_jsd": 0.0072247758410715806
+    }
+  ],
+  "pairwise": [
+    {
+      "method": "kiaomni_gaussian_B512",
+      "n": 1,
+      "fc_correct_to_kia_correct": 0,
+      "fc_correct_to_kia_wrong": 0,
+      "fc_wrong_to_kia_correct": 0,
+      "fc_wrong_to_kia_wrong": 1,
+      "parsed_answer_agreement": 0.0,
+      "parse_rate": 1.0,
+      "token_limit_hit_rate": 0.0
+    },
+    {
+      "method": "kiaomni_s8_B512",
+      "n": 1,
+      "fc_correct_to_kia_correct": 0,
+      "fc_correct_to_kia_wrong": 0,
+      "fc_wrong_to_kia_correct": 1,
+      "fc_wrong_to_kia_wrong": 0,
+      "parsed_answer_agreement": 0.0,
+      "parse_rate": 1.0,
+      "token_limit_hit_rate": 0.0
+    }
+  ],
+  "execution_gate": {
+    "status": "PASS",
+    "completed_cases": 1,
+    "expected_rows": 3,
+    "actual_rows": 3,
+    "actual_dispatch_verified": true,
+    "note": "PASS means execution/measurement integrity only; quality is adjudicated from the recorded metrics."
+  },
+  "wall_seconds": 185.917263225
+}

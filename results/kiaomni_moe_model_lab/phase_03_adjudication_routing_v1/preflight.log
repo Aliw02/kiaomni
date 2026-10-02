@@ -1,0 +1,101 @@
+
+Loading checkpoint shards:   0%|          | 0/16 [00:00<?, ?it/s]
+Loading checkpoint shards:   6%|▋         | 1/16 [00:03<00:53,  3.58s/it]
+Loading checkpoint shards:  12%|█▎        | 2/16 [00:06<00:48,  3.47s/it]
+Loading checkpoint shards:  19%|█▉        | 3/16 [00:12<00:58,  4.47s/it]
+Loading checkpoint shards:  25%|██▌       | 4/16 [00:16<00:49,  4.09s/it]
+Loading checkpoint shards:  31%|███▏      | 5/16 [00:19<00:42,  3.91s/it]
+Loading checkpoint shards:  38%|███▊      | 6/16 [00:24<00:42,  4.27s/it]
+Loading checkpoint shards:  44%|████▍     | 7/16 [00:31<00:46,  5.17s/it]
+Loading checkpoint shards:  50%|█████     | 8/16 [00:35<00:37,  4.67s/it]
+Loading checkpoint shards:  56%|█████▋    | 9/16 [00:39<00:31,  4.49s/it]
+Loading checkpoint shards:  62%|██████▎   | 10/16 [00:45<00:29,  4.86s/it]
+Loading checkpoint shards:  69%|██████▉   | 11/16 [00:50<00:24,  4.96s/it]
+Loading checkpoint shards:  75%|███████▌  | 12/16 [00:53<00:18,  4.56s/it]
+Loading checkpoint shards:  81%|████████▏ | 13/16 [00:59<00:14,  4.88s/it]
+Loading checkpoint shards:  88%|████████▊ | 14/16 [01:04<00:09,  4.93s/it]
+Loading checkpoint shards:  94%|█████████▍| 15/16 [01:08<00:04,  4.61s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:09<00:00,  3.49s/it]
+Loading checkpoint shards: 100%|██████████| 16/16 [01:09<00:00,  4.33s/it]
+KiaOmni: attn_implementation='sdpa'. Hook-based saliency on q_proj/k_proj works under fused kernels because the projection outputs are observable before the fused matmul. If you hit issues, fall back to attn_implementation='eager'.
+ROUTING_PREFLIGHT={"passed": true, "logits_exact_equal": true, "logits_allclose_rtol_1e-4_atol_1e-5": true, "max_abs_logit_error": 0.0, "dispatch_verified": true, "dispatch_count_mismatches": [], "captured_sparse_layers": 48}
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=full_context GOLD=B
+TOKENS=15209/15209 COMPRESSION=1.000x
+--- RAW ANSWER ---
+The correct answer is (C) It believes that Israel's war with Hezbollah can only be achieved through diplomacy to make the borders sufficiently secure.
+
+Explanation: The text indicates that the U.S. has consistently advocated for a diplomatic solution to the Israel-Hezbollah conflict, emphasizing that full-scale war is not in anyone’s interest. Despite Israel’s military actions, including the pager attacks and subsequent airstrikes, the U.S. continues to push for diplomacy, as evidenced by efforts by envoy Amos Hochstein and the White House’s insistence on pursuing a ceasefire deal. The U.S. opposes an Israeli ground invasion of Lebanon and rejects the strategy of “de-escalation by escalation,” reaffirming that only diplomacy can lead to lasting security. This aligns with option (C). While the U.S. supports Israel’s right to self-defense (which may imply continued support like (A)), the central theme of the article is the U.S. prioritizing diplomacy over military escalation, making (C) the most accurate reflection of the shift in attitude after the pager attacks.
+--- SCORES ---
+PARSED=C CORRECT=False PARSE=explicit GENERATED=214 HIT_LIMIT=False
+PPL=1.996849 NLL=0.691570 OUT_TOK_S=6.087 GEN_PEAK_VRAM_GB=59.011 PIPELINE_PEAK_VRAM_GB=59.011 ACTUAL_DISPATCH_VERIFIED=True
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_s8_B512 GOLD=B
+TOKENS=512/15209 COMPRESSION=29.705x
+--- RAW ANSWER ---
+The correct answer is (B) It believes that the current situation has exceeded expectations and is committed to mediating the conflict.
+
+Explanation: The text indicates that the U.S. is concerned about the escalation of the conflict between Israel and Hezbollah, warning that it could lead to an all-out war and potentially draw Iran into a direct confrontation with Israel. The U.S. has opposed any Israeli ground invasion and is trying to prevent further escalation, which reflects a shift toward active mediation rather than unconditional support. The absence of a call between Biden and Netanyahu, despite the crisis, suggests a more cautious and diplomatic approach. While the U.S. has not abandoned Israel, its emphasis on preventing wider war and defusing tensions shows a commitment to mediation, aligning with option (B).
+--- SCORES ---
+PARSED=B CORRECT=True PARSE=explicit GENERATED=155 HIT_LIMIT=False
+PPL=1.000222 NLL=0.000222 OUT_TOK_S=5.936 GEN_PEAK_VRAM_GB=56.951 PIPELINE_PEAK_VRAM_GB=61.242 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.187 SALIENCY_PEAK_VRAM_GB=61.242
+ROUTING_ACTUAL TOP1=0.712077 TOP8_JACCARD=0.756083 WEIGHT_COS=0.897868 ENTROPY_DELTA=-0.001649 LOAD_JSD=0.007225
+========================================================================================
+
+========================================================================================
+CASE=longbenchv2-66f78ecfbb02136c067c2f12 SOURCE=longbench_v2 TASK=Multi-news
+METHOD=kiaomni_gaussian_B512 GOLD=B
+TOKENS=512/15209 COMPRESSION=29.705x
+--- RAW ANSWER ---
+The correct answer is (A) It continues to provide Israel with military equipment and other support.
+
+Explanation: The text indicates that the U.S. has maintained its opposition to a ground invasion of Lebanon, which suggests a cautious stance, but there is no indication that the U.S. has changed its overall support for Israel. The U.S. is concerned about escalation and potential broader conflict, especially involving Iran, but the focus remains on preventing a wider war rather than altering its support for Israel. The text does not suggest a shift toward diplomacy as the primary approach (B or C), nor does it state that the U.S. will respond militarily to an Iranian attack on Israel (D), though it does mention U.S. concerns about such a scenario. Therefore, the most accurate inference based on the text is that U.S. support for Israel continues, making (A) the best choice.
+--- SCORES ---
+PARSED=A CORRECT=False PARSE=explicit GENERATED=180 HIT_LIMIT=False
+PPL=1.276876 NLL=0.244417 OUT_TOK_S=6.002 GEN_PEAK_VRAM_GB=56.951 PIPELINE_PEAK_VRAM_GB=61.242 ACTUAL_DISPATCH_VERIFIED=True
+SALIENCY_SECONDS=5.187 SALIENCY_PEAK_VRAM_GB=61.242
+ROUTING_ACTUAL TOP1=0.701416 TOP8_JACCARD=0.745549 WEIGHT_COS=0.888069 ENTROPY_DELTA=-0.001560 LOAD_JSD=0.008467
+========================================================================================
+
+FINAL EXECUTION GATE
+{
+  "status": "PASS",
+  "completed_cases": 1,
+  "expected_rows": 3,
+  "actual_rows": 3,
+  "actual_dispatch_verified": true,
+  "note": "PASS means execution/measurement integrity only; quality is adjudicated from the recorded metrics."
+}
+
+PAIRWISE SUMMARY
+[
+  {
+    "method": "kiaomni_gaussian_B512",
+    "n": 1,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 0,
+    "fc_wrong_to_kia_wrong": 1,
+    "parsed_answer_agreement": 0.0,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.0
+  },
+  {
+    "method": "kiaomni_s8_B512",
+    "n": 1,
+    "fc_correct_to_kia_correct": 0,
+    "fc_correct_to_kia_wrong": 0,
+    "fc_wrong_to_kia_correct": 1,
+    "fc_wrong_to_kia_wrong": 0,
+    "parsed_answer_agreement": 0.0,
+    "parse_rate": 1.0,
+    "token_limit_hit_rate": 0.0
+  }
+]
