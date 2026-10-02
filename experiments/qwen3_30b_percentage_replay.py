@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessor
 
 from kiaomni import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
@@ -577,9 +577,22 @@ def teacher_gold_and_routing(
     }, routes
 
 
+class _FirstTokenTimer(LogitsProcessor):
+    def __init__(self, started_at: float):
+        self.started_at = started_at
+        self.first_token_at: float | None = None
+
+    def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor) -> torch.Tensor:
+        if self.first_token_at is None:
+            torch.cuda.synchronize()
+            self.first_token_at = time.perf_counter()
+        return scores
+
+
 def generate_answer(model, tokenizer, ids: torch.Tensor, max_new_tokens: int) -> tuple[str, dict[str, Any]]:
     reset_peak()
     t0 = time.perf_counter()
+    first_token_timer = _FirstTokenTimer(t0)
     with torch.inference_mode():
         seq = model.generate(
             ids,
@@ -588,9 +601,20 @@ def generate_answer(model, tokenizer, ids: torch.Tensor, max_new_tokens: int) ->
             do_sample=False,
             use_cache=True,
             pad_token_id=tokenizer.eos_token_id,
+            logits_processor=[first_token_timer],
         )
     torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
+    ttft = (
+        first_token_timer.first_token_at - t0
+        if first_token_timer.first_token_at is not None
+        else None
+    )
+    decode_after_first = (
+        max(0.0, elapsed - ttft)
+        if ttft is not None
+        else None
+    )
     new_tokens = seq[:, ids.shape[1]:]
     answer = tokenizer.decode(new_tokens[0], skip_special_tokens=True)
 
@@ -601,6 +625,8 @@ def generate_answer(model, tokenizer, ids: torch.Tensor, max_new_tokens: int) ->
     generated = int(new_tokens.shape[1])
     return answer, {
         "generation_elapsed_seconds": elapsed,
+        "time_to_first_token_seconds": ttft,
+        "decode_after_first_token_seconds": decode_after_first,
         "generated_tokens": generated,
         "output_tokens_per_second": (generated / elapsed if elapsed > 0 else None),
         "generation_peak_allocated_vram_gb": peak_gb(),
@@ -915,6 +941,8 @@ def aggregate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "mean_gold_answer_ppl": mean("gold_answer_ppl"),
             "mean_output_tokens_per_second": mean("output_tokens_per_second"),
             "mean_generation_elapsed_seconds": mean("generation_elapsed_seconds"),
+            "mean_time_to_first_token_seconds": mean("time_to_first_token_seconds"),
+            "mean_decode_after_first_token_seconds": mean("decode_after_first_token_seconds"),
             "mean_routing_teacher_elapsed_seconds": mean("routing_teacher_elapsed_seconds"),
             "max_generation_peak_vram_gb": max(float(x["generation_peak_allocated_vram_gb"]) for x in vals),
             "max_routing_teacher_peak_vram_gb": max(float(x["routing_teacher_peak_allocated_vram_gb"]) for x in vals),
