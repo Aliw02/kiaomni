@@ -85,6 +85,8 @@
       "generation_elapsed_seconds",
       "saliency_elapsed_seconds",
       "inference_path_elapsed_seconds",
+      "time_to_first_token_seconds",
+      "decode_after_first_token_seconds",
       "measurement_pipeline_elapsed_seconds"
     ]
   },
