@@ -105,3 +105,17 @@ def test_exact_mcnemar_is_symmetric():
     mod = _load_runner()
     assert mod._exact_mcnemar_p(5, 6) == mod._exact_mcnemar_p(6, 5)
     assert mod._exact_mcnemar_p(0, 0) == 1.0
+
+
+def test_final_is_resumable_and_preserves_partial_artifacts() -> None:
+    runner = RUNNER.read_text(encoding="utf-8")
+    launcher = LAUNCHER.read_text(encoding="utf-8")
+    assert '"max_wall_seconds": 165 * 60' in runner
+    assert 'p.add_argument("--resume", action="store_true")' in runner
+    assert '"partial_rows_preserved"' in runner
+    assert 'conditions_per_case = 1 + len(POLICIES) * len(cfg["ratios"])' in runner
+    assert 'if case.case_id in completed_case_ids:' in runner
+    assert '"final": 175 * 60' in launcher
+    assert 'cmd.append("--resume")' in launcher
+    assert '"a" if resume else "w"' in launcher
+    assert 'semantic_ok = (' in launcher
