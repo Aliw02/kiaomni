@@ -274,6 +274,8 @@ def prepare_ruler_assets() -> dict[str, object]:
                 "context_length": length,
                 "repo_filename": filename,
                 "relative_path": str(local_path.relative_to(root)).replace("\\", "/"),
+                "sha256": observed_sha,
+                "rows": len(rows),
                 "mirror_sha256": observed_sha,
                 "mirror_rows": len(rows),
                 "official_source_output_path": str(source_entry.get("output_path", "")),
