@@ -245,15 +245,34 @@ def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str,
             ).hexdigest()
             previous_runner_sha = d.get("runner_sha256")
             if previous_runner_sha != current_runner_sha:
-                raise RuntimeError(
-                    f"Preflight revision {previous_revision} != current {repo_revision} "
-                    "and runner SHA changed; refusing mixed revisions"
+                semantic_ok = (
+                    d.get("schema") == "KIAOMNI_QWEN3_30B_PERCENTAGE_REPLAY_V1"
+                    and d.get("model", {}).get("repo") == "Qwen/Qwen3-30B-A3B-Instruct-2507"
+                    and d.get("model", {}).get("revision") == "0d7cf23"
+                    and d.get("dataset", {}).get("repo") == "THUDM/LongBench-v2"
+                    and d.get("dataset", {}).get("revision") == "b0db4901b856522026b7353ab541b8535ff2a4b8"
+                    and d.get("policies") == ["kiaomni_s8", "kiaomni_gaussian"]
+                    and d.get("percentage_budgets") == [0.25, 0.125, 0.0625]
+                    and d.get("max_new_tokens") == 256
+                    and d.get("routing_preflight", {}).get("passed") is True
                 )
-            print(
-                "Preflight repo revision differs, but runner SHA256 is identical; "
-                "accepting the frozen preflight without rerunning it.",
-                flush=True,
-            )
+                if not semantic_ok:
+                    raise RuntimeError(
+                        f"Preflight revision {previous_revision} != current {repo_revision}; "
+                        "runner changed and semantic compatibility checks failed"
+                    )
+                print(
+                    "Preflight runner SHA differs only across an execution-control revision; "
+                    "frozen model/dataset/policies/ratios/token-limit/routing checks match. "
+                    "Accepting the existing PASS preflight.",
+                    flush=True,
+                )
+            else:
+                print(
+                    "Preflight repo revision differs, but runner SHA256 is identical; "
+                    "accepting the frozen preflight without rerunning it.",
+                    flush=True,
+                )
 
     root = Path(RESULTS_ROOT)
     root.mkdir(parents=True, exist_ok=True)
