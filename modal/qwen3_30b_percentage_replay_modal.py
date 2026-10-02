@@ -218,7 +218,7 @@ def _dependency(stage: str) -> str | None:
     max_containers=1,
     single_use_containers=True,
 )
-def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str, object]:
+def run_stage(stage: str, repo_revision: str, resume: bool = False, case_start: int = 0) -> dict[str, object]:
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"Unknown stage: {stage}")
 
@@ -276,8 +276,9 @@ def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str,
 
     root = Path(RESULTS_ROOT)
     root.mkdir(parents=True, exist_ok=True)
-    out = root / f"{stage}.json"
-    log = root / f"{stage}.log"
+    suffix = f"_tail_from_{case_start + 1:02d}" if case_start else ""
+    out = root / f"{stage}{suffix}.json"
+    log = root / f"{stage}{suffix}.log"
     if not resume:
         out.unlink(missing_ok=True)
         log.unlink(missing_ok=True)
@@ -299,6 +300,8 @@ def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str,
     ]
     if resume:
         cmd.append("--resume")
+    if case_start:
+        cmd.extend(["--case-start", str(case_start)])
 
     env = os.environ.copy()
     env["PYTHONPATH"] = REMOTE_REPO
@@ -358,7 +361,7 @@ def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str,
     max_containers=1,
     single_use_containers=True,
 )
-def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str, resume: bool = False) -> dict[str, object]:
+def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str, resume: bool = False, case_start: int = 0) -> dict[str, object]:
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"Unknown stage: {stage}")
     if prepare_index and stage != "preflight":
@@ -369,7 +372,7 @@ def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str, r
         prepared = prepare_adjudication_index.remote()
 
     fn = run_stage.with_options(gpu=gpu, timeout=STAGE_TIMEOUTS[stage])
-    summary = fn.remote(stage, repo_revision, resume)
+    summary = fn.remote(stage, repo_revision, resume, case_start)
     return {"prepared": prepared, "summary": summary}
 
 
@@ -379,6 +382,7 @@ def main(
     gpu: str = "A100-80GB",
     prepare_index: bool = False,
     resume: bool = False,
+    case_start: int = 0,
 ):
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"stage must be one of {sorted(STAGE_TIMEOUTS)}")
@@ -386,13 +390,17 @@ def main(
         raise ValueError("--prepare-index only applies to preflight")
     if resume and stage != "final":
         raise ValueError("--resume only applies to final")
+    if case_start and stage != "final":
+        raise ValueError("--case-start only applies to final")
+    if case_start < 0 or case_start > 26:
+        raise ValueError("--case-start must be between 0 and 26")
 
     repo_revision = _local_git_state()
     print(
         f"KiaOmni percentage replay stage={stage} gpu={gpu} repo={repo_revision} "
         f"timeout={STAGE_TIMEOUTS[stage] / 60:.0f} min"
     )
-    call = orchestrate.spawn(stage, gpu, prepare_index, repo_revision, resume)
+    call = orchestrate.spawn(stage, gpu, prepare_index, repo_revision, resume, case_start)
     print(f"Remote orchestration started: {call.object_id}")
     print(f"Logs: modal app logs {APP_NAME}")
     print(
