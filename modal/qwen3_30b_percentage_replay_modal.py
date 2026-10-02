@@ -34,7 +34,7 @@ LOCAL_RUNNER = LOCAL_REPO / "experiments" / "qwen3_30b_percentage_replay.py"
 
 STAGE_TIMEOUTS = {
     "preflight": 20 * 60,
-    "final": 110 * 60,
+    "final": 175 * 60,
 }
 
 app = modal.App(APP_NAME)
@@ -218,7 +218,7 @@ def _dependency(stage: str) -> str | None:
     max_containers=1,
     single_use_containers=True,
 )
-def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
+def run_stage(stage: str, repo_revision: str, resume: bool = False) -> dict[str, object]:
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"Unknown stage: {stage}")
 
@@ -259,9 +259,12 @@ def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
     root.mkdir(parents=True, exist_ok=True)
     out = root / f"{stage}.json"
     log = root / f"{stage}.log"
-    out.unlink(missing_ok=True)
-    log.unlink(missing_ok=True)
-    results.commit()
+    if not resume:
+        out.unlink(missing_ok=True)
+        log.unlink(missing_ok=True)
+        results.commit()
+    elif stage != "final":
+        raise RuntimeError("--resume is only valid for final")
 
     cmd = [
         sys.executable,
@@ -275,12 +278,14 @@ def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
         "--output", str(out),
         "--min-free-gb", "8",
     ]
+    if resume:
+        cmd.append("--resume")
 
     env = os.environ.copy()
     env["PYTHONPATH"] = REMOTE_REPO
     env["TOKENIZERS_PARALLELISM"] = "false"
 
-    with log.open("w", encoding="utf-8", buffering=1) as fp:
+    with log.open("a" if resume else "w", encoding="utf-8", buffering=1) as fp:
         proc = subprocess.Popen(
             cmd,
             cwd=REMOTE_REPO,
@@ -334,7 +339,7 @@ def run_stage(stage: str, repo_revision: str) -> dict[str, object]:
     max_containers=1,
     single_use_containers=True,
 )
-def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str) -> dict[str, object]:
+def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str, resume: bool = False) -> dict[str, object]:
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"Unknown stage: {stage}")
     if prepare_index and stage != "preflight":
@@ -345,7 +350,7 @@ def orchestrate(stage: str, gpu: str, prepare_index: bool, repo_revision: str) -
         prepared = prepare_adjudication_index.remote()
 
     fn = run_stage.with_options(gpu=gpu, timeout=STAGE_TIMEOUTS[stage])
-    summary = fn.remote(stage, repo_revision)
+    summary = fn.remote(stage, repo_revision, resume)
     return {"prepared": prepared, "summary": summary}
 
 
@@ -354,18 +359,21 @@ def main(
     stage: str = "preflight",
     gpu: str = "A100-80GB",
     prepare_index: bool = False,
+    resume: bool = False,
 ):
     if stage not in STAGE_TIMEOUTS:
         raise ValueError(f"stage must be one of {sorted(STAGE_TIMEOUTS)}")
     if prepare_index and stage != "preflight":
         raise ValueError("--prepare-index only applies to preflight")
+    if resume and stage != "final":
+        raise ValueError("--resume only applies to final")
 
     repo_revision = _local_git_state()
     print(
         f"KiaOmni percentage replay stage={stage} gpu={gpu} repo={repo_revision} "
         f"timeout={STAGE_TIMEOUTS[stage] / 60:.0f} min"
     )
-    call = orchestrate.spawn(stage, gpu, prepare_index, repo_revision)
+    call = orchestrate.spawn(stage, gpu, prepare_index, repo_revision, resume)
     print(f"Remote orchestration started: {call.object_id}")
     print(f"Logs: modal app logs {APP_NAME}")
     print(
