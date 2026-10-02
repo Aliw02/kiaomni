@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessor
+from transformers import AutoModelForCausalLM, AutoTokenizer, StoppingCriteria
 
 from kiaomni import ArchitectureProbe
 from kiaomni.adapters.saliency import SaliencyAdapter
@@ -577,16 +577,21 @@ def teacher_gold_and_routing(
     }, routes
 
 
-class _FirstTokenTimer(LogitsProcessor):
+class _FirstTokenTimer(StoppingCriteria):
     def __init__(self, started_at: float):
         self.started_at = started_at
         self.first_token_at: float | None = None
 
-    def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor) -> torch.Tensor:
+    def __call__(
+        self,
+        input_ids: torch.Tensor,
+        scores: torch.Tensor,
+        **kwargs: Any,
+    ) -> bool:
         if self.first_token_at is None:
             torch.cuda.synchronize()
             self.first_token_at = time.perf_counter()
-        return scores
+        return False
 
 
 def generate_answer(model, tokenizer, ids: torch.Tensor, max_new_tokens: int) -> tuple[str, dict[str, Any]]:
@@ -601,7 +606,7 @@ def generate_answer(model, tokenizer, ids: torch.Tensor, max_new_tokens: int) ->
             do_sample=False,
             use_cache=True,
             pad_token_id=tokenizer.eos_token_id,
-            logits_processor=[first_token_timer],
+            stopping_criteria=[first_token_timer],
         )
     torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
