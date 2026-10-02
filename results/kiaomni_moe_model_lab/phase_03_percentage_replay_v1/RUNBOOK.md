@@ -1,22 +1,22 @@
 # KiaOmni Qwen3 Practical Frontier V1 — Runbook
 
-## Immediate goal
-
-Replay the exact frozen 27 LongBench-v2 cases with the historical percentage budgets:
-
-- 25%
-- 12.5%
-- 6.25%
-
-The fixed-budget results at B512/B256/B128/B98 remain frozen in commit `95cda0f` and are merged only at reporting time.
-
 ## Branch
 
 ```text
 exp/kiaomni-qwen3-practical-budget-frontier-v1
 ```
 
-## Pull
+Base scientific recovery point:
+
+```text
+95cda0f
+```
+
+This branch does not rewrite the frozen Phase-03 fixed-budget results.
+
+---
+
+# A. Pull and validate locally
 
 ```powershell
 git fetch origin
@@ -24,35 +24,69 @@ git checkout exp/kiaomni-qwen3-practical-budget-frontier-v1
 git pull origin exp/kiaomni-qwen3-practical-budget-frontier-v1
 ```
 
-## Local validation
+Run the two new protocol tests:
 
 ```powershell
-python -m pytest tests/test_phase03_percentage_replay.py -q
+python -m pytest tests/test_phase03_percentage_replay.py tests/test_phase03_ruler_niah.py -q
 ```
 
-## Modal preflight
+---
 
-The frozen adjudication index should already exist in the `kiaomni-qwen3-assets` volume from Phase 03.
+# B. Priority 1 — exact LongBench-27 percentage replay
+
+This re-runs the exact frozen 27 LongBench-v2 cases with:
+
+```text
+25%
+12.5%
+6.25%
+```
+
+for both frozen policies:
+
+```text
+kiaomni_s8
+kiaomni_gaussian
+```
+
+The old fixed-budget results remain the comparison baseline:
+
+```text
+B512
+B256
+B128
+B98
+```
+
+## B1. Percentage preflight
+
+The adjudication index should already exist in `kiaomni-qwen3-assets`:
 
 ```powershell
 modal run modal/qwen3_30b_percentage_replay_modal.py --stage preflight
 ```
 
-If Modal reports that the adjudication index is missing, rebuild the index from the frozen parent 27 IDs only:
+Only if Modal says the frozen adjudication index is missing:
 
 ```powershell
 modal run modal/qwen3_30b_percentage_replay_modal.py --stage preflight --prepare-index
 ```
 
-## Modal final
+## B2. Percentage final
 
-Only run after the new percentage preflight reports PASS.
+Run only after the percentage preflight artifact reports PASS:
 
 ```powershell
 modal run modal/qwen3_30b_percentage_replay_modal.py --stage final
 ```
 
-## Download new percentage artifacts
+Follow logs:
+
+```powershell
+modal app logs kiaomni-qwen3-percentage-replay-v1
+```
+
+## B3. Download percentage results
 
 ```powershell
 modal volume get kiaomni-qwen3-frontier-results phase_03_percentage_replay_v1/final.json .\percentage_final.json
@@ -66,20 +100,24 @@ modal volume get kiaomni-qwen3-frontier-results phase_03_percentage_replay_v1/pr
 modal volume get kiaomni-qwen3-frontier-results phase_03_percentage_replay_v1/preflight.log .\percentage_preflight.log
 ```
 
-## Download frozen fixed-budget artifact
+---
+
+# C. Build fixed-vs-percentage paper/company plots
+
+Download the frozen fixed-budget artifact:
 
 ```powershell
 modal volume get kiaomni-qwen3-adjudication-results phase_03_adjudication_routing_v1/final.json .\fixed_final.json
 ```
 
-## Build paper/company report
+Build the report:
 
 ```powershell
 python -m pip install matplotlib
 python analysis/phase03_frontier_report.py --fixed .\fixed_final.json --percentage .\percentage_final.json --outdir .\frontier_report
 ```
 
-Outputs:
+Core outputs:
 
 ```text
 frontier_report/frontier_summary.csv
@@ -88,144 +126,208 @@ frontier_report/frontier_plot_data.json
 frontier_report/quality_vs_compression.png
 frontier_report/routing_vs_compression.png
 frontier_report/memory_vs_compression.png
+frontier_report/ppl_vs_compression.png
+frontier_report/ttft_vs_compression.png
 frontier_report/preservation_vs_compression.png
 ```
 
-## Frozen semantics
-
-Percentage budget per case:
-
-```text
-budget = round(input_tokens * requested_ratio)
-budget = clamp(budget, N_SINK + RECENCY, input_tokens - 1)
-```
-
-with:
-
-```text
-N_SINK = 16
-RECENCY = 32
-```
-
-This matches the historical Phase-03 ratio-budget semantics.
-
-## Recorded metrics
-
-Quality:
-- accuracy
-- 95% bootstrap accuracy CI
-- parse rate
-- gold-answer NLL/PPL
-
-Paired FullContext comparison:
-- FullContext-correct preservation rate
-- regression rate
-- rescue rate
-- net rescues minus regressions
-- exact McNemar p-value
-
-Compression:
-- requested retention %
-- actual retention %
-- kept tokens
-- effective compression ratio
-
-Actual MoE routing:
-- top-1 expert agreement
-- top-8 set Jaccard
-- dispatch-weight cosine
-- entropy delta
-- expert-load JSD
-- median and worst layer top-1 agreement
-- median and worst layer top-8 Jaccard
-- full layerwise routing values
-
-Systems:
-- generation peak VRAM
-- saliency peak VRAM
-- pipeline peak VRAM
-- output tokens/s
-- generation time
-- saliency time
-- inference-path elapsed time
-- measurement-pipeline elapsed time
-
-## Scientific boundary
-
-This run is a paired percentage-budget replay on the exact same 27 LongBench-v2 cases. It does not replace the fixed-budget evidence and it does not claim runtime KV-cache eviction.
-
+The fixed rows are reconstructed from their actual kept/input token counts, so fixed and percentage conditions are plotted on the same effective-compression axis.
 
 ---
 
-# Fast official RULER NIAH frontier
+# D. Priority 2 — controlled RULER NIAH suite
 
-This is the second-stage controlled retention test. It is pinned to:
+Frozen suite:
 
 ```text
+Official-code-generated RULER data mirror:
+VenusChenyy/RULER_50
+
+Official generation provenance:
 NVIDIA/RULER
-revision c3f5e3b4f87f97e048793bb510a3a6b19a46bf3a
+commit 38da79d79519ef87aa46ae804f838e1eab7f86d7
+
+Tasks:
+niah_single_2
+niah_multikey_1
+niah_multivalue
+niah_multiquery
+
+Lengths:
+8192
+16384
+
+Depth strata per task/length:
+0–20%
+20–40%
+40–60%
+60–80%
+80–100%
+
+Cases:
+4 tasks × 2 lengths × 5 depths = 40
 ```
 
-Fast same-day suite:
+The preparation stage downloads only the eight required JSONL files, resolves and freezes the Hugging Face dataset revision, verifies every source file against the SHA256 in the generation manifest, then freezes the 40 selected source lines before GPU evaluation.
 
-```text
-tasks:
-  niah_single_1
-  niah_multikey_2
-  niah_multikey_3
+The stored RULER `answer_prefix` is explicitly reattached before applying the Qwen chat template.
 
-lengths:
-  8192
-  16384
-
-samples/task/length:
-  4
-
-ratios:
-  25%
-  12.5%
-  6.25%
-```
-
-The Modal preparation step uses upstream `scripts/data/prepare.py` with the frozen Qwen HF tokenizer and seed 42.
-
-## RULER preflight + official data generation
-
-Run this after launching the LongBench percentage final, or in parallel if your Modal concurrency/budget allows it:
+## D1. First RULER preflight + asset preparation
 
 ```powershell
-modal run modal/qwen3_30b_ruler_niah_modal.py --stage preflight --prepare-data
+modal run modal/qwen3_30b_ruler_niah_modal.py --stage preflight --prepare-ruler
 ```
 
-If the RULER assets were already prepared successfully, later preflights can omit `--prepare-data`.
+Future preflights can omit `--prepare-ruler` after the frozen asset/index exists:
 
-## RULER final
+```powershell
+modal run modal/qwen3_30b_ruler_niah_modal.py --stage preflight
+```
+
+Follow logs:
+
+```powershell
+modal app logs kiaomni-qwen3-ruler-niah-v1
+```
+
+## D2. RULER final
+
+Run after RULER preflight PASS:
 
 ```powershell
 modal run modal/qwen3_30b_ruler_niah_modal.py --stage final
 ```
 
-## Download RULER results
+## D3. Download RULER results
 
 ```powershell
-modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_frontier_v1/final.json .\ruler_niah_final.json
-modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_frontier_v1/final.log .\ruler_niah_final.log
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_v1/final.json .\ruler_niah_final.json
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_v1/final.log .\ruler_niah_final.log
 ```
 
-RULER-specific metrics include:
+Optional preflight artifacts:
+
+```powershell
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_v1/preflight.json .\ruler_niah_preflight.json
+modal volume get kiaomni-qwen3-frontier-results phase_03_ruler_niah_v1/preflight.log .\ruler_niah_preflight.log
+```
+
+---
+
+# E. Build RULER paper/company plots
+
+```powershell
+python analysis/phase03_ruler_report.py --ruler .\ruler_niah_final.json --outdir .\ruler_report
+```
+
+Core outputs include:
 
 ```text
-official-style string_match_all score
-all-reference accuracy
-gold/reference token recall after pruning
-complete-reference survival
-all-references-survived rate
-needle depth
-gold PPL
-actual MoE routing
-VRAM
-throughput
-latency components
+ruler_report/ruler_global_summary.csv
+ruler_report/ruler_cases.csv
+ruler_report/ruler_pairwise.csv
+ruler_report/ruler_depth_summary.csv
+ruler_report/ruler_plot_data.json
+ruler_report/ruler_quality_vs_compression.png
+ruler_report/ruler_needle_survival_vs_compression.png
+ruler_report/ruler_routing_vs_compression.png
+ruler_report/ruler_ttft_vs_compression.png
+ruler_report/ruler_survival_vs_quality_scatter.png
+ruler_report/heatmap_score_<method>_<length>.png
 ```
 
-The RULER fast suite is a same-day controlled validation, not the final paper-scale RULER sample count.
+---
+
+# F. Metrics frozen for the new runs
+
+## Quality
+
+```text
+LongBench:
+accuracy
+95% bootstrap CI
+gold-answer NLL/PPL
+parse rate
+
+RULER:
+official-compatible string_match_all score
+all-required-outputs correctness
+95% bootstrap CI
+gold-answer NLL/PPL
+```
+
+## FullContext paired behavior
+
+```text
+preservation rate
+regression rate
+rescue rate
+net rescues - regressions
+exact McNemar p-value
+```
+
+## Compression
+
+```text
+requested retention %
+actual retention %
+kept tokens
+effective compression ratio
+```
+
+## RULER evidence survival
+
+```text
+required-answer token recall
+complete required-answer survival
+all-required-answers-complete rate
+per-answer token spans
+answer/needle depth
+depth-bin performance
+```
+
+## Actual MoE routing
+
+```text
+top-1 expert agreement
+top-8 set Jaccard
+dispatch-weight cosine
+entropy delta
+expert-load JSD
+median layer routing
+worst layer routing
+full layerwise values
+actual expert-dispatch verification
+```
+
+## Systems
+
+```text
+generation peak VRAM
+saliency peak VRAM
+pipeline peak VRAM
+output tokens/s
+generation time
+measured time to first generated token
+decode time after first token
+saliency time
+inference-path time
+measurement-pipeline time
+```
+
+---
+
+# G. Scientific boundary
+
+These experiments still test prompt-side token selection followed by a fresh generation pass.
+
+They do not yet prove:
+
+```text
+runtime past_key_values eviction
+production KV-cache mutation
+production end-to-end memory reduction
+production end-to-end latency reduction
+```
+
+The fixed-budget Phase-03 evidence remains frozen and is used only as the historical comparison track.
