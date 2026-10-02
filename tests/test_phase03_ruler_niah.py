@@ -99,6 +99,9 @@ def test_modal_pins_source_integrity_and_depth_selection():
     assert 'RULER_DATASET_ID = "VenusChenyy/RULER_50"' in src
     assert 'RULER_OFFICIAL_GENERATION_COMMIT = "38da79d79519ef87aa46ae804f838e1eab7f86d7"' in src
     assert "source_official_generation_manifest.json" in src
-    assert "expected_sha" in src
+    assert 'RULER_MIRROR_ROWS_PER_GROUP = 50' in src
+    assert 'filename = f"{task}/{length}.jsonl"' in src
+    assert '"mirror_sha256": observed_sha' in src
+    assert '"official_source_sha256": str(source_entry.get("sha256", ""))' in src
     assert "_select_depth_stratified" in src
     assert "10.0, 30.0, 50.0, 70.0, 90.0" in src
