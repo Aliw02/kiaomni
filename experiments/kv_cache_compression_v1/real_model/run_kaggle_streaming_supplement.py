@@ -56,6 +56,7 @@ def parse_args():
     )
     p.add_argument("--limit-cases", type=int, default=None)
     p.add_argument("--limit-budgets", type=int, default=None)
+    p.add_argument("--context-lengths", nargs="+", type=int, default=None)
     p.add_argument("--resume", action="store_true")
     p.add_argument("--skip-equivalence", action="store_true")
     return p.parse_args()
@@ -111,11 +112,13 @@ def strict_rescore_reference(rows: list[dict]) -> list[dict]:
 
 
 def reference_cases(rows: list[dict]) -> list[dict]:
+    # Include failed FullKV rows as well. This is required for contexts that
+    # FullKV cannot materialize on the target GPU (for example 8K on T4) but
+    # streaming may still be able to process.
     cases = [
         r
         for r in rows
-        if r.get("status") == "ok"
-        and r.get("method") == "full_kv"
+        if r.get("method") == "full_kv"
     ]
     cases.sort(
         key=lambda r: (
@@ -127,8 +130,12 @@ def reference_cases(rows: list[dict]) -> list[dict]:
     return cases
 
 
-def reference_budgets(rows: list[dict]) -> dict[int, list[tuple[str, int]]]:
+def reference_budgets(rows: list[dict], protocol: dict) -> dict[int, list[tuple[str, int]]]:
+    # Prefer budgets actually present in successful reference rows. For a
+    # context where FullKV OOM prevented compressed jobs from running, rebuild
+    # the same budget schedule from the frozen protocol.
     per_context: dict[int, dict[int, str]] = {}
+    contexts = sorted({int(r["context_tokens"]) for r in rows if r.get("method") == "full_kv"})
     for row in rows:
         if row.get("status") != "ok":
             continue
@@ -140,22 +147,57 @@ def reference_budgets(rows: list[dict]) -> dict[int, list[tuple[str, int]]]:
         per_context.setdefault(ctx, {})
         per_context[ctx].setdefault(int(budget), str(label))
 
+    specs = list(protocol.get("budget_specs", []))
+    for ctx in contexts:
+        if per_context.get(ctx):
+            continue
+        seen: set[int] = set()
+        rebuilt: dict[int, str] = {}
+        for spec in specs:
+            if isinstance(spec, str) and spec.startswith("r"):
+                ratio = float(spec[1:])
+                budget = int(round(ctx * ratio))
+                label = spec
+            else:
+                budget = int(spec)
+                label = f"B{budget}"
+            budget = min(budget, ctx)
+            if budget <= 0 or budget in seen:
+                continue
+            seen.add(budget)
+            rebuilt[budget] = label
+        per_context[ctx] = rebuilt
+
     return {
-        ctx: [
-            (label_by_budget[budget], budget)
-            for budget in sorted(label_by_budget)
-        ]
+        ctx: [(label_by_budget[budget], budget) for budget in sorted(label_by_budget)]
         for ctx, label_by_budget in per_context.items()
     }
 
 
-def full_reference_bytes(rows: list[dict]) -> dict[str, int]:
-    return {
-        str(r["case_id"]): int(r["kv_after_bytes"])
-        for r in rows
+def full_reference_bytes(rows: list[dict]) -> tuple[dict[str, int], float]:
+    # Ground byte-per-token scaling in an actual successful FullKV run, then
+    # extrapolate linearly for FullKV-OOM contexts. Raw KV storage is linear in
+    # sequence length for fixed model/cache dtype.
+    successful = [
+        r for r in rows
         if r.get("status") == "ok"
         and r.get("method") == "full_kv"
-    }
+        and r.get("kv_after_bytes") is not None
+    ]
+    if not successful:
+        raise RuntimeError("need at least one successful FullKV row to calibrate KV bytes/token")
+    calibration = successful[0]
+    bytes_per_token = float(calibration["kv_after_bytes"]) / float(calibration["context_tokens"])
+
+    out: dict[str, int] = {}
+    for r in rows:
+        if r.get("method") != "full_kv":
+            continue
+        if r.get("status") == "ok" and r.get("kv_after_bytes") is not None:
+            out[str(r["case_id"])] = int(r["kv_after_bytes"])
+        else:
+            out[str(r["case_id"])] = int(round(bytes_per_token * int(r["context_tokens"])))
+    return out, bytes_per_token
 
 
 def run_streaming_method(
@@ -302,11 +344,23 @@ def main():
     )
 
     cases = reference_cases(reference_strict)
+    if args.context_lengths is not None:
+        allowed_contexts = {int(v) for v in args.context_lengths}
+        cases = [r for r in cases if int(r["context_tokens"]) in allowed_contexts]
     if args.limit_cases is not None:
-        cases = cases[: int(args.limit_cases)]
+        # Limit per context, not globally, so a two-context smoke can test both.
+        limited = []
+        counts: dict[int, int] = {}
+        for r in cases:
+            ctx = int(r["context_tokens"])
+            if counts.get(ctx, 0) >= int(args.limit_cases):
+                continue
+            limited.append(r)
+            counts[ctx] = counts.get(ctx, 0) + 1
+        cases = limited
 
-    budgets_by_context = reference_budgets(reference_strict)
-    full_bytes = full_reference_bytes(reference_strict)
+    budgets_by_context = reference_budgets(reference_strict, protocol)
+    full_bytes, full_bytes_per_token = full_reference_bytes(reference_strict)
 
     supplement_protocol = {
         "experiment": "kiaomni_qwen25_streaming_supplement_v1",
@@ -321,6 +375,8 @@ def main():
         "sigma": settings.sigma,
         "max_new_tokens": settings.max_new_tokens,
         "case_count": len(cases),
+        "context_lengths": sorted({int(r["context_tokens"]) for r in cases}),
+        "full_kv_bytes_per_token_calibration": full_bytes_per_token,
         "scoring": "strict_first_non_empty_line",
         "comparison_methods": [
             "full_kv",
@@ -370,6 +426,19 @@ def main():
     model, tokenizer, model_info = load_model_and_tokenizer(
         model_id
     )
+    capability_rows = []
+    for r in reference_strict:
+        if r.get("method") != "full_kv":
+            continue
+        capability_rows.append({
+            "case_id": r.get("case_id"),
+            "context_tokens": r.get("context_tokens"),
+            "task": r.get("task"),
+            "full_kv_status": r.get("status"),
+            "full_kv_error_type": r.get("error_type"),
+            "full_kv_reference_bytes": full_bytes.get(str(r.get("case_id"))),
+        })
+    pd.DataFrame(capability_rows).to_csv(out_dir / "reference_capability.csv", index=False)
     (
         out_dir / "model_info.json"
     ).write_text(
