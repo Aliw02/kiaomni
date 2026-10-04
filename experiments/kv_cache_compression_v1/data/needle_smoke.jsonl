@@ -1,0 +1,3 @@
+{"id":"needle_begin","context":"The verification key is 7391. Keep this fact for the final question. Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau.","question":"What is the verification key?","answer":"7391"}
+{"id":"needle_middle","context":"Alpha beta gamma delta epsilon zeta eta theta. The project codename is ORBIT-27. Iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega.","question":"What is the project codename?","answer":"ORBIT-27"}
+{"id":"needle_end","context":"Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau. The access label is BLUE-COMET.","question":"What is the access label?","answer":"BLUE-COMET"}
