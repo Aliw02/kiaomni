@@ -208,15 +208,31 @@ def normalize_text(text: str) -> str:
 
 
 def score_output(text: str, expected_answers: Iterable[str]) -> dict:
-    norm = normalize_text(text)
     expected = [normalize_text(x) for x in expected_answers]
-    hits = [bool(x and x in norm) for x in expected]
-    recall = sum(hits) / max(1, len(hits))
+
+    # Benchmark prompts explicitly request only the answer values. Score the
+    # first non-empty output line so an incorrect first answer cannot become a
+    # false positive merely because the correct value appears later in an
+    # explanation or self-correction.
+    first_line = next((line.strip() for line in str(text).splitlines() if line.strip()), "")
+    first_norm = normalize_text(first_line)
+    strict_hits = [bool(x and x in first_norm) for x in expected]
+    strict_recall = sum(strict_hits) / max(1, len(strict_hits))
+
+    # Keep the legacy anywhere-in-output metric only as a diagnostic.
+    full_norm = normalize_text(text)
+    anywhere_hits = [bool(x and x in full_norm) for x in expected]
+    anywhere_recall = sum(anywhere_hits) / max(1, len(anywhere_hits))
+
     return {
-        "all_correct": bool(all(hits)),
-        "answer_recall": float(recall),
+        "all_correct": bool(all(strict_hits)),
+        "answer_recall": float(strict_recall),
         "expected": expected,
-        "hits": hits,
+        "hits": strict_hits,
+        "first_answer_line": first_line,
+        "anywhere_all_correct": bool(all(anywhere_hits)),
+        "anywhere_answer_recall": float(anywhere_recall),
+        "anywhere_hits": anywhere_hits,
     }
 
 
