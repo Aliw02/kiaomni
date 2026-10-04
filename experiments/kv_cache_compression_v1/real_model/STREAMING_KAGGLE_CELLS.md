@@ -31,11 +31,12 @@ Do this only after the currently running Final process has finished.
   --reference-runs /kaggle/working/kiaomni_kv_results/final/final_runs.jsonl \
   --output-dir /kaggle/working/kiaomni_kv_results/streaming_smoke \
   --chunk-size 128 \
+  --context-lengths 4096 8192 \
   --limit-cases 1 \
   --limit-budgets 1
 ```
 
-This also runs a real no-eviction equivalence check between one-shot and chunked Qwen prefill.
+This runs one case per context. At 8K the reference FullKV rows are OOM, so the smoke directly tests whether streaming can process a context that one-shot FullKV could not fit. It also runs a real no-eviction equivalence check on a context that fits.
 
 ## Cell S3 — Inspect the streaming smoke
 
@@ -51,6 +52,9 @@ print(json.dumps(json.loads((out / "streaming_equivalence.json").read_text()), i
 
 print("\nMANIFEST")
 print(json.dumps(json.loads((out / "streaming_manifest.json").read_text()), indent=2))
+
+print("\nREFERENCE CAPABILITY")
+display(pd.read_csv(out / "reference_capability.csv"))
 
 display(
     pd.read_csv(out / "summary.csv")
