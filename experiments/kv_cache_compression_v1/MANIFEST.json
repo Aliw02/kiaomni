@@ -4,7 +4,7 @@
   "base_commit": "62fd80b8631d7aa9c69b46be1b2c5967f339b445",
   "frozen_moe_branch": "freeze/kiaomni-qwen3-moe-phase03-2026-10-04",
   "working_branch": "exp/kiaomni-true-kv-cache-compression-v1",
-  "status": "streaming_poc_passed_qwen25_supplement_ready_unrun",
+  "status": "persistent_streaming_poc_passed_qwen_smoke_ready",
   "intervention": "post_prefill_physical_kv_cache",
   "controls": [
     "full_kv",
@@ -37,7 +37,7 @@
     "mean_layerwise_layer_specific_signal_survival": 1,
     "quality_claim_allowed": false
   },
-  "next_gate": "finish_current_final_then_run_streaming_smoke_against_same_final_cases",
+  "next_gate": "run_persistent_streaming_smoke_B256_on_exact_failed_4k_8k_cases",
   "real_model_gate": {
     "model": "Qwen/Qwen2.5-7B-Instruct",
     "target_environment": "Kaggle Tesla T4 16GB",
@@ -75,5 +75,23 @@
     "default_chunk_size": 128,
     "supplement_runner": "experiments/kv_cache_compression_v1/real_model/run_kaggle_streaming_supplement.py",
     "cells": "experiments/kv_cache_compression_v1/real_model/STREAMING_KAGGLE_CELLS.md"
+  },
+  "streaming_policy_v2": {
+    "poc_status": "passed",
+    "promoted_policy": "persistent",
+    "early_observable_late_needed_survival": {
+      "current": 0.085,
+      "persistent": 1,
+      "persistent_landmarks": 1,
+      "persistent_blocks": 1
+    },
+    "future_only_survival": {
+      "current": 0.115,
+      "persistent": 0.11,
+      "persistent_landmarks": 0.125,
+      "persistent_blocks": 0.125
+    },
+    "real_model_status": "persistent_qwen_smoke_ready_unrun",
+    "cells": "experiments/kv_cache_compression_v1/real_model/PERSISTENT_STREAMING_KAGGLE_CELLS.md"
   }
 }
