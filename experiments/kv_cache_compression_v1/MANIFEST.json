@@ -4,9 +4,9 @@
   "base_commit": "62fd80b8631d7aa9c69b46be1b2c5967f339b445",
   "frozen_moe_branch": "freeze/kiaomni-qwen3-moe-phase03-2026-10-04",
   "working_branch": "exp/kiaomni-true-kv-cache-compression-v1",
-  "status": "gate0_isolated_poc_passed",
+  "status": "global_and_layerwise_isolated_poc_passed",
   "intervention": "post_prefill_physical_kv_cache",
-  "controls": ["full_kv", "prompt_selection", "true_kv_kiaomni"],
+  "controls": ["full_kv", "prompt_selection", "kv_global", "kv_layerwise"],
   "gate0": {
     "environment": "isolated_cpu_pytorch",
     "model": "custom_tiny_pytorch_causal_attention_with_rope",
@@ -19,5 +19,18 @@
     "physical_kv_reduction_confirmed": true,
     "quality_claim_allowed": false
   },
-  "next_gate": "real_pretrained_huggingface_decoder_cache"
+  "global_layerwise_poc": {
+    "environment": "isolated_cpu_pytorch",
+    "model": "4_layer_custom_pytorch_decoder_with_rope",
+    "tests_passed": 4,
+    "tests_total": 4,
+    "cases": 3,
+    "equal_memory_budget_confirmed": true,
+    "global_decode_ok": true,
+    "layerwise_decode_ok": true,
+    "mean_global_layer_specific_signal_survival": 0.8333333333333334,
+    "mean_layerwise_layer_specific_signal_survival": 1.0,
+    "quality_claim_allowed": false
+  },
+  "next_gate": "real_pretrained_huggingface_full_vs_global_vs_layerwise"
 }
