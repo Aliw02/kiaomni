@@ -311,6 +311,52 @@ def compact_cache_layerwise(cache, keeps: list[np.ndarray]) -> dict:
 
 
 @torch.inference_mode()
+def prime_cache(
+    model,
+    *,
+    cache,
+    forced_token_ids: list[int],
+    start_position: int,
+) -> dict:
+    """Force one or more bridge tokens through the current cache.
+
+    This deliberately discards the prefill logits. The first free answer token
+    is therefore predicted only after the compressed (or control) cache has
+    processed the bridge token(s), so retrieval accuracy cannot be inflated by
+    a full-context first-token prediction.
+    """
+    if not forced_token_ids:
+        raise ValueError("forced_token_ids must contain at least one token")
+
+    logits = None
+    cuda_sync()
+    started = time.perf_counter()
+    for offset, token_id in enumerate(forced_token_ids):
+        absolute_position = int(start_position + offset)
+        token = torch.tensor([[int(token_id)]], device=cache_layers(cache)[0].keys.device, dtype=torch.long)
+        outputs = model(
+            input_ids=token,
+            past_key_values=cache,
+            use_cache=True,
+            return_dict=True,
+            logits_to_keep=1,
+            position_ids=torch.tensor([[absolute_position]], device=token.device, dtype=torch.long),
+            cache_position=torch.tensor([absolute_position], device=token.device, dtype=torch.long),
+            attention_mask=None,
+        )
+        cache = outputs.past_key_values
+        logits = outputs.logits[:, -1, :].detach()
+    cuda_sync()
+    elapsed = time.perf_counter() - started
+    return {
+        "logits": logits,
+        "cache": cache,
+        "elapsed_seconds": float(elapsed),
+        "next_position": int(start_position + len(forced_token_ids)),
+    }
+
+
+@torch.inference_mode()
 def greedy_decode(
     model,
     tokenizer,
