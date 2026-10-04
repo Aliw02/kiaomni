@@ -56,6 +56,7 @@ def parse_args():
     )
     p.add_argument("--limit-cases", type=int, default=None)
     p.add_argument("--limit-budgets", type=int, default=None)
+    p.add_argument("--budget-labels", nargs="+", default=None)
     p.add_argument("--context-lengths", nargs="+", type=int, default=None)
     p.add_argument("--resume", action="store_true")
     p.add_argument("--skip-equivalence", action="store_true")
@@ -677,6 +678,13 @@ def main():
         case_budgets = list(
             budgets_by_context.get(context, [])
         )
+        if args.budget_labels is not None:
+            wanted_labels = {str(v) for v in args.budget_labels}
+            case_budgets = [
+                (label, budget)
+                for label, budget in case_budgets
+                if str(label) in wanted_labels
+            ]
         if args.limit_budgets is not None:
             case_budgets = case_budgets[
                 : int(args.limit_budgets)
