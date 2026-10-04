@@ -4,9 +4,14 @@
   "base_commit": "62fd80b8631d7aa9c69b46be1b2c5967f339b445",
   "frozen_moe_branch": "freeze/kiaomni-qwen3-moe-phase03-2026-10-04",
   "working_branch": "exp/kiaomni-true-kv-cache-compression-v1",
-  "status": "global_and_layerwise_isolated_poc_passed",
+  "status": "kaggle_qwen25_real_model_harness_ready_unrun",
   "intervention": "post_prefill_physical_kv_cache",
-  "controls": ["full_kv", "prompt_selection", "kv_global", "kv_layerwise"],
+  "controls": [
+    "full_kv",
+    "prompt_selection",
+    "kv_global",
+    "kv_layerwise"
+  ],
   "gate0": {
     "environment": "isolated_cpu_pytorch",
     "model": "custom_tiny_pytorch_causal_attention_with_rope",
@@ -14,8 +19,8 @@
     "tests_passed": 3,
     "tests_total": 3,
     "cases": 6,
-    "decode_success_rate": 1.0,
-    "needle_survival_rate": 1.0,
+    "decode_success_rate": 1,
+    "needle_survival_rate": 1,
     "physical_kv_reduction_confirmed": true,
     "quality_claim_allowed": false
   },
@@ -29,8 +34,30 @@
     "global_decode_ok": true,
     "layerwise_decode_ok": true,
     "mean_global_layer_specific_signal_survival": 0.8333333333333334,
-    "mean_layerwise_layer_specific_signal_survival": 1.0,
+    "mean_layerwise_layer_specific_signal_survival": 1,
     "quality_claim_allowed": false
   },
-  "next_gate": "real_pretrained_huggingface_full_vs_global_vs_layerwise"
+  "next_gate": "run_kaggle_smoke_then_pilot",
+  "real_model_gate": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "target_environment": "Kaggle Tesla T4 16GB",
+    "weight_quantization": "NF4 4-bit",
+    "compute_dtype": "float16",
+    "transformers": "4.57.6",
+    "methods": [
+      "full_kv",
+      "prompt_selection",
+      "kv_global",
+      "kv_layerwise"
+    ],
+    "modes": [
+      "smoke",
+      "pilot",
+      "final"
+    ],
+    "result_status": "unrun",
+    "quality_claim_allowed": false,
+    "runner": "experiments/kv_cache_compression_v1/real_model/run_kaggle_qwen25.py",
+    "cells": "experiments/kv_cache_compression_v1/real_model/KAGGLE_CELLS.md"
+  }
 }
