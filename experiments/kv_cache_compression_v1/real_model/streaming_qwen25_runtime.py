@@ -304,8 +304,14 @@ def streaming_prefill(
     sigma: float = 4.0,
 ) -> dict:
     """Run chunked Qwen2.5 prefill with online physical KV eviction."""
-    if variant not in ("global", "layerwise"):
-        raise ValueError("variant must be 'global' or 'layerwise'")
+    allowed_variants = (
+        "global",
+        "layerwise",
+        "persistent_global",
+        "persistent_layerwise",
+    )
+    if variant not in allowed_variants:
+        raise ValueError(f"variant must be one of {allowed_variants}")
     if input_ids.ndim != 2 or input_ids.shape[0] != 1:
         raise ValueError("streaming V1 requires input_ids shape [1,L]")
     if budget < n_sink + recency:
@@ -319,6 +325,11 @@ def streaming_prefill(
         np.empty((0,), dtype=np.int64)
         for _ in range(len(model.model.layers))
     ]
+    persistent_scores = [
+        {}
+        for _ in range(len(model.model.layers))
+    ]
+    persistent_decay = 0.995
 
     peak_kv_bytes = 0
     eviction_events = 0
@@ -398,7 +409,44 @@ def streaming_prefill(
             continue
 
         selection_started = time.perf_counter()
-        if variant == "global":
+
+        use_persistent = variant.startswith("persistent_")
+        layerwise_mode = variant.endswith("layerwise")
+
+        if use_persistent:
+            effective_layer_saliencies = []
+            for layer_idx in range(len(absolute_positions)):
+                positions = absolute_positions[layer_idx]
+                current = layer_saliencies[layer_idx]
+                live = set(int(p) for p in positions)
+                persistent_scores[layer_idx] = {
+                    int(p): float(v) * persistent_decay
+                    for p, v in persistent_scores[layer_idx].items()
+                    if int(p) in live
+                }
+                for p, score in zip(positions, current):
+                    p = int(p)
+                    persistent_scores[layer_idx][p] = max(
+                        persistent_scores[layer_idx].get(p, 0.0),
+                        float(score),
+                    )
+                effective_layer_saliencies.append(
+                    np.asarray(
+                        [
+                            persistent_scores[layer_idx][int(p)]
+                            for p in positions
+                        ],
+                        dtype=np.float32,
+                    )
+                )
+            effective_layer_saliencies = np.stack(
+                effective_layer_saliencies,
+                axis=0,
+            )
+        else:
+            effective_layer_saliencies = layer_saliencies
+
+        if not layerwise_mode:
             if not all(
                 np.array_equal(
                     absolute_positions[layer_idx],
@@ -410,7 +458,7 @@ def streaming_prefill(
                     "global streaming absolute-position sets diverged"
                 )
             keep = select_streaming_positions(
-                layer_saliencies.mean(axis=0),
+                effective_layer_saliencies.mean(axis=0),
                 absolute_positions[0],
                 budget,
                 end,
@@ -421,7 +469,7 @@ def streaming_prefill(
         else:
             keep = [
                 select_streaming_positions(
-                    layer_saliencies[layer_idx],
+                    effective_layer_saliencies[layer_idx],
                     absolute_positions[layer_idx],
                     budget,
                     end,
@@ -435,10 +483,19 @@ def streaming_prefill(
 
         cuda_sync()
         compact_started = time.perf_counter()
-        if variant == "global":
+        if not layerwise_mode:
             _compact_global(cache, absolute_positions, keep)
         else:
             _compact_layerwise(cache, absolute_positions, keep)
+
+        if use_persistent:
+            for layer_idx, positions in enumerate(absolute_positions):
+                live = set(int(p) for p in positions)
+                persistent_scores[layer_idx] = {
+                    p: v
+                    for p, v in persistent_scores[layer_idx].items()
+                    if p in live
+                }
         cuda_sync()
         compaction_seconds += time.perf_counter() - compact_started
         eviction_events += 1
