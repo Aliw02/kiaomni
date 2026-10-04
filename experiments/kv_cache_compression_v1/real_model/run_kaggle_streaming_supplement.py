@@ -51,7 +51,7 @@ def parse_args():
     p.add_argument(
         "--variants",
         nargs="+",
-        choices=["global", "layerwise"],
+        choices=["global", "layerwise", "persistent_global", "persistent_layerwise"],
         default=["global", "layerwise"],
     )
     p.add_argument("--limit-cases", type=int, default=None)
@@ -311,11 +311,13 @@ def run_streaming_method(
     chunk_size: int,
     settings,
 ):
-    method = (
-        "stream_global"
-        if variant == "global"
-        else "stream_layerwise"
-    )
+    method_map = {
+        "global": "stream_global",
+        "layerwise": "stream_layerwise",
+        "persistent_global": "stream_persistent_global",
+        "persistent_layerwise": "stream_persistent_layerwise",
+    }
+    method = method_map[variant]
     record = base_record(
         case,
         method,
@@ -483,6 +485,8 @@ def main():
             "kv_layerwise",
             "stream_global",
             "stream_layerwise",
+            "stream_persistent_global",
+            "stream_persistent_layerwise",
         ],
     }
     digest = hashlib.sha256(
@@ -697,11 +701,12 @@ def main():
 
         for budget_label, budget in case_budgets:
             for variant in args.variants:
-                method = (
-                    "stream_global"
-                    if variant == "global"
-                    else "stream_layerwise"
-                )
+                method = {
+                    "global": "stream_global",
+                    "layerwise": "stream_layerwise",
+                    "persistent_global": "stream_persistent_global",
+                    "persistent_layerwise": "stream_persistent_layerwise",
+                }[variant]
                 key = (
                     case.case_id,
                     method,
