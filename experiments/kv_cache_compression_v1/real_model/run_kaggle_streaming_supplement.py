@@ -200,6 +200,102 @@ def full_reference_bytes(rows: list[dict]) -> tuple[dict[str, int], float]:
     return out, bytes_per_token
 
 
+def run_chunked_full(
+    model,
+    tokenizer,
+    ids,
+    case,
+    *,
+    bridge_ids: list[int],
+    full_ref_bytes: int,
+    chunk_size: int,
+    settings,
+):
+    """Chunked prefill control with zero eviction.
+
+    This isolates the systems/numerical effect of chunking from the effect of
+    KV eviction. It is especially important when one-shot FullKV OOMs.
+    """
+    method = "chunked_full_kv"
+    record = base_record(
+        case,
+        method,
+        None,
+        None,
+        settings.model_id,
+        "streaming_supplement",
+    )
+
+    reset_peak_memory()
+    total_started = time.perf_counter()
+
+    stream = streaming_prefill(
+        model,
+        ids,
+        budget=int(ids.shape[1]),
+        chunk_size=chunk_size,
+        variant="global",
+        window_size=settings.window_size,
+        n_sink=settings.n_sink,
+        recency=settings.recency,
+        sigma=settings.sigma,
+    )
+
+    prime = prime_cache(
+        model,
+        cache=stream["cache"],
+        forced_token_ids=bridge_ids,
+        start_position=ids.shape[1],
+    )
+    decoded = greedy_decode(
+        model,
+        tokenizer,
+        initial_logits=prime["logits"],
+        cache=prime["cache"],
+        start_position=prime["next_position"],
+        max_new_tokens=settings.max_new_tokens,
+    )
+
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+    total_seconds = time.perf_counter() - total_started
+
+    final_bytes = int(stream["final_kv_bytes"])
+    peak_kv_bytes = int(stream["peak_kv_bytes"])
+    record.update(
+        {
+            "original_tokens": int(ids.shape[1]),
+            "kept_tokens": int(ids.shape[1]),
+            "prompt_compression": False,
+            "physical_kv_compression": False,
+            "streaming_kv_eviction": False,
+            "chunked_prefill": True,
+            "streaming_chunk_size": int(chunk_size),
+            "reference_full_kv_bytes": int(full_ref_bytes),
+            "kv_before_bytes": int(final_bytes),
+            "kv_after_bytes": int(final_bytes),
+            "kv_reduction_ratio": float(full_ref_bytes / final_bytes),
+            "prefill_peak_kv_bytes": peak_kv_bytes,
+            "prefill_peak_kv_reduction_ratio": float(full_ref_bytes / peak_kv_bytes),
+            "eviction_events": 0,
+            "prefill_seconds": float(stream["model_forward_seconds"]),
+            "streaming_prefill_total_seconds": float(stream["total_seconds"]),
+            "selection_seconds": 0.0,
+            "compaction_seconds": 0.0,
+            "bridge_seconds": float(prime["elapsed_seconds"]),
+            "ttft_seconds": float(stream["total_seconds"] + prime["elapsed_seconds"]),
+            "total_seconds": float(total_seconds),
+            "cache_lengths_after_compaction": stream["final_cache_lengths"],
+        }
+    )
+    record.update(peak_memory_gb())
+    record = score_and_finish(record, decoded, case)
+
+    del stream, prime, decoded
+    cleanup_cuda()
+    return record
+
+
 def run_streaming_method(
     model,
     tokenizer,
@@ -380,6 +476,7 @@ def main():
         "scoring": "strict_first_non_empty_line",
         "comparison_methods": [
             "full_kv",
+            "chunked_full_kv",
             "prompt_selection",
             "kv_global",
             "kv_layerwise",
@@ -411,16 +508,18 @@ def main():
         runs_path.unlink()
 
     existing = load_jsonl(runs_path) if args.resume else []
-    done = {
-        (
-            str(r.get("case_id")),
-            str(r.get("method")),
-            int(r.get("budget_tokens")),
+    done = set()
+    for r in existing:
+        if r.get("status") != "ok":
+            continue
+        budget_token = r.get("budget_tokens")
+        done.add(
+            (
+                str(r.get("case_id")),
+                str(r.get("method")),
+                int(budget_token) if budget_token is not None else -1,
+            )
         )
-        for r in existing
-        if r.get("status") == "ok"
-        and r.get("budget_tokens") is not None
-    }
     streaming_rows = list(existing)
 
     model, tokenizer, model_info = load_model_and_tokenizer(
@@ -511,6 +610,70 @@ def main():
             dtype=torch.long,
             device=device,
         )
+        chunked_key = (
+            case.case_id,
+            "chunked_full_kv",
+            -1,
+        )
+        if chunked_key not in done:
+            print(
+                f"[run] {case.case_id} "
+                f"chunked_full_kv chunk={args.chunk_size}"
+            )
+            try:
+                chunked_row = run_chunked_full(
+                    model,
+                    tokenizer,
+                    ids,
+                    case,
+                    bridge_ids=bridge_ids,
+                    full_ref_bytes=full_bytes[case.case_id],
+                    chunk_size=int(args.chunk_size),
+                    settings=settings,
+                )
+            except Exception as exc:
+                chunked_row = base_record(
+                    case,
+                    "chunked_full_kv",
+                    None,
+                    None,
+                    model_id,
+                    "streaming_supplement",
+                )
+                chunked_row.update(
+                    {
+                        "status": "error",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                        "traceback": traceback.format_exc(limit=30),
+                    }
+                )
+                cleanup_cuda()
+
+            append_jsonl(runs_path, chunked_row)
+            streaming_rows.append(chunked_row)
+            if chunked_row.get("status") == "ok":
+                done.add(chunked_key)
+            print(
+                json.dumps(
+                    {
+                        k: chunked_row.get(k)
+                        for k in (
+                            "status",
+                            "method",
+                            "all_correct",
+                            "answer_recall",
+                            "kv_reduction_ratio",
+                            "prefill_peak_kv_reduction_ratio",
+                            "peak_allocated_gb",
+                            "ttft_seconds",
+                            "tokens_per_second",
+                        )
+                    },
+                    indent=2,
+                )
+            )
+
         case_budgets = list(
             budgets_by_context.get(context, [])
         )
