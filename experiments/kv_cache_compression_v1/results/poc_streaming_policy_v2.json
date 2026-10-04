@@ -1,0 +1,23 @@
+{
+  "poc": "streaming_policy_v2",
+  "length": 512,
+  "budget": 64,
+  "chunk": 32,
+  "retention_fraction": 0.125,
+  "trials_per_cell": 50,
+  "quality_claim_allowed": false,
+  "rows": [
+    {"regime":"early_observable","policy":"current","mean_signal_survival":0.085,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"early_observable","policy":"persistent","mean_signal_survival":1.0,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"early_observable","policy":"persistent_landmarks","mean_signal_survival":1.0,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"early_observable","policy":"persistent_blocks","mean_signal_survival":1.0,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"future_only","policy":"current","mean_signal_survival":0.115,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"future_only","policy":"persistent","mean_signal_survival":0.11,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"future_only","policy":"persistent_landmarks","mean_signal_survival":0.125,"mean_peak_entries":96.0,"mean_final_entries":64.0},
+    {"regime":"future_only","policy":"persistent_blocks","mean_signal_survival":0.125,"mean_peak_entries":96.0,"mean_final_entries":64.0}
+  ],
+  "promotion": {
+    "winner_for_real_smoke": "persistent",
+    "reason": "Persistent score memory raises early-observable late-needed signal survival from 8.5% to 100% with no increase in peak or final cache size. Coverage variants add no value in that regime. Truly future-only importance remains unsolved at sub-full budgets."
+  }
+}
