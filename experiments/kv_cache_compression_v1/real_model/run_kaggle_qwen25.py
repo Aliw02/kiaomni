@@ -496,6 +496,8 @@ def main():
     json_dump(out_dir / f"{args.mode}_protocol.json", protocol)
     print(f"[protocol] sha256={protocol_hash}")
 
+    if not args.resume and runs_path.exists():
+        runs_path.unlink()
     existing = load_existing(runs_path) if args.resume else []
     done = {run_key(r) for r in existing if r.get("status") == "ok"}
     records = list(existing)
