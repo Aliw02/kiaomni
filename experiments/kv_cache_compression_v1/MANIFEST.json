@@ -4,8 +4,20 @@
   "base_commit": "62fd80b8631d7aa9c69b46be1b2c5967f339b445",
   "frozen_moe_branch": "freeze/kiaomni-qwen3-moe-phase03-2026-10-04",
   "working_branch": "exp/kiaomni-true-kv-cache-compression-v1",
-  "status": "protocol_scaffold",
+  "status": "gate0_isolated_poc_passed",
   "intervention": "post_prefill_physical_kv_cache",
   "controls": ["full_kv", "prompt_selection", "true_kv_kiaomni"],
-  "results_status": "none_yet"
+  "gate0": {
+    "environment": "isolated_cpu_pytorch",
+    "model": "custom_tiny_pytorch_causal_attention_with_rope",
+    "dataset": "synthetic_niah_plumbing_v1",
+    "tests_passed": 3,
+    "tests_total": 3,
+    "cases": 6,
+    "decode_success_rate": 1.0,
+    "needle_survival_rate": 1.0,
+    "physical_kv_reduction_confirmed": true,
+    "quality_claim_allowed": false
+  },
+  "next_gate": "real_pretrained_huggingface_decoder_cache"
 }
