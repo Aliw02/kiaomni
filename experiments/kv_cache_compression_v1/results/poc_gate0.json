@@ -1,0 +1,19 @@
+{
+  "poc_type": "isolated_true_kv_cache_compaction",
+  "model": "custom_tiny_pytorch_causal_attention_with_rope",
+  "dataset": "synthetic_niah_plumbing_v1",
+  "cases": 6,
+  "identity_no_compression_exact_all_cases": true,
+  "needle_survival_rate": 1.0,
+  "all_decode_steps_succeeded": true,
+  "all_compactions_physically_reduced_bytes": true,
+  "all_position_state_separated_correctly": true,
+  "rows": [
+    {"id":"niah-01","input_tokens":64,"budget":24,"needle_position":17,"needle_survived":true,"pre_kv_tokens":64,"post_kv_tokens":24,"pre_kv_bytes":16384,"post_kv_bytes":6144,"kv_reduction_ratio":2.6666666666666665,"next_absolute_position_before_decode":64,"next_absolute_position_after_decode":65,"post_decode_kv_tokens":25,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.15948748588562012},
+    {"id":"niah-02","input_tokens":64,"budget":24,"needle_position":31,"needle_survived":true,"pre_kv_tokens":64,"post_kv_tokens":24,"pre_kv_bytes":16384,"post_kv_bytes":6144,"kv_reduction_ratio":2.6666666666666665,"next_absolute_position_before_decode":64,"next_absolute_position_after_decode":65,"post_decode_kv_tokens":25,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.1451830416917801},
+    {"id":"niah-03","input_tokens":96,"budget":32,"needle_position":43,"needle_survived":true,"pre_kv_tokens":96,"post_kv_tokens":32,"pre_kv_bytes":24576,"post_kv_bytes":8192,"kv_reduction_ratio":3.0,"next_absolute_position_before_decode":96,"next_absolute_position_after_decode":97,"post_decode_kv_tokens":33,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.12854719161987305},
+    {"id":"niah-04","input_tokens":96,"budget":32,"needle_position":71,"needle_survived":true,"pre_kv_tokens":96,"post_kv_tokens":32,"pre_kv_bytes":24576,"post_kv_bytes":8192,"kv_reduction_ratio":3.0,"next_absolute_position_before_decode":96,"next_absolute_position_after_decode":97,"post_decode_kv_tokens":33,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.12745335698127747},
+    {"id":"niah-05","input_tokens":128,"budget":40,"needle_position":53,"needle_survived":true,"pre_kv_tokens":128,"post_kv_tokens":40,"pre_kv_bytes":32768,"post_kv_bytes":10240,"kv_reduction_ratio":3.2,"next_absolute_position_before_decode":128,"next_absolute_position_after_decode":129,"post_decode_kv_tokens":41,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.10521501302719116},
+    {"id":"niah-06","input_tokens":128,"budget":40,"needle_position":89,"needle_survived":true,"pre_kv_tokens":128,"post_kv_tokens":40,"pre_kv_bytes":32768,"post_kv_bytes":10240,"kv_reduction_ratio":3.2,"next_absolute_position_before_decode":128,"next_absolute_position_after_decode":129,"post_decode_kv_tokens":41,"cache_length_differs_from_absolute_position":true,"identity_compaction_exact":true,"full_vs_compact_output_l2":0.10810903459787369}
+  ]
+}
