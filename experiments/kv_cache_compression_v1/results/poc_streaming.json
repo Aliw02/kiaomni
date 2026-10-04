@@ -1,0 +1,36 @@
+{
+  "poc_type": "streaming_kv_eviction_vs_postprefill",
+  "scope": "mechanical_correctness_peak_kv_and_irreversibility_only",
+  "quality_claim_allowed": false,
+  "tests": {"passed": 5, "total": 5},
+  "equivalence": {
+    "output_max_abs_diff": 0.0,
+    "cache_key_max_abs_diff": 0.0,
+    "cache_value_max_abs_diff": 0.0,
+    "positions_exact": true
+  },
+  "rows": [
+    {"context_tokens":64,"budget":24,"chunk_size":16,"method":"post_global","full_peak_bytes":65536,"peak_bytes":65536,"final_bytes":24576,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":2.6666666667,"decode_ok":true},
+    {"context_tokens":64,"budget":24,"chunk_size":16,"method":"post_layerwise","full_peak_bytes":65536,"peak_bytes":65536,"final_bytes":24576,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":2.6666666667,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":64,"budget":24,"chunk_size":16,"method":"stream_global","full_peak_bytes":65536,"peak_bytes":40960,"final_bytes":24576,"peak_reduction_vs_full":1.6,"final_reduction_vs_full":2.6666666667,"decode_ok":true},
+    {"context_tokens":64,"budget":24,"chunk_size":16,"method":"stream_layerwise","full_peak_bytes":65536,"peak_bytes":40960,"final_bytes":24576,"peak_reduction_vs_full":1.6,"final_reduction_vs_full":2.6666666667,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":64,"budget":24,"chunk_size":16,"method":"stream_future_only","full_peak_bytes":65536,"peak_bytes":40960,"final_bytes":24576,"peak_reduction_vs_full":1.6,"final_reduction_vs_full":2.6666666667,"decode_ok":true,"signal_survival":0.0},
+
+    {"context_tokens":96,"budget":32,"chunk_size":16,"method":"post_global","full_peak_bytes":98304,"peak_bytes":98304,"final_bytes":32768,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":3.0,"decode_ok":true},
+    {"context_tokens":96,"budget":32,"chunk_size":16,"method":"post_layerwise","full_peak_bytes":98304,"peak_bytes":98304,"final_bytes":32768,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":3.0,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":96,"budget":32,"chunk_size":16,"method":"stream_global","full_peak_bytes":98304,"peak_bytes":49152,"final_bytes":32768,"peak_reduction_vs_full":2.0,"final_reduction_vs_full":3.0,"decode_ok":true},
+    {"context_tokens":96,"budget":32,"chunk_size":16,"method":"stream_layerwise","full_peak_bytes":98304,"peak_bytes":49152,"final_bytes":32768,"peak_reduction_vs_full":2.0,"final_reduction_vs_full":3.0,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":96,"budget":32,"chunk_size":16,"method":"stream_future_only","full_peak_bytes":98304,"peak_bytes":49152,"final_bytes":32768,"peak_reduction_vs_full":2.0,"final_reduction_vs_full":3.0,"decode_ok":true,"signal_survival":0.0},
+
+    {"context_tokens":128,"budget":40,"chunk_size":16,"method":"post_global","full_peak_bytes":131072,"peak_bytes":131072,"final_bytes":40960,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":3.2,"decode_ok":true},
+    {"context_tokens":128,"budget":40,"chunk_size":16,"method":"post_layerwise","full_peak_bytes":131072,"peak_bytes":131072,"final_bytes":40960,"peak_reduction_vs_full":1.0,"final_reduction_vs_full":3.2,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":128,"budget":40,"chunk_size":16,"method":"stream_global","full_peak_bytes":131072,"peak_bytes":57344,"final_bytes":40960,"peak_reduction_vs_full":2.2857142857,"final_reduction_vs_full":3.2,"decode_ok":true},
+    {"context_tokens":128,"budget":40,"chunk_size":16,"method":"stream_layerwise","full_peak_bytes":131072,"peak_bytes":57344,"final_bytes":40960,"peak_reduction_vs_full":2.2857142857,"final_reduction_vs_full":3.2,"decode_ok":true,"signal_survival":1.0},
+    {"context_tokens":128,"budget":40,"chunk_size":16,"method":"stream_future_only","full_peak_bytes":131072,"peak_bytes":57344,"final_bytes":40960,"peak_reduction_vs_full":2.2857142857,"final_reduction_vs_full":3.2,"decode_ok":true,"signal_survival":0.0}
+  ],
+  "chunk_sensitivity": [
+    {"context_tokens":128,"budget":40,"chunk_size":8,"peak_bytes":49152,"peak_reduction_vs_full":2.6666666667,"final_bytes":40960,"final_reduction_vs_full":3.2},
+    {"context_tokens":128,"budget":40,"chunk_size":16,"peak_bytes":57344,"peak_reduction_vs_full":2.2857142857,"final_bytes":40960,"final_reduction_vs_full":3.2},
+    {"context_tokens":128,"budget":40,"chunk_size":32,"peak_bytes":73728,"peak_reduction_vs_full":1.7777777778,"final_bytes":40960,"final_reduction_vs_full":3.2}
+  ]
+}
