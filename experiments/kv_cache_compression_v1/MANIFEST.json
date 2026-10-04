@@ -1,0 +1,11 @@
+{
+  "experiment": "kiaomni_true_kv_cache_compression_v1",
+  "created": "2026-10-04",
+  "base_commit": "62fd80b8631d7aa9c69b46be1b2c5967f339b445",
+  "frozen_moe_branch": "freeze/kiaomni-qwen3-moe-phase03-2026-10-04",
+  "working_branch": "exp/kiaomni-true-kv-cache-compression-v1",
+  "status": "protocol_scaffold",
+  "intervention": "post_prefill_physical_kv_cache",
+  "controls": ["full_kv", "prompt_selection", "true_kv_kiaomni"],
+  "results_status": "none_yet"
+}
