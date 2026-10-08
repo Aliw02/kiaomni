@@ -234,6 +234,7 @@ def main():
                         default=[2048, 4096, 8192])
     parser.add_argument("--budgets", nargs="+", default=["B256", "r0.125"])
     parser.add_argument("--cases", type=int, default=5)
+    parser.add_argument("--cases-per-context", action="store_true")
     parser.add_argument("--seed", type=int, default=20261008)
     parser.add_argument("--max-new-tokens", type=int, default=96)
     parser.add_argument("--chunk-size", type=int, default=128)
@@ -253,8 +254,8 @@ def main():
         raise RuntimeError(f"Requires transformers==4.57.6, got {transformers.__version__}")
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA unavailable")
-    if not 1 <= options.cases <= len(DEFAULT_TASKS):
-        raise ValueError(f"cases must be 1..{len(DEFAULT_TASKS)}")
+    if options.cases < 1:
+        raise ValueError("cases must be >= 1")
     if not options.contexts or any(x < 512 for x in options.contexts):
         raise ValueError("contexts must all be >=512")
     if options.vault_tokens < 0:
@@ -262,7 +263,13 @@ def main():
     if options.trigger_multiplier < 1.0:
         raise ValueError("trigger_multiplier must be >= 1")
 
-    tasks = list(DEFAULT_TASKS[:options.cases])
+    tasks = [DEFAULT_TASKS[i % len(DEFAULT_TASKS)] for i in range(options.cases)]
+    case_plan = [
+        {"context_tokens": context, "task": task, "seed": options.seed + task_idx * 31}
+        for task_idx, task in enumerate(tasks)
+        for context in options.contexts
+        if options.cases_per_context or context == options.contexts[task_idx % len(options.contexts)]
+    ]
     budgets_by_context = {
         context: budgets_for_context(options.budgets, context)
         for context in options.contexts
@@ -278,6 +285,7 @@ def main():
         git_commit = None
     protocol = {
         "model_id": options.model_id, "contexts": options.contexts,
+        "case_plan": case_plan, "cases_per_context": options.cases_per_context,
         "tasks": tasks, "case_seeds": [
             options.seed + i * 31 for i in range(options.cases)
         ],
@@ -332,6 +340,8 @@ def main():
     with run_file.open("a", encoding="utf-8") as writer:
         for ctx in options.contexts:
             for task_index, task in enumerate(tasks):
+                if not options.cases_per_context and ctx != options.contexts[task_index % len(options.contexts)]:
+                    continue
                 seed = options.seed + task_index * 31
                 case = make_case(tokenizer, task, ctx, seed)
                 ids = torch.tensor(
@@ -436,7 +446,7 @@ def main():
     create_plots(table, out / "plots")
     (out / "manifest.json").write_text(json.dumps({
         "protocol_sha256": protocol_hash,
-        "expected_cases": options.cases * len(options.contexts),
+        "expected_cases": len(case_plan),
         "total_rows": len(rows),
         "successful": sum(r["status"] == "ok" for r in rows),
         "errors": sum(r["status"] != "ok" for r in rows),
