@@ -24,6 +24,10 @@ def main():
         cfg = AutoConfig.from_pretrained(opts.model_id, trust_remote_code=False)
         print(json.dumps({"model_id": opts.model_id, **inspect_architecture(cfg)}, indent=2))
         return 0
+    if command == "streaming-gate":
+        from .streaming_gate import main as gate_main
+        sys.argv = [sys.argv[0], *args]
+        return gate_main()
     if command == "demo":
         import torch
         from transformers import AutoConfig
