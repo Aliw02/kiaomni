@@ -13,7 +13,7 @@ from .capabilities import inspect_architecture
 def main():
     require_license()
     if len(sys.argv) < 2 or sys.argv[1] in {"-h", "--help"}:
-        print("Usage: kiaomni-repro check-model --model-id ID | demo [benchmark options]")
+        print("Usage: kiaomni-repro check-model --model-id ID | demo [...] | streaming-gate [...] | streaming-v2-benchmark [...]")
         return 0
     command, args = sys.argv[1], sys.argv[2:]
     if command == "check-model":
@@ -24,6 +24,10 @@ def main():
         cfg = AutoConfig.from_pretrained(opts.model_id, trust_remote_code=False)
         print(json.dumps({"model_id": opts.model_id, **inspect_architecture(cfg)}, indent=2))
         return 0
+    if command == "streaming-v2-benchmark":
+        from .streaming_v2_benchmark import main as streaming_v2_main
+        sys.argv = [sys.argv[0], *args]
+        return streaming_v2_main()
     if command == "streaming-gate":
         from .streaming_gate import main as gate_main
         sys.argv = [sys.argv[0], *args]

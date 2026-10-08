@@ -1,11 +1,13 @@
 # KiaOmni
 
+> **Licensing notice (v0.4.0 and later):** new original KiaOmni development is proprietary, with all rights reserved. Earlier versions released under MIT remain available under their original terms; changing this branch does not revoke previously granted MIT rights. See [LICENSE](LICENSE) and [LICENSE-MIT-PRIOR-RELEASES.txt](LICENSE-MIT-PRIOR-RELEASES.txt).
+
 > **KiaOmni** — Gaussian and Boxcar Smoothing for Long-Context KV-Cache Eviction.  
 > Generic monkey-patch for **any** HuggingFace causal LM — zero training, one function call.  
 > Works under **FlashAttention-2/3, SDPA, and eager** backends · batch-aware · removable at runtime.
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-orange.svg)](LICENSE)
 [![transformers 4.50+](https://img.shields.io/badge/transformers-4.50+-orange.svg)](https://github.com/huggingface/transformers)
 [![Paper](https://img.shields.io/badge/paper-preprint-red.svg)](paper/KiaOmni_Paper.pdf)
 

@@ -1,21 +1,34 @@
-MIT License
+KIAOMNI PROPRIETARY SOFTWARE LICENSE
+Copyright (c) 2026 Aliwey. All rights reserved.
 
-Copyright (c) 2026 Aliwey
+EFFECTIVE SCOPE
+Original source code, documentation, modifications, and other KiaOmni
+materials first distributed as part of version 0.4.0 and subsequent
+proprietary releases are not offered under the MIT License.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Except where a separate written agreement signed by the copyright holder
+expressly permits it, no permission is granted to copy, modify, publish,
+redistribute, sublicense, sell, or commercially deploy proprietary KiaOmni
+code or derivative portions of these new releases.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+LIMITED EVALUATION
+Any authorized evaluation package is provided solely under its accompanying
+written evaluation terms. Access to a public repository, possession of
+source code, or possession of an evaluation token does not itself grant
+additional intellectual-property rights in new proprietary material.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+HISTORICAL MIT RELEASES ARE UNAFFECTED
+KiaOmni code previously published under the MIT License remains subject to
+those earlier grants. This notice does not retrospectively withdraw any
+permissions already granted, and does not relicense third-party material
+owned by others. The original historical MIT text is preserved in
+LICENSE-MIT-PRIOR-RELEASES.txt for reference.
+
+THIRD-PARTY CODE
+Dependencies and third-party code remain subject to their own licenses.
+
+DISCLAIMER
+THIS PROPRIETARY SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW.
+
+For a commercial or evaluation agreement, contact the copyright holder.

@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kiaomni"
-version = "0.3.1"
+version = "0.4.0"
 description = "Generic monkey-patch KV-cache eviction (KiaOmni) for any HuggingFace causal LM"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { text = "Proprietary - All Rights Reserved" }
 authors = [
     { name = "Aliwey", email = "aliweyabood@gmail.com" }
 ]
@@ -16,7 +16,7 @@ keywords = ["llm", "kv-cache", "eviction", "long-context", "transformers", "infe
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
+    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
