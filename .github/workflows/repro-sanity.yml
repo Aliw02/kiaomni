@@ -1,0 +1,52 @@
+name: KiaOmni Repro Source Checks
+on:
+  push:
+    branches:
+      - exp/kiaomni-repro-sdk-v1
+  workflow_dispatch:
+
+jobs:
+  package-sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile package without importing model dependencies
+        run: python -m compileall -q kiaomni
+      - name: Validate adapter classification and invalid license
+        run: |
+          python - <<'PY'
+          import runpy
+          from types import SimpleNamespace
+          caps = runpy.run_path("kiaomni/repro/capabilities.py")["inspect_architecture"]
+          assert caps(SimpleNamespace(model_type="qwen2"))["true_kv"] != "unsupported"
+          assert caps(SimpleNamespace(model_type="llama"))["true_kv"] == "unsupported"
+          assert caps(SimpleNamespace(model_type="qwen2",layer_types=["sliding_attention"]))["true_kv"] == "unsupported"
+          lic = runpy.run_path("kiaomni/repro/license.py")
+          try:
+              lic["require_license"]("invalid")
+          except lic["LicenseError"]:
+              pass
+          else:
+              raise AssertionError("Missing/incorrect evaluation key was accepted")
+          print("Offline adapter/license sanity tests: OK")
+          PY
+      - name: Build installable wheel without downloading large model dependencies
+        run: |
+          python -m pip install --quiet build
+          python -m build --wheel --outdir dist
+          ls -lh dist
+      - name: Verify wheel contains reproducibility engine
+        run: |
+          python - <<'PY'
+          import glob,zipfile
+          w=glob.glob("dist/*.whl")
+          assert len(w)==1
+          with zipfile.ZipFile(w[0]) as z:
+              required={"kiaomni/repro/sdk.py","kiaomni/repro/cli.py","kiaomni/repro/benchmark.py","kiaomni/repro/qwen25_kv_runtime.py","kiaomni/repro/license.py"}
+              missing=required-set(z.namelist())
+              assert not missing,missing
+          print("Wheel files: OK")
+          PY
