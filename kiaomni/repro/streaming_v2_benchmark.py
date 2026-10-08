@@ -50,11 +50,24 @@ def budgets_for_context(specs: list[str], context: int) -> list[dict]:
 
 
 def estimate_full_cache_bytes(model, ctx: int) -> int:
+    """Fallback estimate for a full fp16/bf16 KV cache (not quantized weights).
+
+    Qwen2Config in transformers 4.57.6 may omit head_dim, so derive it
+    from hidden_size and num_attention_heads. Actual Full KV bytes from
+    the paired reference take precedence when available.
+    """
     cfg = model.config
+    num_heads = int(cfg.num_attention_heads)
+    hidden_size = int(cfg.hidden_size)
+    head_dim = getattr(cfg, "head_dim", None)
+    if head_dim is None:
+        if hidden_size % num_heads:
+            raise ValueError("Cannot derive an integral head_dim from config")
+        head_dim = hidden_size // num_heads
     return (
         int(ctx) * int(cfg.num_hidden_layers)
         * int(cfg.num_key_value_heads)
-        * int(cfg.head_dim) * 2 * 2
+        * int(head_dim) * 2 * 2
     )
 
 
@@ -377,8 +390,10 @@ def main():
                              and r["method"] == "full_kv"
                              and r["status"] == "ok"), None
                         )
-                        full_bytes = (
-                            full["kv_after_bytes"] if full else
+                        # Run the actual FC baseline first. Never require
+                        # a model-config estimate merely to start Full KV.
+                        full_bytes = None if method == "full_kv" else (
+                            int(full["kv_after_bytes"]) if full else
                             estimate_full_cache_bytes(model, ctx)
                         )
                         if method == "full_kv":
@@ -444,17 +459,41 @@ def main():
     table = summary_table(rows)
     table.to_csv(out / "comparison.csv", index=False)
     create_plots(table, out / "plots")
+    successful = sum(r["status"] == "ok" for r in rows)
+    full_success = sum(
+        r["status"] == "ok" and r["method"] == "full_kv"
+        for r in rows
+    )
+    failed_cases = sorted(
+        {r["case_id"] for r in rows if
+         r["method"] == "full_kv" and r["status"] != "ok"}
+    )
+    status = (
+        "FAILED_NO_SUCCESS" if successful == 0 else
+        "PARTIAL_INVALID_BASELINE" if failed_cases else
+        "COMPLETED_WITH_ERRORS" if successful != len(rows) else
+        "COMPLETED"
+    )
     (out / "manifest.json").write_text(json.dumps({
         "protocol_sha256": protocol_hash,
+        "status": status,
         "expected_cases": len(case_plan),
         "total_rows": len(rows),
-        "successful": sum(r["status"] == "ok" for r in rows),
+        "successful": successful,
+        "full_kv_successful": full_success,
+        "failed_baseline_case_ids": failed_cases,
         "errors": sum(r["status"] != "ok" for r in rows),
         "comparison": str(out / "comparison.csv"),
         "raw_runs": str(run_file),
         "streaming_status": "EXPERIMENTAL_NOT_VALIDATED",
     }, indent=2), encoding="utf-8")
     print(table.to_string(index=False))
+    print("[status]", status, flush=True)
+    if status in {"FAILED_NO_SUCCESS", "PARTIAL_INVALID_BASELINE"}:
+        raise RuntimeError(
+            f"Benchmark invalid ({status}): no complete paired comparison; "
+            "see manifest.json and runs.jsonl"
+        )
     print("[done]", out)
 
 
