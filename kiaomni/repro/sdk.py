@@ -29,9 +29,9 @@ class KiaOmniModel:
 
     @classmethod
     def from_pretrained(cls, model_id: str, *, quantization: str = "4bit",
-                        device: str = "cuda", license_key: str | None = None,
+                        device: str = "cuda",
                         revision: str | None = None):
-        require_license(license_key)
+        require_license()
         import torch
         from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
         if device not in {"cuda", "auto"} or not torch.cuda.is_available():
