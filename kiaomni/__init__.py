@@ -1,5 +1,8 @@
 """kiaomni — generic monkey-patch KV-cache eviction for any HF causal LM."""
 
+from .repro.license import require_license
+require_license()
+
 from .adapters import (
     ArchitectureProbe,
     Confidence,
@@ -17,8 +20,12 @@ from .moe_stability import (
 )
 from .policies import POLICY_REGISTRY, get_policy, register_policy
 from ._version import __version__
+from .repro.sdk import KiaOmniModel, GenerationResult, UnsupportedArchitecture
 
 __all__ = [
+    "KiaOmniModel",
+    "GenerationResult",
+    "UnsupportedArchitecture",
     "apply_kiaomni",
     "remove_kiaomni",
     "apply_moe_route_stability",
