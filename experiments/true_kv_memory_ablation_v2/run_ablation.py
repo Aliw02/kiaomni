@@ -516,17 +516,40 @@ def main() -> int:
                     del ids
                     drop_gpu_cache()
                     cases_done += 1
-                    save_summary(rows, out)
+                    latest = {}
+                    for entry in rows:
+                        latest[(entry["case_id"], entry["method"],
+                                entry.get("budget_tokens"))] = entry
+                    save_summary(list(latest.values()), out)
 
-    status = "COMPLETED" if all(r["status"] == "ok" for r in rows) else "COMPLETED_WITH_ERRORS"
+    # Keep all attempts in raw JSONL, but never count superseded failures twice.
+    latest = {}
+    for entry in rows:
+        latest[(entry["case_id"], entry["method"],
+                entry.get("budget_tokens"))] = entry
+    effective = list(latest.values())
+    expected_rows = sum(
+        len(tasks) * repeats *
+        (sum(not name.startswith("K") for name in args.methods) +
+         sum(name.startswith("K") for name in args.methods) * len(schedules[ctx]))
+        for ctx in contexts
+    )
+    if len(effective) < expected_rows:
+        status = "INCOMPLETE"
+    elif all(r["status"] == "ok" for r in effective):
+        status = "COMPLETED"
+    else:
+        status = "COMPLETED_WITH_ERRORS"
     manifest = {
         "status": status, "protocol_sha256": digest,
         "expected_cases": len(contexts) * repeats * len(tasks),
-        "cases_processed": cases_done, "rows": len(rows),
-        "ok": sum(r["status"] == "ok" for r in rows),
-        "oom": sum(r["status"] == "oom" for r in rows),
-        "errors": sum(r["status"] == "error" for r in rows),
-        "raw_runs": str(rows_path), "scientific_status": "UNVALIDATED_UNTIL_GPU_RUN",
+        "expected_rows": expected_rows,
+        "cases_processed_this_attempt": cases_done,
+        "raw_attempts": len(rows), "distinct_rows": len(effective),
+        "ok": sum(r["status"] == "ok" for r in effective),
+        "oom": sum(r["status"] == "oom" for r in effective),
+        "errors": sum(r["status"] == "error" for r in effective),
+        "raw_runs": str(rows_path), "scientific_status": "GPU_EXECUTED_PENDING_REVIEW",
     }
     (out / "manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf-8")
