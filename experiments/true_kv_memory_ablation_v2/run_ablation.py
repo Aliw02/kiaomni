@@ -322,6 +322,63 @@ def save_summary(rows: list[dict], out: Path):
             w.writeheader()
             w.writerows(paired)
 
+    # True paired ablation contrasts compare one isolated design change at a time.
+    # All variants must use the exact same case_id; K contrasts also match budgets.
+    by_method = {(r["case_id"], r["method"], r.get("budget_tokens")): r
+                 for r in ok}
+    contrasts = []
+    for cand in ok:
+        comparisons = {
+            "F1": ["F0"], "F2": ["F0"], "F3": ["F0"],
+            "K1": ["K0"], "K2": ["K1"], "K3": ["K1", "F2"],
+            "K4": ["K1"],
+        }.get(cand["method"], [])
+        for base_method in comparisons:
+            base_budget = (
+                cand["budget_tokens"] if base_method.startswith("K") else None
+            )
+            ref = by_method.get((cand["case_id"], base_method, base_budget))
+            if ref is None:
+                continue
+            base_phases = ref.get("phase_memory", {})
+            cand_phases = cand.get("phase_memory", {})
+            def after(phases, name):
+                return phases.get(name, {}).get("allocated_after_gib")
+            ref_compact = after(base_phases, "compaction")
+            cand_compact = after(cand_phases, "compaction")
+            contrasts.append({
+                "case_id": cand["case_id"],
+                "context_tokens": cand["context_tokens"],
+                "baseline": base_method,
+                "candidate": cand["method"],
+                "budget_tokens": cand["budget_tokens"],
+                "baseline_correct": ref["all_correct"],
+                "candidate_correct": cand["all_correct"],
+                "regression": bool(ref["all_correct"] and not cand["all_correct"]),
+                "recall_delta": cand["answer_recall"] - ref["answer_recall"],
+                "peak_allocated_delta_gib":
+                    cand["peak_allocated_gib"] - ref["peak_allocated_gib"],
+                "peak_reserved_delta_gib":
+                    cand["peak_reserved_gib"] - ref["peak_reserved_gib"],
+                "post_compaction_allocated_delta_gib":
+                    cand_compact - ref_compact
+                    if cand_compact is not None and ref_compact is not None
+                    else None,
+                "ttft_delta_seconds":
+                    cand["ttft_seconds"] - ref["ttft_seconds"],
+                "same_selection_mask":
+                    cand.get("mask_sha256") == ref.get("mask_sha256")
+                    if cand.get("mask_sha256") and ref.get("mask_sha256")
+                    else None,
+            })
+    if contrasts:
+        with (out / "ablation_contrasts.csv").open(
+            "w", newline="", encoding="utf-8"
+        ) as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(contrasts[0]))
+            writer.writeheader()
+            writer.writerows(contrasts)
+
     # Matched K0/K1 mask hashes expose invalid saliency-isolation assumptions.
     by_key = {(r["case_id"], r["method"], r["budget_tokens"]): r for r in ok}
     mask_equivalence = []
