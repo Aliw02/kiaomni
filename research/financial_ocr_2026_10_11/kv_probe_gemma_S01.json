@@ -1,0 +1,8 @@
+{
+  "status": "read_only_success",
+  "model": "gemma",
+  "case": "S01",
+  "cache_type": "DynamicCache",
+  "sequence_length": 273,
+  "true_eviction_executed": false
+}
