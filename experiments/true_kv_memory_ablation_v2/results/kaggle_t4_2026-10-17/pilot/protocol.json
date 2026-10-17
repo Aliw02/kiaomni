@@ -1,0 +1,75 @@
+{
+  "experiment": "true_kv_memory_ablation_v2",
+  "mode": "pilot",
+  "methods": [
+    "F0",
+    "F1",
+    "F2",
+    "F3",
+    "K0",
+    "K1",
+    "K2",
+    "K3",
+    "K4"
+  ],
+  "contexts": [
+    4096
+  ],
+  "budgets": {
+    "4096": [
+      {
+        "tokens": 98,
+        "aliases": [
+          "B98"
+        ]
+      },
+      {
+        "tokens": 128,
+        "aliases": [
+          "B128"
+        ]
+      },
+      {
+        "tokens": 256,
+        "aliases": [
+          "B256",
+          "r0.0625"
+        ]
+      },
+      {
+        "tokens": 512,
+        "aliases": [
+          "B512",
+          "r0.125"
+        ]
+      },
+      {
+        "tokens": 1024,
+        "aliases": [
+          "r0.25"
+        ]
+      }
+    ]
+  },
+  "tasks": [
+    "single_needle",
+    "multi_key",
+    "multi_value",
+    "multi_query",
+    "variable_tracking",
+    "summary_facts"
+  ],
+  "repeats": 1,
+  "seed": 20261004,
+  "max_new_tokens": 128,
+  "window": 32,
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "weight_quant": "NF4 4-bit",
+  "attention": "sdpa",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "python": "3.13.15",
+  "git_commit": "f578af4187901e9359d546ede9d8f6663da01bc5",
+  "no_eviction_during_prefill": true,
+  "sha256": "2c3fc97358c1481f835c12ac87e126b702c75ad4df22416902532996bc51eaec"
+}

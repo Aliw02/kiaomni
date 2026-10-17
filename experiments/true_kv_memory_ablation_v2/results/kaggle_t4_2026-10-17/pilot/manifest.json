@@ -1,0 +1,14 @@
+{
+  "status": "COMPLETED",
+  "protocol_sha256": "2c3fc97358c1481f835c12ac87e126b702c75ad4df22416902532996bc51eaec",
+  "expected_cases": 6,
+  "expected_rows": 174,
+  "cases_processed_this_attempt": 6,
+  "raw_attempts": 174,
+  "distinct_rows": 174,
+  "ok": 174,
+  "oom": 0,
+  "errors": 0,
+  "raw_runs": "/kaggle/working/true_kv_ablation_v2_research/pilot/runs.jsonl",
+  "scientific_status": "GPU_EXECUTED_PENDING_REVIEW"
+}

@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "context": 1024,
+  "chunked": {
+    "128": {
+      "same_cache_lengths": true,
+      "same_next_argmax": true,
+      "logits_max_abs_diff": 0.078125
+    },
+    "256": {
+      "same_cache_lengths": true,
+      "same_next_argmax": true,
+      "logits_max_abs_diff": 0.0546875
+    },
+    "512": {
+      "same_cache_lengths": true,
+      "same_next_argmax": true,
+      "logits_max_abs_diff": 0.048828125
+    }
+  },
+  "saliency": {
+    "max_abs_diff": 0.0,
+    "same_positions_by_budget": {
+      "128": true,
+      "256": true,
+      "512": true
+    }
+  }
+}
