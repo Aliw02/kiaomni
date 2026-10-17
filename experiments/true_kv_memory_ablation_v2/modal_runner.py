@@ -16,7 +16,7 @@ import modal
 
 APP_NAME = "kiaomni-true-kv-memory-ablation-v2"
 REPO = "https://github.com/Aliw02/kiaomni.git"
-BRANCH = "exp/kiaomni-true-kv-memory-ablation-v2"
+BRANCH = "exp/kiaomni-true-kv-memory-ablation-v2-research"
 ROOT = "/opt/kiaomni"
 RESULTS = "/outputs/true_kv_memory_ablation_v2"
 
@@ -80,6 +80,7 @@ def run_on_t4(mode: str, context: int, run_tag: str,
 
     env = os.environ.copy()
     env["HF_HOME"] = "/root/.cache/huggingface"
+    env["KIAOMNI_TRUEKV_RESEARCH_ONLY"] = "1"
     try:
         status = subprocess.run(cmd, cwd=ROOT, env=env, check=False).returncode
         return {
