@@ -1,7 +1,14 @@
 """kiaomni — generic monkey-patch KV-cache eviction for any HF causal LM."""
 
+# RESEARCH-ONLY BRANCH EXCEPTION:
+# The original SDK continues to require a private license in all other branches.
+# This explicit opt-in is used solely by the reproducible True-KV ablation runner.
+# DO NOT merge this research-specific exception into the licensed release branch.
+import os as _os
 from .repro.license import require_license
-require_license()
+if _os.environ.get("KIAOMNI_TRUEKV_RESEARCH_ONLY") != "1":
+    require_license()
+del _os
 
 from .adapters import (
     ArchitectureProbe,
