@@ -9,7 +9,7 @@ production distribution.
 The original SDK and its license hash are unchanged on their original branches.
 The research branch allows **only an explicit** environment opt-in:
 `KIAOMNI_TRUEKV_RESEARCH_ONLY=1`. The companion Kaggle notebook sets this flag
-for its own Python import preflight and controlled ablation subprocess. No
+for its own Python import preflight and controlled ablation subprocess.\nThe research-branch Modal launcher also passes this flag to the GPU subprocess. No
 Kaggle Secret, private license, random token, or license value is used.
 
 The public `KiaOmniModel` wrapper continues to enforce its own SDK evaluation
